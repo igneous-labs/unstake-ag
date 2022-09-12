@@ -1,0 +1,33 @@
+{
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["simple-import-sort"],
+  "extends": ["airbnb-base", "airbnb-typescript/base", "prettier"],
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "settings": {
+    "import/resolver": {
+      "typescript": {}
+    }
+  },
+  "rules": {
+    "simple-import-sort/imports": [
+      "error",
+      {
+        "groups": [["^@solana", "^@?\\w"], ["^[^.]"]]
+      }
+    ],
+    "import/prefer-default-export": "off",
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [".*"]
+      }
+    ],
+    "@typescript-eslint/no-use-before-define": "warn",
+    "no-plusplus": "off",
+    "import/no-cycle": "warn",
+    "no-param-reassign": ["error", { "props": false }]
+  }
+}
