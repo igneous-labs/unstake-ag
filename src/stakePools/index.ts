@@ -29,10 +29,10 @@ export interface StakePool {
 
   /**
    * Commmon setup instructions:
-   * - split stake account
    * - un-deactivate stake account
    *
    * Common setup instructions that are not covered:
+   * - split stake
    * - creating `outputToken` ATA if user does not have it yet
    * @param params
    */
@@ -46,6 +46,10 @@ export interface StakePool {
    */
   createSwapInstructions(
     params: CreateSwapInstructionsParams,
+  ): TransactionInstruction[];
+
+  createCleanupInstruction(
+    params: CreateCleanupInstructionsParams,
   ): TransactionInstruction[];
 
   // below methods are same signature as that from @jup-ag/core
@@ -74,12 +78,19 @@ export interface CanAcceptStakeAccountParams {
 export interface CreateSetupInstructionsParams
   extends WithStakeAuths,
     WithPayer {
+  stakeAccountPubkey: PublicKey;
   stakeAccount: AccountInfo<StakeAccount>;
   currentEpoch: number;
-  inAmount: BigInt;
 }
 
 export interface CreateSwapInstructionsParams
+  extends WithStakeAuths,
+    WithPayer {
+  stakeAccountPubkey: PublicKey;
+  destinationTokenAccount: PublicKey;
+}
+
+export interface CreateCleanupInstructionsParams
   extends WithStakeAuths,
     WithPayer {
   stakeAccountPubkey: PublicKey;
