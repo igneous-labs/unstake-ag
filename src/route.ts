@@ -1,6 +1,6 @@
-import { RouteInfo } from "@jup-ag/core";
+import type { RouteInfo } from "@jup-ag/core";
 
-import { StakePool } from "@/unstake-ag/stakePools";
+import type { StakePool } from "@/unstake-ag/stakePools";
 
 export interface StakeAccInputRoute {
   stakePool: StakePool;
