@@ -80,7 +80,8 @@
   "dependencies": {
     "@jup-ag/core": "^2.0.0-beta.4",
     "@soceanfi/solana-stake-sdk": "^0.1.0",
-    "@solana/web3.js": "^1.61.1"
+    "@solana/web3.js": "^1.61.1",
+    "@unstake-it/sol": "^0.1.1"
   },
   "publishConfig": {
     "access": "public"
