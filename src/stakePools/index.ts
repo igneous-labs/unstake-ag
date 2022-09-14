@@ -3,6 +3,11 @@ import type {
   PublicKey,
   TransactionInstruction,
 } from "@solana/web3.js";
+import type {
+  AccountInfoMap,
+  Quote,
+  QuoteParams,
+} from "@jup-ag/core/dist/lib/amm";
 import type { StakeAccount } from "@soceanfi/solana-stake-sdk";
 
 /**
@@ -16,6 +21,10 @@ import type { StakeAccount } from "@soceanfi/solana-stake-sdk";
 export interface StakePool {
   outputToken: PublicKey;
 
+  /**
+   * Check if a stake pool can accept the given stake account
+   * @param params
+   */
   canAcceptStakeAccount(params: CanAcceptStakeAccountParams): boolean;
 
   /**
@@ -38,6 +47,14 @@ export interface StakePool {
   createSwapInstructions(
     params: CreateSwapInstructionsParams,
   ): TransactionInstruction[];
+
+  // below methods are same signature as that from @jup-ag/core
+
+  getAccountsForUpdate(): PublicKey[];
+
+  update(accountInfoMap: AccountInfoMap): void;
+
+  getQuote(quoteParams: QuoteParams): Quote;
 }
 
 interface WithStakeAuths {
