@@ -45,17 +45,26 @@ interface WithStakeAuths {
   stakerAuth: PublicKey;
 }
 
+interface WithPayer {
+  payer: PublicKey;
+}
+
 export interface CanAcceptStakeAccountParams {
   stakeAccount: AccountInfo<StakeAccount>;
   currentEpoch: number;
 }
 
-export interface CreateSetupInstructionsParams extends WithStakeAuths {
+export interface CreateSetupInstructionsParams
+  extends WithStakeAuths,
+    WithPayer {
   stakeAccount: AccountInfo<StakeAccount>;
   currentEpoch: number;
   inAmount: BigInt;
 }
 
-export interface CreateSwapInstructionsParams extends WithStakeAuths {
+export interface CreateSwapInstructionsParams
+  extends WithStakeAuths,
+    WithPayer {
   stakeAccountPubkey: PublicKey;
+  destinationTokenAccount: PublicKey;
 }
