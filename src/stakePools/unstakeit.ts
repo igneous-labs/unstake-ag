@@ -1,51 +1,26 @@
 /* eslint-disable */
 
-import { Amm } from "@jup-ag/core";
 import {
   CanAcceptStakeAccountParams,
+  CreateSetupInstructionsParams,
+  CreateSwapInstructionsParams,
   StakePool,
 } from "@/unstake-ag/stakePools";
-import {
-  AccountInfoMap,
-  QuoteParams,
-  Quote,
-  SwapParams,
-} from "@jup-ag/core/dist/lib/amm";
-import {
-  AccountInfo,
-  PublicKey,
-  TransactionInstruction,
-} from "@solana/web3.js";
-import { StakeAccount } from "@soceanfi/solana-stake-sdk";
+import { PublicKey, TransactionInstruction } from "@solana/web3.js";
 
-class UnstakeIt implements Amm, StakePool {
-  label: string;
-  id: string;
-  reserveTokenMints: PublicKey[];
-  shouldPrefetch: boolean;
-  exactOutputSupported: boolean;
+class UnstakeIt implements StakePool {
   outputToken: PublicKey;
-
-  getAccountsForUpdate(): PublicKey[] {
+  canAcceptStakeAccount(params: CanAcceptStakeAccountParams): boolean {
     throw new Error("Method not implemented.");
   }
-
-  update(accountInfoMap: AccountInfoMap): void {
+  createSetupInstructions(
+    params: CreateSetupInstructionsParams,
+  ): TransactionInstruction[] {
     throw new Error("Method not implemented.");
   }
-
-  getQuote(quoteParams: QuoteParams): Quote {
-    throw new Error("Method not implemented.");
-  }
-
-  createSwapInstructions(swapParams: SwapParams): TransactionInstruction[] {
-    throw new Error("Method not implemented.");
-  }
-
-  canAcceptStakeAccount(
-    stakeAccount: AccountInfo<StakeAccount>,
-    params: CanAcceptStakeAccountParams,
-  ): boolean {
+  createSwapInstructions(
+    params: CreateSwapInstructionsParams,
+  ): TransactionInstruction[] {
     throw new Error("Method not implemented.");
   }
 }
