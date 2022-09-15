@@ -34,9 +34,10 @@ export async function chunkedGetMultipleAccountInfos(
           connection
             // @ts-ignore
             ._rpcBatchRequest(batch)
+            // @ts-ignore
             .then((batchResults) => {
-              // @ts-ignore
               const accounts = batchResults.reduce(
+                // @ts-ignore
                 (acc: Array<AccountInfo<Buffer> | null>, res) => {
                   // @ts-ignore
                   res.result.value.forEach((item) => {
