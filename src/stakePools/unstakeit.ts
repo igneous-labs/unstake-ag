@@ -5,9 +5,10 @@ import type {
   CreateCleanupInstructionsParams,
   CreateSwapInstructionsParams,
   StakePool,
+  StakePoolQuoteParams,
 } from "@/unstake-ag/stakePools";
 import { WRAPPED_SOL_MINT } from "@jup-ag/core";
-import { AccountInfoMap, QuoteParams, Quote } from "@jup-ag/core/dist/lib/amm";
+import { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
 import { stakeAccountState } from "@soceanfi/solana-stake-sdk";
 import {
   AccountInfo,
@@ -48,20 +49,25 @@ export class UnstakeIt implements StakePool {
 
   // following jup convention for ctor args
   constructor(
-    address: PublicKey,
+    poolAddress: PublicKey,
     // just pass in an AccountInfo with the right pubkey and owner
     // and not use the data since we're gonna call fetch all accounts and update() anyway
     poolAccountInfo: AccountInfo<Buffer>,
   ) {
     const progId = poolAccountInfo.owner;
-    this.program = new Program(UNSTAKE_IDL_JSON, progId);
+    // if last arg is undefined, anchor attemps to load defaultprovider
+    this.program = new Program(
+      UNSTAKE_IDL_JSON,
+      progId,
+      "fake-truthy-value" as any,
+    );
 
     this.pool = null;
     this.protocolFee = null;
     this.fee = null;
     this.poolSolReservesLamports = null;
 
-    this.poolAddr = address;
+    this.poolAddr = poolAddress;
 
     // TODO: export sync versions of the PDA functions in @unstake-it/sol
     // and replace these with those
@@ -168,18 +174,18 @@ export class UnstakeIt implements StakePool {
   update(accountInfoMap: AccountInfoMap): void {
     const pool = accountInfoMap.get(this.poolAddr.toString());
     if (pool) {
-      this.pool = this.program.coder.accounts.decode("pool", pool.data);
+      this.pool = this.program.coder.accounts.decode("Pool", pool.data);
     }
     const protocolFee = accountInfoMap.get(this.protocolFeeAddr.toString());
     if (protocolFee) {
       this.protocolFee = this.program.coder.accounts.decode(
-        "protocolFee",
+        "ProtocolFee",
         protocolFee.data,
       );
     }
     const fee = accountInfoMap.get(this.feeAddr.toString());
     if (fee) {
-      this.fee = this.program.coder.accounts.decode("fee", fee.data);
+      this.fee = this.program.coder.accounts.decode("Fee", fee.data);
     }
     const solReserves = accountInfoMap.get(this.poolSolReservesAddr.toString());
     if (solReserves) {
@@ -187,10 +193,7 @@ export class UnstakeIt implements StakePool {
     }
   }
 
-  getQuote({ destinationMint, amount }: QuoteParams): Quote {
-    if (!destinationMint.equals(this.outputToken)) {
-      throw new Error("wrong destination mint");
-    }
+  getQuote({ amount }: StakePoolQuoteParams): Quote {
     if (!this.fee) {
       throw new Error("fee account not fetched");
     }
@@ -200,7 +203,7 @@ export class UnstakeIt implements StakePool {
     if (!this.pool) {
       throw new Error("pool account not fetched");
     }
-    const stakeAccountLamports = new BN(amount);
+    const stakeAccountLamports = new BN(amount.toString());
     const solReservesLamports = new BN(this.poolSolReservesLamports);
     const estFeeDeductedLamports = applyFee(this.fee, {
       poolIncomingStake: this.pool.incomingStake,

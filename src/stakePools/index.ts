@@ -11,6 +11,14 @@ import type {
 import type { StakeAccount } from "@soceanfi/solana-stake-sdk";
 
 /**
+ * StakePools can only handle ExactIn swapMode and only ever outputs their own outputToken
+ */
+export type StakePoolQuoteParams = Omit<
+  QuoteParams,
+  "destinationMint" | "swapMode"
+>;
+
+/**
  * A StakePool in this context is any on-chain entity
  * that accepts stake accounts in return for tokens
  *
@@ -48,6 +56,7 @@ export interface StakePool {
   /**
    * Create the instructions for swapping the given
    * stake account to `outputToken` assuming setup is done
+   * Only accepts entire stake accounts.
    */
   createSwapInstructions(
     params: CreateSwapInstructionsParams,
@@ -63,7 +72,7 @@ export interface StakePool {
 
   update(accountInfoMap: AccountInfoMap): void;
 
-  getQuote(quoteParams: QuoteParams): Quote;
+  getQuote(quoteParams: StakePoolQuoteParams): Quote;
 }
 
 interface WithStakeAuths {

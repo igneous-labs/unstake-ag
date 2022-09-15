@@ -35,7 +35,7 @@
     "eslint": "eslint --cache --cache-location=node_modules/.cache/.eslintcache",
     "lint": "yarn run eslint src/ --ext .js,.ts",
     "prepare": "husky install",
-    "test": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-mocha --timeout 300000 --paths tests/test-*.ts",
+    "test": "TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-mocha --timeout 300000 --paths tests/test-*.ts --parallel",
     "clean": "rm -rf dist build package",
     "ts-node": "ts-node",
     "docs": "typedoc --entryPoints src/index.ts",
