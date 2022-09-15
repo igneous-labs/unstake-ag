@@ -32,8 +32,13 @@ export interface StakePool {
    * - un-deactivate stake account
    *
    * Common setup instructions that are not covered:
-   * - split stake
-   * - creating `outputToken` ATA if user does not have it yet
+   * - split stake.
+   *   Why?
+   *   - This involves generation and returning of a Keypair and Signer.
+   *     Simpler to just handle this outside of this interface
+   * - creating `outputToken` ATA if user does not have it yet.
+   *   Why?
+   *   - This involves a RPC call to check if the user's ATA exists.
    * @param params
    */
   createSetupInstructions(
@@ -94,5 +99,7 @@ export interface CreateCleanupInstructionsParams
   extends WithStakeAuths,
     WithPayer {
   stakeAccountPubkey: PublicKey;
+  stakeAccount: AccountInfo<StakeAccount>;
+  currentEpoch: number;
   destinationTokenAccount: PublicKey;
 }
