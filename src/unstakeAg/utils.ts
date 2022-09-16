@@ -62,3 +62,14 @@ export async function chunkedGetMultipleAccountInfos(
     )
   ).flat();
 }
+
+export function dummyAccountInfoForOwner(
+  owner: PublicKey,
+): AccountInfo<Buffer> {
+  return {
+    executable: false,
+    owner,
+    lamports: 0,
+    data: Buffer.from(""),
+  };
+}

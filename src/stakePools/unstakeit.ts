@@ -1,4 +1,5 @@
 /* eslint-disable */
+// TODO: REMOVE THIS ESLINT-DISABLE
 
 import type {
   CanAcceptStakeAccountParams,
