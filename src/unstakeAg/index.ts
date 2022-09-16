@@ -5,7 +5,7 @@ import {
   PublicKey,
   StakeProgram,
 } from "@solana/web3.js";
-import { Jupiter, WRAPPED_SOL_MINT } from "@jup-ag/core";
+import { Jupiter, JupiterLoadParams, WRAPPED_SOL_MINT } from "@jup-ag/core";
 import { StakeAccount } from "@soceanfi/solana-stake-sdk";
 import JSBI from "jsbi";
 import { UnstakeRoute } from "route";
@@ -38,32 +38,36 @@ export class UnstakeAg {
 
   jupiter: Jupiter;
 
+  /**
+   * Same as jupiter's. For refreshing stakePools
+   * -1, it will not fetch when shouldFetch == false
+   * 0, it will fetch everytime
+   * A duration in ms, the time interval between AMM accounts refetch, recommendation for a UI 20 seconds,
+   */
+  routeCacheDuration: number;
+
+  lastUpdateStakePoolsTimestamp: number;
+
   get stakePoolsAccountsToUpdate(): PublicKey[] {
     return this.stakePools.map((sp) => sp.getAccountsForUpdate()).flat();
   }
 
   constructor(
-    cluster: Cluster,
-    connection: Connection,
+    { cluster, connection, routeCacheDuration }: JupiterLoadParams,
     stakePools: StakePool[],
     jupiter: Jupiter,
   ) {
     this.cluster = cluster;
     this.connection = connection;
+    this.routeCacheDuration = routeCacheDuration ?? 0;
     this.stakePools = stakePools;
     this.jupiter = jupiter;
+    this.lastUpdateStakePoolsTimestamp = 0;
   }
 
-  static async load(
-    cluster: Cluster,
-    connection: Connection,
-  ): Promise<UnstakeAg> {
-    // TODO: parameterize routeCacheDuration
-    const jupiter = await Jupiter.load({
-      connection,
-      cluster,
-      // TODO: other params
-    });
+  static async load(params: JupiterLoadParams): Promise<UnstakeAg> {
+    const jupiter = await Jupiter.load(params);
+    const { cluster } = params;
 
     // TODO: add other StakePools
     const stakePools = [
@@ -91,7 +95,7 @@ export class UnstakeAg {
           ),
       ),
     ];
-    const res = new UnstakeAg(cluster, connection, stakePools, jupiter);
+    const res = new UnstakeAg(params, stakePools, jupiter);
     await res.updateStakePools();
     return res;
   }
@@ -118,11 +122,16 @@ export class UnstakeAg {
   async computeRoutes({
     stakeAccount,
     amountLamports,
+    slippagePct,
   }: ComputeRoutesParams): Promise<UnstakeRoute[]> {
-    // TODO: refreshing stakePools and jup should be controlled by a cache option
-    // similar to how jup does it instead of refreshing on every call
-    // refresh jup and stake pools
-    // await this.updateStakePools();
+    const msSinceLastFetch = Date.now() - this.lastUpdateStakePoolsTimestamp;
+    if (
+      msSinceLastFetch > this.routeCacheDuration ||
+      this.routeCacheDuration < 0
+    ) {
+      await this.updateStakePools();
+      this.lastUpdateStakePoolsTimestamp = Date.now();
+    }
 
     const { epoch: currentEpoch } = await this.connection.getEpochInfo();
     // each stakePool returns array of routes
@@ -157,10 +166,7 @@ export class UnstakeAg {
           inputMint: sp.outputToken,
           outputMint: WRAPPED_SOL_MINT,
           amount: outAmount,
-          // TODO: parameterize slippage
-          slippage: 0.1,
-          // jup should've been updated above already
-          forceFetch: false,
+          slippage: slippagePct,
         });
         const smallRoutes = filterSmallTxSizeJupRoutes(routesInfos);
         if (smallRoutes.length === 0) {
@@ -217,4 +223,9 @@ export interface ComputeRoutesParams {
    * added to the setup instructions
    */
   amountLamports: bigint;
+
+  /**
+   * In percent (0 - 100)
+   */
+  slippagePct: number;
 }

@@ -9,11 +9,15 @@ describe("test basic functionality", () => {
       "8rmCcsqJcLxdvJmaP9vqtM74vppRSCzr8kg7jsxFHPHT",
     );
     const conn = new Connection("https://solana-api.projectserum.com");
-    const unstake = await UnstakeAg.load("mainnet-beta", conn);
+    const unstake = await UnstakeAg.load({
+      cluster: "mainnet-beta",
+      connection: conn,
+    });
     const stakeAccount = await getStakeAccount(conn, testStakeAccPubkey);
     const routes = await unstake.computeRoutes({
       stakeAccount,
       amountLamports: BigInt(stakeAccount.lamports),
+      slippagePct: 0.1,
     });
     console.log(routes);
     console.log(
