@@ -102,6 +102,12 @@ export interface CreateSwapInstructionsParams
     WithPayer {
   stakeAccountPubkey: PublicKey;
   destinationTokenAccount: PublicKey;
+
+  /**
+   * Pubkey of the vote account `stakeAccountPubkey`
+   * is delegated to
+   */
+  stakeAccountVotePubkey: PublicKey;
 }
 
 export interface CreateCleanupInstructionsParams

@@ -1,5 +1,30 @@
-/* eslint-disable */
-// TODO: REMOVE THIS ESLINT-DISABLE
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import {
+  AccountInfo,
+  PublicKey,
+  StakeAuthorizationLayout,
+  StakeProgram,
+  TransactionInstruction,
+} from "@solana/web3.js";
+import { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
+import { stakeAccountState } from "@soceanfi/solana-stake-sdk";
+// NOTE:
+// Seems like current spl-stake-pool version [0.7.0](https://github.com/solana-labs/solana-program-library/blob/stake-pool-v0.7.0/stake-pool/program/src/processor.rs)
+// is still compatible with our stake-pool-sdk for depositStake instruction
+import {
+  calcStakeDeposit,
+  depositStakeInstruction,
+  Numberu64,
+  StakePool as SplStakePoolStruct,
+  ValidatorList,
+} from "@soceanfi/stake-pool-sdk";
+// TODO: export this from the main lib in @soceanfi/stake-pool-sdk
+import {
+  getStakePoolFromAccountInfo,
+  getValidatorListFromAccountInfo,
+} from "@soceanfi/stake-pool-sdk/dist/esm/stake-pool/utils";
+import { BN } from "bn.js";
+import JSBI from "jsbi";
 
 import type {
   CanAcceptStakeAccountParams,
@@ -8,32 +33,6 @@ import type {
   StakePool,
   StakePoolQuoteParams,
 } from "@/unstake-ag/stakePools";
-import { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
-import {
-  AccountInfo,
-  PublicKey,
-  StakeProgram,
-  TransactionInstruction,
-} from "@solana/web3.js";
-
-// NOTE:
-// Seems like current spl-stake-pool version [0.7.0](https://github.com/solana-labs/solana-program-library/blob/stake-pool-v0.7.0/stake-pool/program/src/processor.rs)
-// is still compatible with our stake-pool-sdk for depositStake instruction
-import {
-  calcStakeDeposit,
-  Numberu64,
-  StakePool as SplStakePoolStruct,
-  ValidatorList,
-} from "@soceanfi/stake-pool-sdk";
-
-// TODO: export this from the main lib in @soceanfi/stake-pool-sdk
-import {
-  getStakePoolFromAccountInfo,
-  getValidatorListFromAccountInfo,
-} from "@soceanfi/stake-pool-sdk/dist/esm/stake-pool/utils";
-import { stakeAccountState } from "@soceanfi/solana-stake-sdk";
-import { BN } from "bn.js";
-import JSBI from "jsbi";
 
 interface SplStakePoolCtorParams {
   validatorListAddr: PublicKey;
@@ -45,11 +44,14 @@ export class SplStakePool implements StakePool {
 
   // accounts cache
   stakePool: SplStakePoolStruct | null;
+
   validatorList: ValidatorList | null;
 
   // addr cache
   programId: PublicKey;
+
   stakePoolAddr: PublicKey;
+
   validatorListAddr: PublicKey;
 
   constructor(
@@ -97,6 +99,7 @@ export class SplStakePool implements StakePool {
     );
   }
 
+  // eslint-disable-next-line class-methods-use-this
   createSetupInstructions({
     currentEpoch,
     stakeAccount,
@@ -118,12 +121,60 @@ export class SplStakePool implements StakePool {
     return [];
   }
 
-  createSwapInstructions(
-    params: CreateSwapInstructionsParams,
-  ): TransactionInstruction[] {
-    throw new Error("Method not implemented.");
+  createSwapInstructions({
+    stakeAccountPubkey,
+    stakerAuth,
+    withdrawerAuth,
+    destinationTokenAccount,
+    stakeAccountVotePubkey,
+  }: CreateSwapInstructionsParams): TransactionInstruction[] {
+    if (!this.stakePool) {
+      throw new Error("stakePool not fetched");
+    }
+
+    // TODO: export sync versions of these PDA util functions
+    // from stake-pool-sdk
+    const [stakePoolWithdrawAuth] = PublicKey.findProgramAddressSync(
+      [this.stakePoolAddr.toBuffer(), Buffer.from("withdraw")],
+      this.programId,
+    );
+    const [validatorStakeAccount] = PublicKey.findProgramAddressSync(
+      [stakeAccountVotePubkey.toBuffer(), this.stakePoolAddr.toBuffer()],
+      this.programId,
+    );
+    return [
+      ...StakeProgram.authorize({
+        stakePubkey: stakeAccountPubkey,
+        authorizedPubkey: stakerAuth,
+        newAuthorizedPubkey: this.stakePool.depositAuthority,
+        stakeAuthorizationType: StakeAuthorizationLayout.Staker,
+      }).instructions,
+      ...StakeProgram.authorize({
+        stakePubkey: stakeAccountPubkey,
+        authorizedPubkey: withdrawerAuth,
+        newAuthorizedPubkey: this.stakePool.depositAuthority,
+        stakeAuthorizationType: StakeAuthorizationLayout.Withdrawer,
+      }).instructions,
+      depositStakeInstruction(
+        this.programId,
+        this.stakePoolAddr,
+        this.validatorListAddr,
+        this.stakePool.depositAuthority,
+        stakePoolWithdrawAuth,
+        stakeAccountPubkey,
+        validatorStakeAccount,
+        this.stakePool.reserveStake,
+        destinationTokenAccount,
+        this.stakePool.managerFeeAccount,
+        // no referrer
+        this.stakePool.managerFeeAccount,
+        this.stakePool.poolMint,
+        TOKEN_PROGRAM_ID,
+      ),
+    ];
   }
 
+  // eslint-disable-next-line class-methods-use-this
   createCleanupInstruction(): TransactionInstruction[] {
     return [];
   }
