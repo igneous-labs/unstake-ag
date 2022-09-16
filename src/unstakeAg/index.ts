@@ -1,9 +1,19 @@
 import {
+  createAssociatedTokenAccountInstruction,
+  getAccount,
+  getAssociatedTokenAddress,
+  TokenAccountNotFoundError,
+  TokenInvalidAccountOwnerError,
+} from "@solana/spl-token-v2";
+import {
   AccountInfo,
   Cluster,
   Connection,
+  Keypair,
   PublicKey,
+  Signer,
   StakeProgram,
+  Transaction,
 } from "@solana/web3.js";
 import { Jupiter, JupiterLoadParams, WRAPPED_SOL_MINT } from "@jup-ag/core";
 import { StakeAccount } from "@soceanfi/solana-stake-sdk";
@@ -25,6 +35,8 @@ import {
   dummyAccountInfoForProgramOwner,
   filterSmallTxSizeJupRoutes,
 } from "@/unstake-ag/unstakeAg/utils";
+
+export { routeMarketLabels } from "./utils";
 
 /**
  * Main exported class
@@ -195,7 +207,141 @@ export class UnstakeAg {
     });
   }
 
-  // TODO: method for converting route to Transactions
+  async exchange({
+    route: {
+      stakeAccInput: { stakePool, inAmount },
+      jup,
+    },
+    stakeAccount,
+    stakeAccountPubkey: inputStakeAccount,
+    withdrawerAuth,
+    stakerAuth,
+    user,
+    currentEpoch,
+  }: ExchangeParams): Promise<ExchangeReturn> {
+    if (!stakeAccount.data.info.stake) {
+      throw new Error("stake account not delegated");
+    }
+
+    const setupIxs = [];
+    const unstakeIxs = [];
+    const cleanupIxs = [];
+    const setupSigners = [];
+    let stakeAccountPubkey = inputStakeAccount;
+    if (inAmount < stakeAccount.lamports) {
+      const splitted = Keypair.generate();
+      stakeAccountPubkey = splitted.publicKey;
+      setupIxs.push(
+        ...StakeProgram.split({
+          stakePubkey: inputStakeAccount,
+          authorizedPubkey: stakerAuth,
+          splitStakePubkey: splitted.publicKey,
+          lamports: Number(inAmount),
+        }).instructions,
+      );
+      setupSigners.push(splitted);
+    }
+    setupIxs.push(
+      ...stakePool.createSetupInstructions({
+        withdrawerAuth,
+        stakerAuth,
+        payer: user,
+        stakeAccount,
+        stakeAccountPubkey,
+        currentEpoch,
+      }),
+    );
+
+    // Create ATA if not exist
+    const destinationTokenAccount = await getAssociatedTokenAddress(
+      stakePool.outputToken,
+      user,
+    );
+    try {
+      await getAccount(this.connection, destinationTokenAccount);
+    } catch (e) {
+      if (
+        e instanceof TokenAccountNotFoundError ||
+        e instanceof TokenInvalidAccountOwnerError
+      ) {
+        setupIxs.push(
+          createAssociatedTokenAccountInstruction(
+            user,
+            destinationTokenAccount,
+            user,
+            stakePool.outputToken,
+          ),
+        );
+      } else {
+        throw e;
+      }
+    }
+
+    unstakeIxs.push(
+      ...stakePool.createSwapInstructions({
+        withdrawerAuth,
+        stakerAuth,
+        payer: user,
+        stakeAccountPubkey,
+        stakeAccountVotePubkey: stakeAccount.data.info.stake.delegation.voter,
+        destinationTokenAccount,
+      }),
+    );
+
+    cleanupIxs.push(
+      ...stakePool.createCleanupInstruction({
+        withdrawerAuth,
+        stakerAuth,
+        payer: user,
+        stakeAccountPubkey,
+        stakeAccount,
+        currentEpoch,
+        destinationTokenAccount,
+      }),
+    );
+
+    if (jup) {
+      const {
+        transactions: { setupTransaction, swapTransaction, cleanupTransaction },
+      } = await this.jupiter.exchange({
+        routeInfo: jup,
+        userPublicKey: user,
+      });
+      if (setupTransaction) {
+        setupIxs.push(...setupTransaction.instructions);
+      }
+      unstakeIxs.push(...swapTransaction.instructions);
+      if (cleanupTransaction) {
+        cleanupIxs.push(...cleanupTransaction.instructions);
+      }
+    }
+
+    let setupTransaction;
+    if (setupIxs.length > 0) {
+      setupTransaction = new Transaction();
+      setupTransaction.add(...setupIxs);
+    }
+
+    const unstakeTransaction = new Transaction();
+    unstakeTransaction.add(...unstakeIxs);
+
+    let cleanupTransaction;
+    if (cleanupIxs.length > 0) {
+      cleanupTransaction = new Transaction();
+      cleanupTransaction.add(...cleanupIxs);
+    }
+
+    return {
+      transactions: {
+        setupTransaction,
+        unstakeTransaction,
+        cleanupTransaction,
+      },
+      signers: {
+        setupSigners,
+      },
+    };
+  }
 }
 
 /**
@@ -228,4 +374,25 @@ export interface ComputeRoutesParams {
    * In percent (0 - 100)
    */
   slippagePct: number;
+}
+
+export interface ExchangeParams {
+  route: UnstakeRoute;
+  stakeAccount: AccountInfo<StakeAccount>;
+  stakeAccountPubkey: PublicKey;
+  withdrawerAuth: PublicKey;
+  stakerAuth: PublicKey;
+  user: PublicKey;
+  currentEpoch: number;
+}
+
+export interface ExchangeReturn {
+  transactions: {
+    setupTransaction?: Transaction;
+    unstakeTransaction: Transaction;
+    cleanupTransaction?: Transaction;
+  };
+  signers: {
+    setupSigners: Signer[];
+  };
 }

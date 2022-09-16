@@ -4,7 +4,7 @@ import type {
   AddressMap,
   SplStakePoolAccounts,
 } from "@/unstake-ag/unstakeAg/address";
-import { OFFICIAL_SPL_STAKE_POOL_PROGRAM_ID } from "@/unstake-ag/unstakeAg/address";
+import { OFFICIAL_SPL_STAKE_POOL_PROGRAM_ID } from "@/unstake-ag/unstakeAg/address/splStakePool/consts";
 
 /**
  * NOTE: DEVNET AND TESTNET DONT WORK
