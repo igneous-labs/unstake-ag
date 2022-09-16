@@ -32,6 +32,8 @@ import type {
 export class UnstakeIt implements StakePool {
   outputToken: PublicKey = WRAPPED_SOL_MINT;
 
+  label: string = "unstake.it";
+
   program: Program<Unstake>;
 
   // cached state

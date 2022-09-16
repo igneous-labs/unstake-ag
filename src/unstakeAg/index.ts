@@ -5,15 +5,23 @@ import {
   PublicKey,
   StakeProgram,
 } from "@solana/web3.js";
-import { WRAPPED_SOL_MINT } from "@jup-ag/core";
+import { Jupiter, WRAPPED_SOL_MINT } from "@jup-ag/core";
 import { StakeAccount } from "@soceanfi/solana-stake-sdk";
 import JSBI from "jsbi";
 import { UnstakeRoute } from "route";
+import { SplStakePool } from "stakePools/splStakePool";
 import { UnstakeIt } from "stakePools/unstakeit";
 
 import { StakePool } from "@/unstake-ag/stakePools";
-import { UNSTAKE_IT_ADDRESS_MAP } from "@/unstake-ag/unstakeAg/address";
-import { chunkedGetMultipleAccountInfos } from "@/unstake-ag/unstakeAg/utils";
+import {
+  SOCEAN_ADDRESS_MAP,
+  UNSTAKE_IT_ADDRESS_MAP,
+} from "@/unstake-ag/unstakeAg/address";
+import {
+  chunkedGetMultipleAccountInfos,
+  dummyAccountInfoForProgramOwner,
+  filterSmallTxSizeJupRoutes,
+} from "@/unstake-ag/unstakeAg/utils";
 
 /**
  * Main exported class
@@ -25,32 +33,66 @@ export class UnstakeAg {
 
   connection: Connection;
 
-  get accountsToUpdate(): PublicKey[] {
+  jupiter: Jupiter;
+
+  get stakePoolsAccountsToUpdate(): PublicKey[] {
     return this.stakePools.map((sp) => sp.getAccountsForUpdate()).flat();
   }
 
-  constructor(cluster: Cluster, connection: Connection) {
+  constructor(
+    cluster: Cluster,
+    connection: Connection,
+    stakePools: StakePool[],
+    jupiter: Jupiter,
+  ) {
     this.cluster = cluster;
     this.connection = connection;
+    this.stakePools = stakePools;
+    this.jupiter = jupiter;
+  }
+
+  static async load(
+    cluster: Cluster,
+    connection: Connection,
+  ): Promise<UnstakeAg> {
+    // TODO: parameterizer routeCacheDuration
+    const jupiter = await Jupiter.load({
+      connection,
+      cluster,
+      // TODO: other params
+    });
+
     // TODO: add other StakePools
-    // TODO: add Jup instance
-    this.stakePools = [
+    const stakePools = [
       new UnstakeIt(
         UNSTAKE_IT_ADDRESS_MAP[cluster].pool,
-        // just a dummy account to pass owner in
-        {
-          executable: false,
-          owner: UNSTAKE_IT_ADDRESS_MAP[cluster].program,
-          lamports: 0,
-          data: Buffer.from(""),
-        },
+        dummyAccountInfoForProgramOwner(
+          UNSTAKE_IT_ADDRESS_MAP[cluster].program,
+        ),
+      ),
+      ...[{ splAddrMap: SOCEAN_ADDRESS_MAP, label: "socean" }].map(
+        ({ splAddrMap, label }) =>
+          new SplStakePool(
+            splAddrMap[cluster].stakePool,
+            dummyAccountInfoForProgramOwner(splAddrMap[cluster].program),
+            {
+              validatorListAddr: splAddrMap[cluster].validatorList,
+              outputToken: splAddrMap[cluster].stakePoolToken,
+              label,
+            },
+          ),
       ),
     ];
+    const res = new UnstakeAg(cluster, connection, stakePools, jupiter);
+    await res.updateStakePools();
+    return res;
   }
 
   // copied from jup's prefetchAmms
   async updateStakePools(): Promise<void> {
-    const accountsStr = this.accountsToUpdate.map((pk) => pk.toBase58());
+    const accountsStr = this.stakePoolsAccountsToUpdate.map((pk) =>
+      pk.toBase58(),
+    );
     const accountInfosMap = new Map();
     const accountInfos = await chunkedGetMultipleAccountInfos(
       this.connection,
@@ -72,11 +114,12 @@ export class UnstakeAg {
     // TODO: refreshing stakePools and jup should be controlled by a cache option
     // similar to how jup does it instead of refreshing on every call
     // refresh jup and stake pools
-    await this.updateStakePools();
+    // await this.updateStakePools();
 
     const { epoch: currentEpoch } = await this.connection.getEpochInfo();
-    return this.stakePools
-      .map((sp) => {
+    // each stakePool returns array of routes
+    const maybeRoutes = await Promise.all(
+      this.stakePools.map(async (sp) => {
         if (
           !sp.canAcceptStakeAccount({
             currentEpoch,
@@ -91,7 +134,7 @@ export class UnstakeAg {
             StakeProgram.programId,
           amount: JSBI.BigInt(amountLamports.toString()),
         });
-        const res = {
+        const stakePoolRoute = {
           stakeAccInput: {
             stakePool: sp,
             inAmount: amountLamports,
@@ -99,12 +142,31 @@ export class UnstakeAg {
           },
         };
         if (sp.outputToken.equals(WRAPPED_SOL_MINT)) {
-          return res;
+          return [stakePoolRoute];
         }
-        // TODO: if sp.outputToken !== SOL, continue route through jupiter to reach SOL
-        return null;
-      })
-      .filter((maybeNull) => Boolean(maybeNull)) as UnstakeRoute[];
+        // If sp.outputToken !== SOL, continue route through jupiter to reach SOL
+        const { routesInfos } = await this.jupiter.computeRoutes({
+          inputMint: sp.outputToken,
+          outputMint: WRAPPED_SOL_MINT,
+          amount: outAmount,
+          // TODO: parameterize slippage
+          slippage: 0.1,
+          // jup should've been updated above already
+          forceFetch: false,
+        });
+        const smallRoutes = filterSmallTxSizeJupRoutes(routesInfos);
+        if (smallRoutes.length === 0) {
+          return null;
+        }
+        return smallRoutes.map((jupRoute) => ({
+          ...stakePoolRoute,
+          jup: jupRoute,
+        }));
+      }),
+    );
+    return maybeRoutes
+      .filter((maybeNull) => Boolean(maybeNull))
+      .flat() as UnstakeRoute[];
   }
 
   // TODO: method for converting route to Transactions

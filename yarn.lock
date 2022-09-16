@@ -456,10 +456,10 @@
   resolved "https://registry.yarnpkg.com/@soceanfi/solana-stake-sdk/-/solana-stake-sdk-0.1.0.tgz#212bffd67868098960b32eb8e3fa911437edb4e3"
   integrity sha512-/P+A9L7NTVJ6FuE7RCXE164mbqLQ2LEj3H+zEr0QBpdR0qz4Ivl8fyHHDrXhkYEJiEMAA5DAIFa6Rx/xkUVVVw==
 
-"@soceanfi/stake-pool-sdk@^0.4.2":
-  version "0.4.2"
-  resolved "https://registry.yarnpkg.com/@soceanfi/stake-pool-sdk/-/stake-pool-sdk-0.4.2.tgz#c2f90c405f676e2177b3e847c72edd939d1e28c4"
-  integrity sha512-WAZmOb0Bx779WgGjAdScv9KXPi0uoku3Hosn6v/EeB0Oz3xC+fPuTbB1VrV8f2ZQlmS1yQdh76WSJhuzKQWI5g==
+"@soceanfi/stake-pool-sdk@^0.4.3":
+  version "0.4.3"
+  resolved "https://registry.yarnpkg.com/@soceanfi/stake-pool-sdk/-/stake-pool-sdk-0.4.3.tgz#929a46b0d2b1fa53251067e3e59e6f188c0da8a1"
+  integrity sha512-POqct1Mctv+gzWV1/tPWz0Ww2sB/cJ2Reavhfvr3UcZ0jD+xS66PLp78tkZyBhK7sHlKP8NOiDVYw/9IIWWRwA==
   dependencies:
     "@solana/buffer-layout" "^4.0.0"
     "@solana/spl-token" "^0.1.8"

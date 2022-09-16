@@ -29,6 +29,8 @@ export type StakePoolQuoteParams = Omit<
 export interface StakePool {
   outputToken: PublicKey;
 
+  label: string;
+
   /**
    * Check if a stake pool can accept the given stake account
    * @param params

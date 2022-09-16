@@ -13,16 +13,13 @@ import { stakeAccountState } from "@soceanfi/solana-stake-sdk";
 // is still compatible with our stake-pool-sdk for depositStake instruction
 import {
   calcStakeDeposit,
+  decodeStakePool,
+  decodeValidatorList,
   depositStakeInstruction,
   Numberu64,
   StakePool as SplStakePoolStruct,
   ValidatorList,
 } from "@soceanfi/stake-pool-sdk";
-// TODO: export this from the main lib in @soceanfi/stake-pool-sdk
-import {
-  getStakePoolFromAccountInfo,
-  getValidatorListFromAccountInfo,
-} from "@soceanfi/stake-pool-sdk/dist/esm/stake-pool/utils";
 import { BN } from "bn.js";
 import JSBI from "jsbi";
 
@@ -37,10 +34,13 @@ import type {
 interface SplStakePoolCtorParams {
   validatorListAddr: PublicKey;
   outputToken: PublicKey;
+  label: string;
 }
 
 export class SplStakePool implements StakePool {
   outputToken: PublicKey;
+
+  label: string;
 
   // accounts cache
   stakePool: SplStakePoolStruct | null;
@@ -59,9 +59,10 @@ export class SplStakePool implements StakePool {
     // just pass in an AccountInfo with the right owner
     // and not use the data since we're gonna call fetch all accounts and update() anyway
     stakePoolAccountInfo: AccountInfo<Buffer>,
-    { validatorListAddr, outputToken }: SplStakePoolCtorParams,
+    { validatorListAddr, outputToken, label }: SplStakePoolCtorParams,
   ) {
     this.outputToken = outputToken;
+    this.label = label;
 
     this.stakePool = null;
     this.validatorList = null;
@@ -186,17 +187,11 @@ export class SplStakePool implements StakePool {
   update(accountInfoMap: AccountInfoMap): void {
     const stakePool = accountInfoMap.get(this.stakePoolAddr.toString());
     if (stakePool) {
-      this.stakePool = getStakePoolFromAccountInfo(
-        this.stakePoolAddr,
-        stakePool,
-      ).account.data;
+      this.stakePool = decodeStakePool(stakePool.data);
     }
     const validatorList = accountInfoMap.get(this.validatorListAddr.toString());
     if (validatorList) {
-      this.validatorList = getValidatorListFromAccountInfo(
-        this.stakePoolAddr,
-        validatorList,
-      ).account.data;
+      this.validatorList = decodeValidatorList(validatorList.data);
     }
   }
 

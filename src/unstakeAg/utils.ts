@@ -1,6 +1,7 @@
 // Copied from jup core.cjs.development.js
 
 import { AccountInfo, Connection, PublicKey } from "@solana/web3.js";
+import { RouteInfo } from "@jup-ag/core";
 
 export function chunks<T>(array: Array<T>, size: number) {
   return Array.apply(0, new Array(Math.ceil(array.length / size))).map(
@@ -63,13 +64,26 @@ export async function chunkedGetMultipleAccountInfos(
   ).flat();
 }
 
-export function dummyAccountInfoForOwner(
-  owner: PublicKey,
+export function dummyAccountInfoForProgramOwner(
+  programOwner: PublicKey,
 ): AccountInfo<Buffer> {
   return {
     executable: false,
-    owner,
+    owner: programOwner,
     lamports: 0,
     data: Buffer.from(""),
   };
+}
+
+export function filterSmallTxSizeJupRoutes(routes: RouteInfo[]): RouteInfo[] {
+  const MAX_JUP_MARKETS = 1;
+  return routes.filter((route) => {
+    const marketsInvolved = Math.max(
+      route.marketInfos.length,
+      route.marketInfos
+        .map((m) => m.amm.label.split("+").length)
+        .reduce((sum, curr) => sum + curr, 0),
+    );
+    return marketsInvolved <= MAX_JUP_MARKETS;
+  });
 }
