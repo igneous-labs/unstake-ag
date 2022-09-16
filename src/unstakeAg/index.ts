@@ -74,7 +74,7 @@ export class UnstakeAg {
         ),
       ),
       ...[
-        { splAddrMap: SOCEAN_ADDRESS_MAP, label: "socean" },
+        { splAddrMap: SOCEAN_ADDRESS_MAP, label: "Socean" },
         { splAddrMap: JPOOL_ADDRESS_MAP, label: "JPool" },
         { splAddrMap: SOLBLAZE_ADDRESS_MAP, label: "SolBlaze" },
         { splAddrMap: DAOPOOL_ADDRESS_MAP, label: "DAOPool" },
