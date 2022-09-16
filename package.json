@@ -83,7 +83,7 @@
     "@soceanfi/stake-pool-sdk": "^0.4.3",
     "@solana/spl-token": "^0.2.0",
     "@solana/web3.js": "^1.61.1",
-    "@unstake-it/sol": "^0.1.1",
+    "@unstake-it/sol": "^0.1.2",
     "bn.js": "^5",
     "jsbi": "^4.3.0"
   },

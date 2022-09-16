@@ -16,7 +16,16 @@ describe("test basic functionality", () => {
       amountLamports: BigInt(stakeAccount.lamports),
     });
     console.log(routes);
-    console.log(routes.map((r) => outLamports(r)));
+    console.log(
+      routes.map(
+        (r) =>
+          `${r.stakeAccInput.stakePool.label} ${
+            r.jup
+              ? `+ ${r.jup.marketInfos.map((m) => m.amm.label).join(" + ")}`
+              : ""
+          }: ${outLamports(r).toString()}`,
+      ),
+    );
     console.log(routes.length);
   });
 });

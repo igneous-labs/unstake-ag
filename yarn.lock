@@ -762,10 +762,10 @@
   resolved "https://registry.yarnpkg.com/@ungap/promise-all-settled/-/promise-all-settled-1.1.2.tgz#aa58042711d6e3275dd37dc597e5d31e8c290a44"
   integrity sha512-sL/cEvJWAnClXw0wHk85/2L0G6Sj8UB0Ctc1TEMbKSsmpRosqhwj9gWgFRZSrBr2f9tiXISwNhCPmlfqUqyb9Q==
 
-"@unstake-it/sol@^0.1.1":
-  version "0.1.1"
-  resolved "https://registry.yarnpkg.com/@unstake-it/sol/-/sol-0.1.1.tgz#5fd6e7d75b2fa9b917da6d18844fed4e0fb766e7"
-  integrity sha512-yhbN3ClQvb8undQgw1pqhrzzleba32aL+fFUciv4CG28Z1cPnymUIAgJFdy75hEtOBtmUSoE117KQY1lCkmQwQ==
+"@unstake-it/sol@^0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@unstake-it/sol/-/sol-0.1.2.tgz#bb28266a6fccc8cf02d57b7c89bc8f12a01b1ad1"
+  integrity sha512-keYljzr1Tz167eopZa1naiijj7MSOJGM+JRg2rg+ECbtg6TSA0lqDmRUmTFQrg1C4Fpr8t8IrQeGX5Nv8Qp0zg==
   dependencies:
     "@project-serum/anchor" "0.24.2"
 
