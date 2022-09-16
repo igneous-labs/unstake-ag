@@ -14,7 +14,10 @@ import { UnstakeIt } from "stakePools/unstakeit";
 
 import { StakePool } from "@/unstake-ag/stakePools";
 import {
+  DAOPOOL_ADDRESS_MAP,
+  JPOOL_ADDRESS_MAP,
   SOCEAN_ADDRESS_MAP,
+  SOLBLAZE_ADDRESS_MAP,
   UNSTAKE_IT_ADDRESS_MAP,
 } from "@/unstake-ag/unstakeAg/address";
 import {
@@ -55,7 +58,7 @@ export class UnstakeAg {
     cluster: Cluster,
     connection: Connection,
   ): Promise<UnstakeAg> {
-    // TODO: parameterizer routeCacheDuration
+    // TODO: parameterize routeCacheDuration
     const jupiter = await Jupiter.load({
       connection,
       cluster,
@@ -70,7 +73,12 @@ export class UnstakeAg {
           UNSTAKE_IT_ADDRESS_MAP[cluster].program,
         ),
       ),
-      ...[{ splAddrMap: SOCEAN_ADDRESS_MAP, label: "socean" }].map(
+      ...[
+        { splAddrMap: SOCEAN_ADDRESS_MAP, label: "socean" },
+        { splAddrMap: JPOOL_ADDRESS_MAP, label: "JPool" },
+        { splAddrMap: SOLBLAZE_ADDRESS_MAP, label: "SolBlaze" },
+        { splAddrMap: DAOPOOL_ADDRESS_MAP, label: "DAOPool" },
+      ].map(
         ({ splAddrMap, label }) =>
           new SplStakePool(
             splAddrMap[cluster].stakePool,
@@ -164,12 +172,36 @@ export class UnstakeAg {
         }));
       }),
     );
-    return maybeRoutes
+    const routes = maybeRoutes
       .filter((maybeNull) => Boolean(maybeNull))
       .flat() as UnstakeRoute[];
+    // sort by best route first (out lamports is the most)
+    return routes.sort((routeA, routeB) => {
+      const res = outLamports(routeB) - outLamports(routeA);
+      // bigint-number incompatibility
+      if (res < 0) {
+        return -1;
+      }
+      if (res > 0) {
+        return 1;
+      }
+      return 0;
+    });
   }
 
   // TODO: method for converting route to Transactions
+}
+
+/**
+ *
+ * @param param0
+ * @returns expected amount of lamports to be received for the given unstake route
+ */
+export function outLamports({ stakeAccInput, jup }: UnstakeRoute): bigint {
+  if (!jup) {
+    return stakeAccInput.outAmount;
+  }
+  return BigInt(jup.outAmount.toString());
 }
 
 export interface ComputeRoutesParams {
@@ -184,5 +216,5 @@ export interface ComputeRoutesParams {
    * If < stakeAccount.lamports, a stake split instruction will be
    * added to the setup instructions
    */
-  amountLamports: BigInt;
+  amountLamports: bigint;
 }

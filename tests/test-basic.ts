@@ -1,7 +1,7 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { getStakeAccount } from "@soceanfi/solana-stake-sdk";
 
-import { UnstakeAg } from "@/unstake-ag";
+import { outLamports, UnstakeAg } from "@/unstake-ag";
 
 describe("test basic functionality", () => {
   it("load and route", async () => {
@@ -11,11 +11,12 @@ describe("test basic functionality", () => {
     const conn = new Connection("https://solana-api.projectserum.com");
     const unstake = await UnstakeAg.load("mainnet-beta", conn);
     const stakeAccount = await getStakeAccount(conn, testStakeAccPubkey);
-    console.log(
-      await unstake.computeRoutes({
-        stakeAccount,
-        amountLamports: BigInt(stakeAccount.lamports),
-      }),
-    );
+    const routes = await unstake.computeRoutes({
+      stakeAccount,
+      amountLamports: BigInt(stakeAccount.lamports),
+    });
+    console.log(routes);
+    console.log(routes.map((r) => outLamports(r)));
+    console.log(routes.length);
   });
 });
