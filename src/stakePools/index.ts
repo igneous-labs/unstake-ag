@@ -11,6 +11,14 @@ import type {
 import type { StakeAccount } from "@soceanfi/solana-stake-sdk";
 
 /**
+ * StakePools can only handle ExactIn swapMode and only ever outputs their own outputToken
+ */
+export type StakePoolQuoteParams = Omit<
+  QuoteParams,
+  "destinationMint" | "swapMode"
+>;
+
+/**
  * A StakePool in this context is any on-chain entity
  * that accepts stake accounts in return for tokens
  *
@@ -29,11 +37,16 @@ export interface StakePool {
 
   /**
    * Commmon setup instructions:
-   * - split stake account
    * - un-deactivate stake account
    *
    * Common setup instructions that are not covered:
-   * - creating `outputToken` ATA if user does not have it yet
+   * - split stake.
+   *   Why?
+   *   - This involves generation and returning of a Keypair and Signer.
+   *     Simpler to just handle this outside of this interface
+   * - creating `outputToken` ATA if user does not have it yet.
+   *   Why?
+   *   - This involves a RPC call to check if the user's ATA exists.
    * @param params
    */
   createSetupInstructions(
@@ -43,9 +56,14 @@ export interface StakePool {
   /**
    * Create the instructions for swapping the given
    * stake account to `outputToken` assuming setup is done
+   * Only accepts entire stake accounts.
    */
   createSwapInstructions(
     params: CreateSwapInstructionsParams,
+  ): TransactionInstruction[];
+
+  createCleanupInstruction(
+    params: CreateCleanupInstructionsParams,
   ): TransactionInstruction[];
 
   // below methods are same signature as that from @jup-ag/core
@@ -54,7 +72,7 @@ export interface StakePool {
 
   update(accountInfoMap: AccountInfoMap): void;
 
-  getQuote(quoteParams: QuoteParams): Quote;
+  getQuote(quoteParams: StakePoolQuoteParams): Quote;
 }
 
 interface WithStakeAuths {
@@ -74,14 +92,23 @@ export interface CanAcceptStakeAccountParams {
 export interface CreateSetupInstructionsParams
   extends WithStakeAuths,
     WithPayer {
+  stakeAccountPubkey: PublicKey;
   stakeAccount: AccountInfo<StakeAccount>;
   currentEpoch: number;
-  inAmount: BigInt;
 }
 
 export interface CreateSwapInstructionsParams
   extends WithStakeAuths,
     WithPayer {
   stakeAccountPubkey: PublicKey;
+  destinationTokenAccount: PublicKey;
+}
+
+export interface CreateCleanupInstructionsParams
+  extends WithStakeAuths,
+    WithPayer {
+  stakeAccountPubkey: PublicKey;
+  stakeAccount: AccountInfo<StakeAccount>;
+  currentEpoch: number;
   destinationTokenAccount: PublicKey;
 }

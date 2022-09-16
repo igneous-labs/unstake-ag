@@ -29,5 +29,15 @@
     "no-plusplus": "off",
     "import/no-cycle": "warn",
     "no-param-reassign": ["error", { "props": false }]
-  }
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/index.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": ["off"]
+      }
+    }
+  ]
 }

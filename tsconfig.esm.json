@@ -14,12 +14,8 @@
     "noImplicitReturns": true /* Report error when not all code paths in function return a value. */,
     "noFallthroughCasesInSwitch": true /* Report errors for fallthrough cases in switch statement. */,
 
-    // temporarily disabled
-    //"noUnusedLocals": true /* Report errors on unused locals. */,
-    "noUnusedLocals": false,
-
-    /* schema */
-    "strictPropertyInitialization": false,
+    "noUnusedLocals": true,
+    "strictPropertyInitialization": true,
 
     "importHelpers": true,
     "skipLibCheck": true,
