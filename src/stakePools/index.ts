@@ -29,6 +29,8 @@ export type StakePoolQuoteParams = Omit<
 export interface StakePool {
   outputToken: PublicKey;
 
+  label: string;
+
   /**
    * Check if a stake pool can accept the given stake account
    * @param params
@@ -102,6 +104,12 @@ export interface CreateSwapInstructionsParams
     WithPayer {
   stakeAccountPubkey: PublicKey;
   destinationTokenAccount: PublicKey;
+
+  /**
+   * Pubkey of the vote account `stakeAccountPubkey`
+   * is delegated to
+   */
+  stakeAccountVotePubkey: PublicKey;
 }
 
 export interface CreateCleanupInstructionsParams

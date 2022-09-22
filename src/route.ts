@@ -11,13 +11,13 @@ export interface StakeAccInputRoute {
    * If < stake account's lamports, a split must be
    * added to the setupTransactions
    */
-  inAmount: BigInt;
+  inAmount: bigint;
 
   /**
    * Amount of stakePool.outputToken atomics that this route
    * will output.
    */
-  outAmount: BigInt;
+  outAmount: bigint;
 }
 
 export interface UnstakeRoute {
