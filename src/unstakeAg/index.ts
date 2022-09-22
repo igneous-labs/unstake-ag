@@ -272,7 +272,7 @@ export class UnstakeAg {
           ),
         );
       }
-      // we handle wrap-unwrap SOL in setup cleanup tx in order
+      // we handle wrap-unwrap SOL in setup-cleanup txs in order
       // to reserve max space for the unstake tx
       const wSolTokenAcc = await getAssociatedTokenAddress(
         WRAPPED_SOL_MINT,
@@ -327,10 +327,12 @@ export class UnstakeAg {
       if (setupTransaction) {
         setupIxs.push(...setupTransaction.instructions);
       }
-      // possible jup bug:
+      // jup detail:
       // exchange() still adds create wrapped SOL ix despite `wrapUnwrapSOL: false`
-      // so just delete all associated token prog instructions
-      // since we shouldnt have any intermediate tokens anyway
+      // because SOL is not the input token.
+      // So just delete all associated token prog instructions
+      // since we are handling it above already
+      // and we shouldnt have any intermediate tokens anyway
       const filteredSwapIx = swapTransaction.instructions.filter(
         (ix) => !ix.programId.equals(ASSOCIATED_TOKEN_PROGRAM_ID),
       );
