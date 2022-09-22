@@ -39,21 +39,16 @@ describe("test basic functionality", () => {
     await Promise.all(
       routes.map(async (route) => {
         try {
-          const {
-            transactions: {
-              setupTransaction,
-              unstakeTransaction,
-              cleanupTransaction,
-            },
-          } = await unstake.exchange({
-            route,
-            stakeAccount,
-            stakeAccountPubkey: testStakeAccPubkey,
-            withdrawerAuth: user,
-            stakerAuth: user,
-            user,
-            currentEpoch,
-          });
+          const { setupTransaction, unstakeTransaction, cleanupTransaction } =
+            await unstake.exchange({
+              route,
+              stakeAccount,
+              stakeAccountPubkey: testStakeAccPubkey,
+              withdrawerAuth: user,
+              stakerAuth: user,
+              user,
+              currentEpoch,
+            });
           if (setupTransaction) {
             setupTransaction.recentBlockhash = blockhash;
             setupTransaction.feePayer = user;
