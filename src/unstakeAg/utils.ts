@@ -1,15 +1,20 @@
-// Copied from jup core.cjs.development.js
-
+import {
+  getAccount,
+  TokenAccountNotFoundError,
+  TokenInvalidAccountOwnerError,
+} from "@solana/spl-token-v2";
 import { AccountInfo, Connection, PublicKey } from "@solana/web3.js";
 import { RouteInfo } from "@jup-ag/core";
 import { UnstakeRoute } from "route";
 
+// Copied from jup core.cjs.development.js
 export function chunks<T>(array: Array<T>, size: number) {
   return Array.apply(0, new Array(Math.ceil(array.length / size))).map(
     (_, index) => array.slice(index * size, (index + 1) * size),
   );
 }
 
+// Copied from jup core.cjs.development.js
 export async function chunkedGetMultipleAccountInfos(
   connection: Connection,
   pks: string[],
@@ -77,14 +82,16 @@ export function dummyAccountInfoForProgramOwner(
 }
 
 /**
- * TODO: additional market filters
+ * Markets that we can't use because they use too many accounts
+ * resulting in tx too large
  *
- * Markets that we can't use because tx too large:
- * - Orca (WhirlPools)
- * - Serum
- * - Raydium
- *
- * Markets we can use:
+ * TODO: add more as they come up
+ */
+const UNUSABLE_JUP_MARKETS_LABELS: Set<string> = new Set(["Serum", "Raydium"]);
+
+/**
+ * Markets we can use (known so-far, check by seeing if
+ * `Error: Transaction too large` is thrown in test-basic):
  * - Orca
  * - Saber
  *
@@ -94,13 +101,19 @@ export function dummyAccountInfoForProgramOwner(
 export function filterSmallTxSizeJupRoutes(routes: RouteInfo[]): RouteInfo[] {
   const MAX_JUP_MARKETS = 1;
   return routes.filter((route) => {
-    const marketsInvolved = Math.max(
-      route.marketInfos.length,
-      route.marketInfos
-        .map((m) => m.amm.label.split("+").length)
-        .reduce((sum, curr) => sum + curr, 0),
-    );
-    return marketsInvolved <= MAX_JUP_MARKETS;
+    const marketsInvolved = route.marketInfos
+      .map((m) => m.amm.label.split("+").map((str) => str.trim()))
+      .flat();
+    if (marketsInvolved.length > MAX_JUP_MARKETS) {
+      return false;
+    }
+    for (let i = 0; i < marketsInvolved.length; i++) {
+      const market = marketsInvolved[i];
+      if (UNUSABLE_JUP_MARKETS_LABELS.has(market)) {
+        return false;
+      }
+    }
+    return true;
   });
 }
 
@@ -110,4 +123,22 @@ export function routeMarketLabels(route: UnstakeRoute): string[] {
     res.push(...route.jup.marketInfos.map((m) => m.amm.label));
   }
   return res;
+}
+
+export async function doesTokenAccExist(
+  connection: Connection,
+  tokenAcc: PublicKey,
+): Promise<boolean> {
+  try {
+    await getAccount(connection, tokenAcc);
+    return true;
+  } catch (e) {
+    if (
+      e instanceof TokenAccountNotFoundError ||
+      e instanceof TokenInvalidAccountOwnerError
+    ) {
+      return false;
+    }
+    throw e;
+  }
 }

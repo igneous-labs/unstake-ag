@@ -1,9 +1,8 @@
+import { ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import {
   createAssociatedTokenAccountInstruction,
-  getAccount,
+  createCloseAccountInstruction,
   getAssociatedTokenAddress,
-  TokenAccountNotFoundError,
-  TokenInvalidAccountOwnerError,
 } from "@solana/spl-token-v2";
 import {
   AccountInfo,
@@ -32,6 +31,7 @@ import {
 } from "@/unstake-ag/unstakeAg/address";
 import {
   chunkedGetMultipleAccountInfos,
+  doesTokenAccExist,
   dummyAccountInfoForProgramOwner,
   filterSmallTxSizeJupRoutes,
 } from "@/unstake-ag/unstakeAg/utils";
@@ -252,18 +252,17 @@ export class UnstakeAg {
       }),
     );
 
+    const isDirectToSol = stakePool.outputToken.equals(WRAPPED_SOL_MINT);
+    const destinationTokenAccount = isDirectToSol
+      ? user
+      : await getAssociatedTokenAddress(stakePool.outputToken, user);
     // Create ATA if not exist
-    const destinationTokenAccount = await getAssociatedTokenAddress(
-      stakePool.outputToken,
-      user,
-    );
-    try {
-      await getAccount(this.connection, destinationTokenAccount);
-    } catch (e) {
-      if (
-        e instanceof TokenAccountNotFoundError ||
-        e instanceof TokenInvalidAccountOwnerError
-      ) {
+    if (!isDirectToSol) {
+      const intermediateAtaExists = await doesTokenAccExist(
+        this.connection,
+        destinationTokenAccount,
+      );
+      if (!intermediateAtaExists) {
         setupIxs.push(
           createAssociatedTokenAccountInstruction(
             user,
@@ -272,9 +271,25 @@ export class UnstakeAg {
             stakePool.outputToken,
           ),
         );
-      } else {
-        throw e;
       }
+      // we handle wrap-unwrap SOL in setup cleanup tx in order
+      // to reserve max space for the unstake tx
+      const wSolTokenAcc = await getAssociatedTokenAddress(
+        WRAPPED_SOL_MINT,
+        user,
+      );
+      const wSolExists = await doesTokenAccExist(this.connection, wSolTokenAcc);
+      if (!wSolExists) {
+        setupIxs.push(
+          createAssociatedTokenAccountInstruction(
+            user,
+            wSolTokenAcc,
+            user,
+            WRAPPED_SOL_MINT,
+          ),
+        );
+      }
+      cleanupIxs.push(createCloseAccountInstruction(wSolTokenAcc, user, user));
     }
 
     unstakeIxs.push(
@@ -306,11 +321,20 @@ export class UnstakeAg {
       } = await this.jupiter.exchange({
         routeInfo: jup,
         userPublicKey: user,
+        // since we're putting it in setup and cleanup always
+        wrapUnwrapSOL: false,
       });
       if (setupTransaction) {
         setupIxs.push(...setupTransaction.instructions);
       }
-      unstakeIxs.push(...swapTransaction.instructions);
+      // possible jup bug:
+      // exchange() still adds create wrapped SOL ix despite `wrapUnwrapSOL: false`
+      // so just delete all associated token prog instructions
+      // since we shouldnt have any intermediate tokens anyway
+      const filteredSwapIx = swapTransaction.instructions.filter(
+        (ix) => !ix.programId.equals(ASSOCIATED_TOKEN_PROGRAM_ID),
+      );
+      unstakeIxs.push(...filteredSwapIx);
       if (cleanupTransaction) {
         cleanupIxs.push(...cleanupTransaction.instructions);
       }
