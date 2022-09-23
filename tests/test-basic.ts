@@ -55,6 +55,7 @@ describe("test basic functionality", () => {
           }
           unstakeTransaction.recentBlockhash = blockhash;
           unstakeTransaction.feePayer = user;
+          // console.log(unstakeTransaction.instructions.map(ix => `${ix.programId.toString()}: ${ix.keys.map(m => m.pubkey.toString())}`));
           if (cleanupTransaction) {
             cleanupTransaction.recentBlockhash = blockhash;
             cleanupTransaction.feePayer = user;

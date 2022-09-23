@@ -1,9 +1,8 @@
+import { ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import {
   createAssociatedTokenAccountInstruction,
-  getAccount,
+  createCloseAccountInstruction,
   getAssociatedTokenAddress,
-  TokenAccountNotFoundError,
-  TokenInvalidAccountOwnerError,
 } from "@solana/spl-token-v2";
 import {
   AccountInfo,
@@ -30,6 +29,7 @@ import {
 } from "@/unstake-ag/unstakeAg/address";
 import {
   chunkedGetMultipleAccountInfos,
+  doesTokenAccExist,
   dummyAccountInfoForProgramOwner,
   filterSmallTxSizeJupRoutes,
   genShortestUnusedSeed,
@@ -257,18 +257,17 @@ export class UnstakeAg {
       }),
     );
 
+    const isDirectToSol = stakePool.outputToken.equals(WRAPPED_SOL_MINT);
+    const destinationTokenAccount = isDirectToSol
+      ? user
+      : await getAssociatedTokenAddress(stakePool.outputToken, user);
     // Create ATA if not exist
-    const destinationTokenAccount = await getAssociatedTokenAddress(
-      stakePool.outputToken,
-      user,
-    );
-    try {
-      await getAccount(this.connection, destinationTokenAccount);
-    } catch (e) {
-      if (
-        e instanceof TokenAccountNotFoundError ||
-        e instanceof TokenInvalidAccountOwnerError
-      ) {
+    if (!isDirectToSol) {
+      const intermediateAtaExists = await doesTokenAccExist(
+        this.connection,
+        destinationTokenAccount,
+      );
+      if (!intermediateAtaExists) {
         setupIxs.push(
           createAssociatedTokenAccountInstruction(
             user,
@@ -277,9 +276,25 @@ export class UnstakeAg {
             stakePool.outputToken,
           ),
         );
-      } else {
-        throw e;
       }
+      // we handle wrap-unwrap SOL in setup-cleanup txs in order
+      // to reserve max space for the unstake tx
+      const wSolTokenAcc = await getAssociatedTokenAddress(
+        WRAPPED_SOL_MINT,
+        user,
+      );
+      const wSolExists = await doesTokenAccExist(this.connection, wSolTokenAcc);
+      if (!wSolExists) {
+        setupIxs.push(
+          createAssociatedTokenAccountInstruction(
+            user,
+            wSolTokenAcc,
+            user,
+            WRAPPED_SOL_MINT,
+          ),
+        );
+      }
+      cleanupIxs.push(createCloseAccountInstruction(wSolTokenAcc, user, user));
     }
 
     unstakeIxs.push(
@@ -311,11 +326,22 @@ export class UnstakeAg {
       } = await this.jupiter.exchange({
         routeInfo: jup,
         userPublicKey: user,
+        // since we're putting it in setup and cleanup always
+        wrapUnwrapSOL: false,
       });
       if (setupTransaction) {
         setupIxs.push(...setupTransaction.instructions);
       }
-      unstakeIxs.push(...swapTransaction.instructions);
+      // jup detail:
+      // exchange() still adds create wrapped SOL ix despite `wrapUnwrapSOL: false`
+      // because SOL is not the input token.
+      // So just delete all associated token prog instructions
+      // since we are handling it above already
+      // and we shouldnt have any intermediate tokens anyway
+      const filteredSwapIx = swapTransaction.instructions.filter(
+        (ix) => !ix.programId.equals(ASSOCIATED_TOKEN_PROGRAM_ID),
+      );
+      unstakeIxs.push(...filteredSwapIx);
       if (cleanupTransaction) {
         cleanupIxs.push(...cleanupTransaction.instructions);
       }
@@ -336,11 +362,11 @@ export class UnstakeAg {
       cleanupTransaction.add(...cleanupIxs);
     }
 
-    return {
+    return tryMergeExchangeReturn(user, {
       setupTransaction,
       unstakeTransaction,
       cleanupTransaction,
-    };
+    });
   }
 }
 
@@ -354,6 +380,76 @@ export function outLamports({ stakeAccInput, jup }: UnstakeRoute): bigint {
     return stakeAccInput.outAmount;
   }
   return BigInt(jup.outAmount.toString());
+}
+
+export function tryMergeExchangeReturn(
+  user: PublicKey,
+  { setupTransaction, unstakeTransaction, cleanupTransaction }: ExchangeReturn,
+): ExchangeReturn {
+  let newSetupTransaction = setupTransaction;
+  let newUnstakeTransaction = unstakeTransaction;
+  let newCleanupTransaction = cleanupTransaction;
+
+  if (setupTransaction) {
+    const mergeSetup = tryMerge2Txs(user, setupTransaction, unstakeTransaction);
+    if (mergeSetup) {
+      newSetupTransaction = undefined;
+      newUnstakeTransaction = mergeSetup;
+    }
+  }
+
+  if (cleanupTransaction) {
+    const mergeCleanup = tryMerge2Txs(
+      user,
+      newUnstakeTransaction,
+      cleanupTransaction,
+    );
+    if (mergeCleanup) {
+      newCleanupTransaction = undefined;
+      newUnstakeTransaction = mergeCleanup;
+    }
+  }
+  return {
+    setupTransaction: newSetupTransaction,
+    unstakeTransaction: newUnstakeTransaction,
+    cleanupTransaction: newCleanupTransaction,
+  };
+}
+
+/**
+ * @param feePayer
+ * @param firstTx
+ * @param secondTx
+ * @returns a new transaction with the 2 transaction's instructions merged if possible, null otherwise
+ */
+function tryMerge2Txs(
+  feePayer: PublicKey,
+  firstTx: Transaction,
+  secondTx: Transaction,
+): Transaction | null {
+  const MOCK_BLOCKHASH = "41xkyTsFaxnPvjv3eJMdjGfmQj3osuTLmqC3P13stSw3";
+  const SERIALIZE_CONFIG = {
+    requireAllSignatures: false,
+    verifyAllSignatures: false,
+  };
+  const merged = new Transaction();
+  merged.add(...firstTx.instructions);
+  merged.add(...secondTx.instructions);
+  merged.feePayer = feePayer;
+  merged.recentBlockhash = MOCK_BLOCKHASH;
+  try {
+    merged.serialize(SERIALIZE_CONFIG);
+  } catch (e) {
+    const msg = (e as Error).message;
+    if (msg && msg.includes("Transaction too large")) {
+      return null;
+    }
+    // uncaught
+    throw e;
+  }
+  merged.feePayer = undefined;
+  merged.recentBlockhash = undefined;
+  return merged;
 }
 
 export interface ComputeRoutesParams {
