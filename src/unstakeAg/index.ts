@@ -8,9 +8,7 @@ import {
   AccountInfo,
   Cluster,
   Connection,
-  Keypair,
   PublicKey,
-  Signer,
   StakeProgram,
   Transaction,
 } from "@solana/web3.js";
@@ -34,6 +32,7 @@ import {
   doesTokenAccExist,
   dummyAccountInfoForProgramOwner,
   filterSmallTxSizeJupRoutes,
+  genShortestUnusedSeed,
 } from "@/unstake-ag/unstakeAg/utils";
 
 export { routeMarketLabels } from "./utils";
@@ -226,20 +225,26 @@ export class UnstakeAg {
     const setupIxs = [];
     const unstakeIxs = [];
     const cleanupIxs = [];
-    const setupSigners = [];
+    // Pubkey of the actual stake account to be unstaked:
+    // either inputStakeAccount or an ephemeral one split from it
     let stakeAccountPubkey = inputStakeAccount;
     if (inAmount < stakeAccount.lamports) {
-      const splitted = Keypair.generate();
-      stakeAccountPubkey = splitted.publicKey;
+      const { derived: splitStakePubkey, seed } = await genShortestUnusedSeed(
+        this.connection,
+        user,
+        StakeProgram.programId,
+      );
+      stakeAccountPubkey = splitStakePubkey;
       setupIxs.push(
-        ...StakeProgram.split({
+        ...StakeProgram.splitWithSeed({
           stakePubkey: inputStakeAccount,
           authorizedPubkey: stakerAuth,
-          splitStakePubkey: splitted.publicKey,
+          splitStakePubkey,
+          basePubkey: user,
+          seed,
           lamports: Number(inAmount),
         }).instructions,
       );
-      setupSigners.push(splitted);
     }
     setupIxs.push(
       ...stakePool.createSetupInstructions({
@@ -358,14 +363,9 @@ export class UnstakeAg {
     }
 
     return {
-      transactions: {
-        setupTransaction,
-        unstakeTransaction,
-        cleanupTransaction,
-      },
-      signers: {
-        setupSigners,
-      },
+      setupTransaction,
+      unstakeTransaction,
+      cleanupTransaction,
     };
   }
 }
@@ -413,12 +413,7 @@ export interface ExchangeParams {
 }
 
 export interface ExchangeReturn {
-  transactions: {
-    setupTransaction?: Transaction;
-    unstakeTransaction: Transaction;
-    cleanupTransaction?: Transaction;
-  };
-  signers: {
-    setupSigners: Signer[];
-  };
+  setupTransaction?: Transaction;
+  unstakeTransaction: Transaction;
+  cleanupTransaction?: Transaction;
 }
