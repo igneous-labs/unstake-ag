@@ -432,17 +432,13 @@ function tryMerge2Txs(
     requireAllSignatures: false,
     verifyAllSignatures: false,
   };
+  const merged = new Transaction();
+  merged.add(...firstTx.instructions);
+  merged.add(...secondTx.instructions);
+  merged.feePayer = feePayer;
+  merged.recentBlockhash = MOCK_BLOCKHASH;
   try {
-    const merged = new Transaction();
-    merged.add(...firstTx.instructions);
-    merged.add(...secondTx.instructions);
-    merged.feePayer = feePayer;
-    merged.recentBlockhash = MOCK_BLOCKHASH;
-    // serialize() throws
     merged.serialize(SERIALIZE_CONFIG);
-    merged.feePayer = undefined;
-    merged.recentBlockhash = undefined;
-    return merged;
   } catch (e) {
     const msg = (e as Error).message;
     if (msg && msg.includes("Transaction too large")) {
@@ -451,6 +447,9 @@ function tryMerge2Txs(
     // uncaught
     throw e;
   }
+  merged.feePayer = undefined;
+  merged.recentBlockhash = undefined;
+  return merged;
 }
 
 export interface ComputeRoutesParams {
