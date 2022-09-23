@@ -362,11 +362,11 @@ export class UnstakeAg {
       cleanupTransaction.add(...cleanupIxs);
     }
 
-    return {
+    return tryMergeExchangeReturn(user, {
       setupTransaction,
       unstakeTransaction,
       cleanupTransaction,
-    };
+    });
   }
 }
 
@@ -380,6 +380,77 @@ export function outLamports({ stakeAccInput, jup }: UnstakeRoute): bigint {
     return stakeAccInput.outAmount;
   }
   return BigInt(jup.outAmount.toString());
+}
+
+export function tryMergeExchangeReturn(
+  user: PublicKey,
+  { setupTransaction, unstakeTransaction, cleanupTransaction }: ExchangeReturn,
+): ExchangeReturn {
+  let newSetupTransaction = setupTransaction;
+  let newUnstakeTransaction = unstakeTransaction;
+  let newCleanupTransaction = cleanupTransaction;
+
+  if (setupTransaction) {
+    const mergeSetup = tryMerge2Txs(user, setupTransaction, unstakeTransaction);
+    if (mergeSetup) {
+      newSetupTransaction = undefined;
+      newUnstakeTransaction = mergeSetup;
+    }
+  }
+
+  if (cleanupTransaction) {
+    const mergeCleanup = tryMerge2Txs(
+      user,
+      newUnstakeTransaction,
+      cleanupTransaction,
+    );
+    if (mergeCleanup) {
+      newCleanupTransaction = undefined;
+      newUnstakeTransaction = mergeCleanup;
+    }
+  }
+  return {
+    setupTransaction: newSetupTransaction,
+    unstakeTransaction: newUnstakeTransaction,
+    cleanupTransaction: newCleanupTransaction,
+  };
+}
+
+/**
+ * @param feePayer
+ * @param firstTx
+ * @param secondTx
+ * @returns a new transaction with the 2 transaction's instructions merged if possible, null otherwise
+ */
+function tryMerge2Txs(
+  feePayer: PublicKey,
+  firstTx: Transaction,
+  secondTx: Transaction,
+): Transaction | null {
+  const MOCK_BLOCKHASH = "41xkyTsFaxnPvjv3eJMdjGfmQj3osuTLmqC3P13stSw3";
+  const SERIALIZE_CONFIG = {
+    requireAllSignatures: false,
+    verifyAllSignatures: false,
+  };
+  try {
+    const merged = new Transaction();
+    merged.add(...firstTx.instructions);
+    merged.add(...secondTx.instructions);
+    merged.feePayer = feePayer;
+    merged.recentBlockhash = MOCK_BLOCKHASH;
+    // serialize() throws
+    merged.serialize(SERIALIZE_CONFIG);
+    merged.feePayer = undefined;
+    merged.recentBlockhash = undefined;
+    return merged;
+  } catch (e) {
+    const msg = (e as Error).message;
+    if (msg && msg.includes("Transaction too large")) {
+      return null;
+    }
+    // uncaught
+    throw e;
+  }
 }
 
 export interface ComputeRoutesParams {
