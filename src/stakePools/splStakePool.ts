@@ -105,7 +105,6 @@ export class SplStakePool implements StakePool {
     currentEpoch,
     stakeAccount,
     stakeAccountPubkey,
-    stakerAuth,
   }: CreateSetupInstructionsParams): TransactionInstruction[] {
     // reactivate if deactivating
     const state = stakeAccountState(stakeAccount.data, new BN(currentEpoch));
@@ -114,7 +113,7 @@ export class SplStakePool implements StakePool {
         throw new Error("stakeAccount.data.info.stake null");
       }
       return StakeProgram.delegate({
-        authorizedPubkey: stakerAuth,
+        authorizedPubkey: stakeAccount.data.info.meta.authorized.staker,
         stakePubkey: stakeAccountPubkey,
         votePubkey: stakeAccount.data.info.stake.delegation.voter,
       }).instructions;

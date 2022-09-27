@@ -213,8 +213,6 @@ export class UnstakeAg {
     },
     stakeAccount,
     stakeAccountPubkey: inputStakeAccount,
-    withdrawerAuth,
-    stakerAuth,
     user,
     currentEpoch,
   }: ExchangeParams): Promise<ExchangeReturn> {
@@ -222,6 +220,8 @@ export class UnstakeAg {
       throw new Error("stake account not delegated");
     }
 
+    const withdrawerAuth = stakeAccount.data.info.meta.authorized.withdrawer;
+    const stakerAuth = stakeAccount.data.info.meta.authorized.staker;
     const setupIxs = [];
     const unstakeIxs = [];
     const cleanupIxs = [];
@@ -248,8 +248,6 @@ export class UnstakeAg {
     }
     setupIxs.push(
       ...stakePool.createSetupInstructions({
-        withdrawerAuth,
-        stakerAuth,
         payer: user,
         stakeAccount,
         stakeAccountPubkey,
@@ -310,8 +308,6 @@ export class UnstakeAg {
 
     cleanupIxs.push(
       ...stakePool.createCleanupInstruction({
-        withdrawerAuth,
-        stakerAuth,
         payer: user,
         stakeAccountPubkey,
         stakeAccount,
@@ -417,6 +413,9 @@ export function tryMergeExchangeReturn(
 }
 
 /**
+ * TODO: Check that additional signatures required are accounted for
+ * i.e. actual tx size is `tx.serialize().length`
+ * and not `tx.serialize().length + 64 * additional required signatures`
  * @param feePayer
  * @param firstTx
  * @param secondTx
@@ -476,8 +475,6 @@ export interface ExchangeParams {
   route: UnstakeRoute;
   stakeAccount: AccountInfo<StakeAccount>;
   stakeAccountPubkey: PublicKey;
-  withdrawerAuth: PublicKey;
-  stakerAuth: PublicKey;
   user: PublicKey;
   currentEpoch: number;
 }

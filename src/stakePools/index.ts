@@ -91,9 +91,7 @@ export interface CanAcceptStakeAccountParams {
   currentEpoch: number;
 }
 
-export interface CreateSetupInstructionsParams
-  extends WithStakeAuths,
-    WithPayer {
+export interface CreateSetupInstructionsParams extends WithPayer {
   stakeAccountPubkey: PublicKey;
   stakeAccount: AccountInfo<StakeAccount>;
   currentEpoch: number;
@@ -112,9 +110,7 @@ export interface CreateSwapInstructionsParams
   stakeAccountVotePubkey: PublicKey;
 }
 
-export interface CreateCleanupInstructionsParams
-  extends WithStakeAuths,
-    WithPayer {
+export interface CreateCleanupInstructionsParams extends WithPayer {
   stakeAccountPubkey: PublicKey;
   stakeAccount: AccountInfo<StakeAccount>;
   currentEpoch: number;
