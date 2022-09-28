@@ -1,5 +1,23 @@
 import { PublicKey } from "@solana/web3.js";
 
+export const OFFICIAL_SPL_STAKE_POOL_PROGRAM_ID_STR =
+  "SPoo1Ku8WFXoNDMHPsrGSTSG1Y47rzgn41SLUNakuHy";
+
 export const OFFICIAL_SPL_STAKE_POOL_PROGRAM_ID = new PublicKey(
-  "SPoo1Ku8WFXoNDMHPsrGSTSG1Y47rzgn41SLUNakuHy",
+  OFFICIAL_SPL_STAKE_POOL_PROGRAM_ID_STR,
 );
+
+export const SOCEAN_SPL_STAKE_POOL_PROGRAM_ID_STR =
+  "5ocnV1qiCgaQR8Jb8xWnVbApfaygJ8tNoZfgPwsgx9kx";
+
+export const SOCEAN_SPL_STAKE_POOL_PROGRAM_ID = new PublicKey(
+  SOCEAN_SPL_STAKE_POOL_PROGRAM_ID_STR,
+);
+
+export const KNOWN_SPL_STAKE_POOL_PROGRAM_IDS_STR = [
+  OFFICIAL_SPL_STAKE_POOL_PROGRAM_ID_STR,
+  SOCEAN_SPL_STAKE_POOL_PROGRAM_ID_STR,
+] as const;
+
+export type KnownSplStakePoolProgramIdStr =
+  typeof KNOWN_SPL_STAKE_POOL_PROGRAM_IDS_STR[number];

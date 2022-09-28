@@ -8,9 +8,7 @@ import {
 } from "@solana/web3.js";
 import { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
 import { stakeAccountState } from "@soceanfi/solana-stake-sdk";
-// NOTE:
-// Seems like current spl-stake-pool version [0.7.0](https://github.com/solana-labs/solana-program-library/blob/stake-pool-v0.7.0/stake-pool/program/src/processor.rs)
-// is still compatible with our stake-pool-sdk for depositStake instruction
+// TODO: verify that @soceanfi/stake-pool-sdk deserialization is still compatible with SPL stake pool 0.7.0
 import {
   calcStakeDeposit,
   decodeStakePool,
@@ -22,6 +20,12 @@ import {
 } from "@soceanfi/stake-pool-sdk";
 import { BN } from "bn.js";
 import JSBI from "jsbi";
+import {
+  KNOWN_SPL_STAKE_POOL_PROGRAM_IDS_STR,
+  KnownSplStakePoolProgramIdStr,
+  OFFICIAL_SPL_STAKE_POOL_PROGRAM_ID_STR,
+  SOCEAN_SPL_STAKE_POOL_PROGRAM_ID_STR,
+} from "unstakeAg/address";
 
 import type {
   CanAcceptStakeAccountParams,
@@ -30,6 +34,21 @@ import type {
   StakePool,
   StakePoolQuoteParams,
 } from "@/unstake-ag/stakePools";
+
+/**
+ * Look-up table for overriding instruction data by the right value for the DepositStake instruction,
+ * because SPL 0.7.0 merged CreateValidatorStakeAccount and AddValidatorToPool into one instruction,
+ * so any instruction other than Initialize is offset by -1 from Socean's version
+ *
+ * TODO: we can still monkey-patch hackily like this because we are only using the DepositStake instruction
+ * and its still relatively simple. We probably need the upstream SDK if we start including more complex features
+ */
+const PROGRAM_TO_DEPOSIT_STAKE_IX_DATA: {
+  [programId in KnownSplStakePoolProgramIdStr]: Buffer;
+} = {
+  [OFFICIAL_SPL_STAKE_POOL_PROGRAM_ID_STR]: Buffer.from([9]),
+  [SOCEAN_SPL_STAKE_POOL_PROGRAM_ID_STR]: Buffer.from([10]),
+};
 
 interface SplStakePoolCtorParams {
   validatorListAddr: PublicKey;
@@ -61,13 +80,22 @@ export class SplStakePool implements StakePool {
     stakePoolAccountInfo: AccountInfo<Buffer>,
     { validatorListAddr, outputToken, label }: SplStakePoolCtorParams,
   ) {
+    const programId = stakePoolAccountInfo.owner;
+    const stakePoolProgramIdStr =
+      programId.toString() as KnownSplStakePoolProgramIdStr;
+    if (!KNOWN_SPL_STAKE_POOL_PROGRAM_IDS_STR.includes(stakePoolProgramIdStr)) {
+      throw new Error(
+        `Unknown SPL stake pool program id ${stakePoolProgramIdStr}`,
+      );
+    }
+
     this.outputToken = outputToken;
     this.label = label;
 
     this.stakePool = null;
     this.validatorList = null;
 
-    this.programId = stakePoolAccountInfo.owner;
+    this.programId = programId;
     this.stakePoolAddr = stakePoolAddr;
     this.validatorListAddr = validatorListAddr;
   }
@@ -142,6 +170,27 @@ export class SplStakePool implements StakePool {
       [stakeAccountVotePubkey.toBuffer(), this.stakePoolAddr.toBuffer()],
       this.programId,
     );
+    const depositStakeIx = depositStakeInstruction(
+      this.programId,
+      this.stakePoolAddr,
+      this.validatorListAddr,
+      this.stakePool.depositAuthority,
+      stakePoolWithdrawAuth,
+      stakeAccountPubkey,
+      validatorStakeAccount,
+      this.stakePool.reserveStake,
+      destinationTokenAccount,
+      this.stakePool.managerFeeAccount,
+      // no referrer
+      this.stakePool.managerFeeAccount,
+      this.stakePool.poolMint,
+      TOKEN_PROGRAM_ID,
+    );
+    // monkey-patch data field to the correct byte for DepositStake
+    depositStakeIx.data =
+      PROGRAM_TO_DEPOSIT_STAKE_IX_DATA[
+        this.programId.toString() as KnownSplStakePoolProgramIdStr
+      ];
     return [
       ...StakeProgram.authorize({
         stakePubkey: stakeAccountPubkey,
@@ -155,22 +204,7 @@ export class SplStakePool implements StakePool {
         newAuthorizedPubkey: this.stakePool.depositAuthority,
         stakeAuthorizationType: StakeAuthorizationLayout.Withdrawer,
       }).instructions,
-      depositStakeInstruction(
-        this.programId,
-        this.stakePoolAddr,
-        this.validatorListAddr,
-        this.stakePool.depositAuthority,
-        stakePoolWithdrawAuth,
-        stakeAccountPubkey,
-        validatorStakeAccount,
-        this.stakePool.reserveStake,
-        destinationTokenAccount,
-        this.stakePool.managerFeeAccount,
-        // no referrer
-        this.stakePool.managerFeeAccount,
-        this.stakePool.poolMint,
-        TOKEN_PROGRAM_ID,
-      ),
+      depositStakeIx,
     ];
   }
 
