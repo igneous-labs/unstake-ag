@@ -1,5 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+// allow `expect().to.be.true`
+
 import { Connection, PublicKey } from "@solana/web3.js";
 import { getStakeAccount } from "@soceanfi/solana-stake-sdk";
+import { expect } from "chai";
 
 import { outLamports, routeMarketLabels, UnstakeAg } from "@/unstake-ag";
 
@@ -36,43 +40,64 @@ describe("test basic functionality", () => {
       requireAllSignatures: false,
       verifyAllSignatures: false,
     };
-    await Promise.all(
+    const results = await Promise.allSettled(
       routes.map(async (route) => {
-        try {
-          const { setupTransaction, unstakeTransaction, cleanupTransaction } =
-            await unstake.exchange({
-              route,
-              stakeAccount,
-              stakeAccountPubkey: testStakeAccPubkey,
-              withdrawerAuth: user,
-              stakerAuth: user,
-              user,
-              currentEpoch,
-            });
-          if (setupTransaction) {
-            setupTransaction.recentBlockhash = blockhash;
-            setupTransaction.feePayer = user;
-          }
-          unstakeTransaction.recentBlockhash = blockhash;
-          unstakeTransaction.feePayer = user;
-          // console.log(unstakeTransaction.instructions.map(ix => `${ix.programId.toString()}: ${ix.keys.map(m => m.pubkey.toString())}`));
-          if (cleanupTransaction) {
-            cleanupTransaction.recentBlockhash = blockhash;
-            cleanupTransaction.feePayer = user;
-          }
-          console.log(
-            routeMarketLabels(route).join(" + "),
-            "setup:",
-            setupTransaction?.serialize(serializeConfig).length,
-            "unstake:",
-            unstakeTransaction.serialize(serializeConfig).length,
-            "cleanup:",
-            cleanupTransaction?.serialize(serializeConfig).length,
+        const routeLabel = routeMarketLabels(route).join(" + ");
+        const { setupTransaction, unstakeTransaction, cleanupTransaction } =
+          await unstake.exchange({
+            route,
+            stakeAccount,
+            stakeAccountPubkey: testStakeAccPubkey,
+            user,
+            currentEpoch,
+          });
+        if (setupTransaction) {
+          setupTransaction.recentBlockhash = blockhash;
+          setupTransaction.feePayer = user;
+        }
+        unstakeTransaction.recentBlockhash = blockhash;
+        unstakeTransaction.feePayer = user;
+        // console.log(unstakeTransaction.instructions.map(ix => `${ix.programId.toString()}: ${ix.keys.map(m => m.pubkey.toString())}`));
+        if (cleanupTransaction) {
+          cleanupTransaction.recentBlockhash = blockhash;
+          cleanupTransaction.feePayer = user;
+        }
+        console.log(
+          routeLabel,
+          "setup:",
+          setupTransaction?.serialize(serializeConfig).length,
+          "unstake:",
+          unstakeTransaction.serialize(serializeConfig).length,
+          "cleanup:",
+          cleanupTransaction?.serialize(serializeConfig).length,
+        );
+        // try simulating transactions with no setupTransactions to
+        // make sure they work
+        if (!setupTransaction) {
+          const sim = await conn.simulateTransaction(
+            unstakeTransaction,
+            undefined,
           );
-        } catch (e) {
-          console.log(routeMarketLabels(route).join(" + "), "ERROR:", e);
+          expect(
+            sim.value.err,
+            `Failed to simulate ${routeLabel}\nError: ${JSON.stringify(
+              sim.value.err,
+            )}\nLogs:\n${sim.value.logs?.join("\n")}`,
+          ).to.be.null;
         }
       }),
     );
+    expect(
+      results.every((r) => r.status === "fulfilled"),
+      `${results
+        .map((r) => {
+          if (r.status === "fulfilled") {
+            return null;
+          }
+          return r.reason;
+        })
+        .filter((maybeReason) => Boolean(maybeReason))
+        .join("\n\n")}`,
+    ).to.be.true;
   });
 });
