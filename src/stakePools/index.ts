@@ -3,20 +3,32 @@ import type {
   PublicKey,
   TransactionInstruction,
 } from "@solana/web3.js";
-import type {
-  AccountInfoMap,
-  Quote,
-  QuoteParams,
-} from "@jup-ag/core/dist/lib/amm";
+import type { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
 import type { StakeAccount } from "@soceanfi/solana-stake-sdk";
+import JSBI from "jsbi";
 
 /**
- * StakePools can only handle ExactIn swapMode and only ever outputs their own outputToken
+ * StakePools can only handle ExactIn swapMode and only ever outputs their own outputToken.
+ * Adapted from Jup's Quote params
  */
-export type StakePoolQuoteParams = Omit<
-  QuoteParams,
-  "destinationMint" | "swapMode"
->;
+export interface StakePoolQuoteParams {
+  /**
+   * Vote account the stake account is delegated to
+   */
+  sourceMint: PublicKey;
+
+  /**
+   * Amount of staked lamports of the stake account
+   */
+  stakeAmount: JSBI;
+
+  /**
+   * Amount of unstaked lamports of the stake account
+   * This is rent-exempt minimum and any additional lamports
+   * from the account being credited lamports
+   */
+  unstakedAmount: JSBI;
+}
 
 /**
  * A StakePool in this context is any on-chain entity
@@ -116,3 +128,6 @@ export interface CreateCleanupInstructionsParams extends WithPayer {
   currentEpoch: number;
   destinationTokenAccount: PublicKey;
 }
+
+export * from "./splStakePool";
+export * from "./unstakeit";

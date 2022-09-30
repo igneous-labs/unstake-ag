@@ -5,6 +5,10 @@ import {
 } from "@solana/spl-token-v2";
 import { AccountInfo, Connection, PublicKey } from "@solana/web3.js";
 import { RouteInfo } from "@jup-ag/core";
+import { StakeAccount, stakeAccountState } from "@soceanfi/solana-stake-sdk";
+import { STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS } from "@soceanfi/stake-pool-sdk";
+import BN from "bn.js";
+import JSBI from "jsbi";
 import { UnstakeRoute } from "route";
 
 // Copied from jup core.cjs.development.js
@@ -185,4 +189,44 @@ export async function genShortestUnusedSeed(
     len++;
   }
   throw new Error("No unused seeds found");
+}
+
+export function calcStakeUnstakedAmount(
+  lamportsToUnstake: bigint,
+  stakeAccount: AccountInfo<StakeAccount>,
+  currentEpoch: number,
+): {
+  stakeAmount: JSBI;
+  unstakedAmount: JSBI;
+} {
+  const state = stakeAccountState(stakeAccount.data, new BN(currentEpoch));
+  if (state === "inactive" || state === "activating") {
+    return {
+      stakeAmount: JSBI.BigInt(0),
+      unstakedAmount: JSBI.BigInt(lamportsToUnstake.toString()),
+    };
+  }
+  if (lamportsToUnstake < BigInt(stakeAccount.lamports)) {
+    const rentExempt = JSBI.BigInt(
+      STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString(),
+    );
+    return {
+      stakeAmount: JSBI.subtract(
+        JSBI.BigInt(lamportsToUnstake.toString()),
+        rentExempt,
+      ),
+      unstakedAmount: rentExempt,
+    };
+  }
+  const stakeAmount = JSBI.BigInt(
+    stakeAccount.data.info.stake!.delegation.stake.toString(),
+  );
+  const unstakedAmount = JSBI.subtract(
+    JSBI.BigInt(stakeAccount.lamports),
+    stakeAmount,
+  );
+  return {
+    stakeAmount,
+    unstakedAmount,
+  };
 }

@@ -202,7 +202,7 @@ export class UnstakeIt implements StakePool {
     }
   }
 
-  getQuote({ amount }: StakePoolQuoteParams): Quote {
+  getQuote({ stakeAmount, unstakedAmount }: StakePoolQuoteParams): Quote {
     if (!this.fee) {
       throw new Error("fee account not fetched");
     }
@@ -212,6 +212,7 @@ export class UnstakeIt implements StakePool {
     if (!this.pool) {
       throw new Error("pool account not fetched");
     }
+    const amount = JSBI.add(stakeAmount, unstakedAmount);
     const stakeAccountLamports = new BN(amount.toString());
     const solReservesLamports = new BN(this.poolSolReservesLamports);
     const estFeeDeductedLamports = applyFee(this.fee, {
