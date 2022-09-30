@@ -30,6 +30,7 @@ import BN from "bn.js";
 import JSBI from "jsbi";
 
 import type {
+  CanAcceptStakeAccountParams,
   CreateSwapInstructionsParams,
   StakePoolQuoteParams,
 } from "@/unstake-ag/stakePools";
@@ -211,6 +212,14 @@ export class EverstakeSplStakePool extends SplStakePool {
   // @ts-ignore
   override stakePool: EverstakeStakePoolStruct | null;
 
+  override canAcceptStakeAccount(params: CanAcceptStakeAccountParams): boolean {
+    return (
+      super.canAcceptStakeAccount(params) &&
+      params.stakeAccount.lamports >=
+        EverstakeSplStakePool.MINIMUM_DEPOSIT_LAMPORTS
+    );
+  }
+
   override createSwapInstructions({
     stakeAccountPubkey,
     stakerAuth,
@@ -287,23 +296,6 @@ export class EverstakeSplStakePool extends SplStakePool {
       throw new Error("stakePool not fetched");
     }
     const amount = JSBI.add(stakeAmount, unstakedAmount);
-    if (
-      JSBI.lessThan(
-        amount,
-        JSBI.BigInt(EverstakeSplStakePool.MINIMUM_DEPOSIT_LAMPORTS),
-      )
-    ) {
-      return {
-        notEnoughLiquidity: false,
-        minOutAmount: JSBI.BigInt(0),
-        inAmount: amount,
-        outAmount: JSBI.BigInt(0),
-        feeAmount: JSBI.BigInt(0),
-        feeMint: this.outputToken.toString(),
-        feePct: 0,
-        priceImpactPct: 0,
-      };
-    }
     // eversol charges:
     // - sol deposit fee on rent lamports
     // - stake deposit fee up to no_fee_deposit_threshold

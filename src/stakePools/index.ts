@@ -86,6 +86,11 @@ export interface StakePool {
 
   update(accountInfoMap: AccountInfoMap): void;
 
+  /**
+   * Assumes that the passed stake account has
+   * passed `this.canAcceptStakeAccount()`
+   * @param quoteParams
+   */
   getQuote(quoteParams: StakePoolQuoteParams): Quote;
 }
 
