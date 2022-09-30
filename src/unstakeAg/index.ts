@@ -14,20 +14,25 @@ import {
 } from "@solana/web3.js";
 import { Jupiter, JupiterLoadParams, WRAPPED_SOL_MINT } from "@jup-ag/core";
 import { StakeAccount } from "@soceanfi/solana-stake-sdk";
-import JSBI from "jsbi";
 import { UnstakeRoute } from "route";
-import { SplStakePool } from "stakePools/splStakePool";
-import { UnstakeIt } from "stakePools/unstakeit";
 
-import { StakePool } from "@/unstake-ag/stakePools";
+import {
+  EverstakeSplStakePool,
+  OfficialSplStakePool,
+  SoceanSplStakePool,
+  StakePool,
+  UnstakeIt,
+} from "@/unstake-ag/stakePools";
 import {
   DAOPOOL_ADDRESS_MAP,
+  EVERSOL_ADDRESS_MAP,
   JPOOL_ADDRESS_MAP,
   SOCEAN_ADDRESS_MAP,
   SOLBLAZE_ADDRESS_MAP,
   UNSTAKE_IT_ADDRESS_MAP,
 } from "@/unstake-ag/unstakeAg/address";
 import {
+  calcStakeUnstakedAmount,
   chunkedGetMultipleAccountInfos,
   doesTokenAccExist,
   dummyAccountInfoForProgramOwner,
@@ -88,14 +93,31 @@ export class UnstakeAg {
           UNSTAKE_IT_ADDRESS_MAP[cluster].program,
         ),
       ),
+      new SoceanSplStakePool(
+        SOCEAN_ADDRESS_MAP[cluster].stakePool,
+        dummyAccountInfoForProgramOwner(SOCEAN_ADDRESS_MAP[cluster].program),
+        {
+          validatorListAddr: SOCEAN_ADDRESS_MAP[cluster].validatorList,
+          outputToken: SOCEAN_ADDRESS_MAP[cluster].stakePoolToken,
+          label: "Socean",
+        },
+      ),
+      new EverstakeSplStakePool(
+        EVERSOL_ADDRESS_MAP[cluster].stakePool,
+        dummyAccountInfoForProgramOwner(EVERSOL_ADDRESS_MAP[cluster].program),
+        {
+          validatorListAddr: EVERSOL_ADDRESS_MAP[cluster].validatorList,
+          outputToken: EVERSOL_ADDRESS_MAP[cluster].stakePoolToken,
+          label: "Eversol",
+        },
+      ),
       ...[
-        { splAddrMap: SOCEAN_ADDRESS_MAP, label: "Socean" },
         { splAddrMap: JPOOL_ADDRESS_MAP, label: "JPool" },
         { splAddrMap: SOLBLAZE_ADDRESS_MAP, label: "SolBlaze" },
         { splAddrMap: DAOPOOL_ADDRESS_MAP, label: "DAOPool" },
       ].map(
         ({ splAddrMap, label }) =>
-          new SplStakePool(
+          new OfficialSplStakePool(
             splAddrMap[cluster].stakePool,
             dummyAccountInfoForProgramOwner(splAddrMap[cluster].program),
             {
@@ -156,11 +178,17 @@ export class UnstakeAg {
         ) {
           return null;
         }
+        const { stakeAmount, unstakedAmount } = calcStakeUnstakedAmount(
+          amountLamports,
+          stakeAccount,
+          currentEpoch,
+        );
         const { outAmount } = sp.getQuote({
           sourceMint:
             stakeAccount.data.info.stake?.delegation.voter ??
             StakeProgram.programId,
-          amount: JSBI.BigInt(amountLamports.toString()),
+          stakeAmount,
+          unstakedAmount,
         });
         const stakePoolRoute = {
           stakeAccInput: {
