@@ -22,6 +22,7 @@ import { UnstakeIt } from "stakePools/unstakeit";
 import { StakePool } from "@/unstake-ag/stakePools";
 import {
   DAOPOOL_ADDRESS_MAP,
+  EVERSOL_ADDRESS_MAP,
   JPOOL_ADDRESS_MAP,
   SOCEAN_ADDRESS_MAP,
   SOLBLAZE_ADDRESS_MAP,
@@ -93,6 +94,7 @@ export class UnstakeAg {
         { splAddrMap: JPOOL_ADDRESS_MAP, label: "JPool" },
         { splAddrMap: SOLBLAZE_ADDRESS_MAP, label: "SolBlaze" },
         { splAddrMap: DAOPOOL_ADDRESS_MAP, label: "DAOPool" },
+        { splAddrMap: EVERSOL_ADDRESS_MAP, label: "Eversol" },
       ].map(
         ({ splAddrMap, label }) =>
           new SplStakePool(

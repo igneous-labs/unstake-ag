@@ -9,6 +9,7 @@ export type SplStakePoolAccounts = {
 
 export * from "./consts";
 export * from "./daopool";
+export * from "./eversol";
 export * from "./jpool";
 export * from "./socean";
 export * from "./solblaze";

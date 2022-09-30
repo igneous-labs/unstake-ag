@@ -21,6 +21,7 @@ import {
 import { BN } from "bn.js";
 import JSBI from "jsbi";
 import {
+  EVERSOL_SPL_STAKE_POOL_PROGRAM_ID_STR,
   KNOWN_SPL_STAKE_POOL_PROGRAM_IDS_STR,
   KnownSplStakePoolProgramIdStr,
   OFFICIAL_SPL_STAKE_POOL_PROGRAM_ID_STR,
@@ -48,6 +49,7 @@ const PROGRAM_TO_DEPOSIT_STAKE_IX_DATA: {
 } = {
   [OFFICIAL_SPL_STAKE_POOL_PROGRAM_ID_STR]: Buffer.from([9]),
   [SOCEAN_SPL_STAKE_POOL_PROGRAM_ID_STR]: Buffer.from([10]),
+  [EVERSOL_SPL_STAKE_POOL_PROGRAM_ID_STR]: Buffer.from([9]),
 };
 
 interface SplStakePoolCtorParams {
