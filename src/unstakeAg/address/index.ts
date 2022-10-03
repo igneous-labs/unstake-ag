@@ -8,5 +8,6 @@ export type AddressMap<
   [k in Cluster]: Accounts;
 };
 
+export * from "./marinade";
 export * from "./splStakePool";
 export * from "./unstakeit";

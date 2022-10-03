@@ -206,6 +206,7 @@ export function calcStakeUnstakedAmount(
       unstakedAmount: JSBI.BigInt(lamportsToUnstake.toString()),
     };
   }
+  // partial unstake
   if (lamportsToUnstake < BigInt(stakeAccount.lamports)) {
     const rentExempt = JSBI.BigInt(
       STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString(),
@@ -218,6 +219,7 @@ export function calcStakeUnstakedAmount(
       unstakedAmount: rentExempt,
     };
   }
+  // full unstake
   const stakeAmount = JSBI.BigInt(
     stakeAccount.data.info.stake!.delegation.stake.toString(),
   );
@@ -229,4 +231,16 @@ export function calcStakeUnstakedAmount(
     stakeAmount,
     unstakedAmount,
   };
+}
+
+/**
+ * TODO: this should be exported from @soceanfi/solana-stake-sdk
+ */
+export function isLockupInForce(
+  stakeAcc: StakeAccount,
+  currentEpoch: number,
+): boolean {
+  const { unixTimestamp, epoch } = stakeAcc.info.meta.lockup;
+  // Assumes local time is a good approx of on-chain unix time
+  return unixTimestamp > Date.now() / 1_000 || epoch > currentEpoch;
 }

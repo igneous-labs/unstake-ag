@@ -20,6 +20,7 @@ import {
 } from "@soceanfi/stake-pool-sdk";
 import { BN } from "bn.js";
 import JSBI from "jsbi";
+import { isLockupInForce } from "unstakeAg/utils";
 
 import type {
   CanAcceptStakeAccountParams,
@@ -84,8 +85,10 @@ export abstract class SplStakePool implements StakePool {
   }
 
   /**
-   * SPL stake pools only accept active stake accounts staked to validators
-   * in the validator list
+   * SPL stake pools only accept:
+   * - active stake accounts (can cancel deactivation in setup)
+   * - staked to validators in the validator list
+   * - no lockup
    * @param param0
    */
   canAcceptStakeAccount({
@@ -94,6 +97,9 @@ export abstract class SplStakePool implements StakePool {
   }: CanAcceptStakeAccountParams): boolean {
     if (!this.validatorList) {
       throw new Error("validator list not yet fetched");
+    }
+    if (isLockupInForce(stakeAccount.data, currentEpoch)) {
+      return false;
     }
     const state = stakeAccountState(stakeAccount.data, new BN(currentEpoch));
     if (

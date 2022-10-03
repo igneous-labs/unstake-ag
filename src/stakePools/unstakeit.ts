@@ -20,6 +20,7 @@ import {
   Unstake,
 } from "@unstake-it/sol";
 import JSBI from "jsbi";
+import { isLockupInForce } from "unstakeAg/utils";
 
 import type {
   CanAcceptStakeAccountParams,
@@ -62,10 +63,13 @@ export class UnstakeIt implements StakePool {
     poolAccountInfo: AccountInfo<Buffer>,
   ) {
     const progId = poolAccountInfo.owner;
-    // if last arg is undefined, anchor attemps to load defaultprovider
+    // ts-ignore required, multiple typedefs of anchor types from conflictng versions
+    // @ts-ignore
     this.program = new Program(
+      // @ts-ignore
       UNSTAKE_IDL_JSON,
       progId,
+      // if last arg is undefined, anchor attemps to load defaultprovider
       "fake-truthy-value" as any,
     );
 
@@ -93,17 +97,18 @@ export class UnstakeIt implements StakePool {
   }
 
   /**
-   * Accepts all stake accs
+   * Accepts all stake accs that arent locked up
    * @param
    */
   // eslint-disable-next-line class-methods-use-this
   canAcceptStakeAccount({
     stakeAccount,
+    currentEpoch,
   }: CanAcceptStakeAccountParams): boolean {
-    return (
+    const correctState =
       stakeAccount.data.type === "initialized" ||
-      stakeAccount.data.type === "delegated"
-    );
+      stakeAccount.data.type === "delegated";
+    return correctState && !isLockupInForce(stakeAccount.data, currentEpoch);
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -179,7 +184,6 @@ export class UnstakeIt implements StakePool {
     ];
   }
 
-  // TODO: test this
   update(accountInfoMap: AccountInfoMap): void {
     const pool = accountInfoMap.get(this.poolAddr.toString());
     if (pool) {

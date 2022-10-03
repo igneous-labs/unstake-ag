@@ -15,6 +15,7 @@ import {
 import { Jupiter, JupiterLoadParams, WRAPPED_SOL_MINT } from "@jup-ag/core";
 import { StakeAccount } from "@soceanfi/solana-stake-sdk";
 import { UnstakeRoute } from "route";
+import { MarinadeStakePool } from "stakePools/marinade";
 
 import {
   EverstakeSplStakePool,
@@ -27,6 +28,7 @@ import {
   DAOPOOL_ADDRESS_MAP,
   EVERSOL_ADDRESS_MAP,
   JPOOL_ADDRESS_MAP,
+  MARINADE_ADDRESS_MAP,
   SOCEAN_ADDRESS_MAP,
   SOLBLAZE_ADDRESS_MAP,
   UNSTAKE_IT_ADDRESS_MAP,
@@ -82,6 +84,10 @@ export class UnstakeAg {
   }
 
   static async load(params: JupiterLoadParams): Promise<UnstakeAg> {
+    // we can't use serum markets anyway
+    params.shouldLoadSerumOpenOrders = false;
+    // TODO: this throws `missing <Account>` sometimes
+    // if RPC is slow to return. Not sure how to mitigate
     const jupiter = await Jupiter.load(params);
     const { cluster } = params;
 
@@ -92,6 +98,13 @@ export class UnstakeAg {
         dummyAccountInfoForProgramOwner(
           UNSTAKE_IT_ADDRESS_MAP[cluster].program,
         ),
+      ),
+      new MarinadeStakePool(
+        MARINADE_ADDRESS_MAP[cluster].state,
+        dummyAccountInfoForProgramOwner(MARINADE_ADDRESS_MAP[cluster].program),
+        {
+          validatorRecordsAddr: MARINADE_ADDRESS_MAP[cluster].validatorRecords,
+        },
       ),
       new SoceanSplStakePool(
         SOCEAN_ADDRESS_MAP[cluster].stakePool,
@@ -134,6 +147,8 @@ export class UnstakeAg {
   }
 
   // copied from jup's prefetchAmms
+  // TODO: ideally we use the same accountInfosMap as jupiter
+  // so we dont fetch duplicate accounts e.g. marinade state
   async updateStakePools(): Promise<void> {
     const accountsStr = this.stakePoolsAccountsToUpdate.map((pk) =>
       pk.toBase58(),
@@ -185,13 +200,16 @@ export class UnstakeAg {
             stakeAccount,
             currentEpoch,
           );
-          const { outAmount } = sp.getQuote({
+          const { outAmount, notEnoughLiquidity } = sp.getQuote({
             sourceMint:
               stakeAccount.data.info.stake?.delegation.voter ??
               StakeProgram.programId,
             stakeAmount,
             unstakedAmount,
           });
+          if (notEnoughLiquidity) {
+            return null;
+          }
           const stakePoolRoute = {
             stakeAccInput: {
               stakePool: sp,

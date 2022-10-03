@@ -27,6 +27,7 @@
     "rootDir": "./src",
     "types": ["node"],
     "lib": ["ES6", "DOM"],
+    "resolveJsonModule": true,
     "baseUrl": "./src",
     "paths": {
       "@/unstake-ag": ["."],
