@@ -292,24 +292,23 @@ export class MarinadeStakePool implements StakePool {
   update(accountInfoMap: AccountInfoMap): void {
     const state = accountInfoMap.get(this.stateAddr.toString());
     if (state) {
-      const newState = this.program.program.coder.accounts.decode(
+      this.state = this.program.program.coder.accounts.decode(
         "State",
         state.data,
       );
-      this.state = newState;
-      const validatorRecords = accountInfoMap.get(
-        this.validatorRecordsAddr.toString(),
-      );
-      if (validatorRecords) {
-        this.validatorRecords = struct<ValidatorRecordList>([
-          u64("length"),
-          seq(
-            VALIDATOR_RECORD_LAYOUT,
-            newState.validatorSystem.validatorList.count,
-            "values",
-          ),
-        ]).decode(validatorRecords.data).values;
-      }
+    }
+    const validatorRecords = accountInfoMap.get(
+      this.validatorRecordsAddr.toString(),
+    );
+    if (this.state && validatorRecords) {
+      this.validatorRecords = struct<ValidatorRecordList>([
+        u64("length"),
+        seq(
+          VALIDATOR_RECORD_LAYOUT,
+          this.state.validatorSystem.validatorList.count,
+          "values",
+        ),
+      ]).decode(validatorRecords.data).values;
     }
   }
 
