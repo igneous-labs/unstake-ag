@@ -206,6 +206,7 @@ export function calcStakeUnstakedAmount(
       unstakedAmount: JSBI.BigInt(lamportsToUnstake.toString()),
     };
   }
+  // partial unstake
   if (lamportsToUnstake < BigInt(stakeAccount.lamports)) {
     const rentExempt = JSBI.BigInt(
       STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString(),
@@ -218,6 +219,7 @@ export function calcStakeUnstakedAmount(
       unstakedAmount: rentExempt,
     };
   }
+  // full unstake
   const stakeAmount = JSBI.BigInt(
     stakeAccount.data.info.stake!.delegation.stake.toString(),
   );

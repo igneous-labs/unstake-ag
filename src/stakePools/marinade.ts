@@ -320,8 +320,8 @@ export class MarinadeStakePool implements StakePool {
     const mSolSupply = JSBI.BigInt(this.state.msolSupply);
     // https://github.com/marinade-finance/liquid-staking-program/blob/447f9607a8c755cac7ad63223febf047142c6c8f/programs/marinade-finance/src/stake_system/deposit_stake_account.rs#L282
     const outAmount = JSBI.divide(
-      JSBI.multiply(stakeAmount, marinadeTotalLamports),
-      mSolSupply,
+      JSBI.multiply(stakeAmount, mSolSupply),
+      marinadeTotalLamports,
     );
     // TODO: should we count the absorbed rent as fees?
     return {
