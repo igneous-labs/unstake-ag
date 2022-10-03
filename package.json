@@ -88,6 +88,7 @@
     "@solana/web3.js": "^1.61.1",
     "@unstake-it/sol": "^0.1.2",
     "bn.js": "^5",
+    "buffer-layout": "^1.2.2",
     "jsbi": "^4.3.0"
   },
   "publishConfig": {

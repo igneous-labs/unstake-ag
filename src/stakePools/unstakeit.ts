@@ -179,7 +179,6 @@ export class UnstakeIt implements StakePool {
     ];
   }
 
-  // TODO: test this
   update(accountInfoMap: AccountInfoMap): void {
     const pool = accountInfoMap.get(this.poolAddr.toString());
     if (pool) {

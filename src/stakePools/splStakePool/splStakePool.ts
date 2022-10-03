@@ -84,8 +84,10 @@ export abstract class SplStakePool implements StakePool {
   }
 
   /**
-   * SPL stake pools only accept active stake accounts staked to validators
-   * in the validator list
+   * SPL stake pools only accept:
+   * - active stake accounts (can cancel deactivation in setup)
+   * - staked to validators in the validator list
+   * - no lockup
    * @param param0
    */
   canAcceptStakeAccount({

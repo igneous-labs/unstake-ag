@@ -1,121 +1,185 @@
-/* eslint-disable */
+/* eslint-disable max-classes-per-file */
+
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import {
+  AccountInfo,
+  PublicKey,
+  StakeProgram,
+  Struct,
+  SystemProgram,
+  SYSVAR_CLOCK_PUBKEY,
+  SYSVAR_RENT_PUBKEY,
+  TransactionInstruction,
+} from "@solana/web3.js";
+import { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
+// Yes, the one from jup, not marinade, because we just need to deserialize the account, which is
+// MarinadeState.state and marinade sdk doesnt export just the accunt fields
+import { MarinadeStateResponse } from "@jup-ag/core/dist/lib/marinade/marinade-state.types";
+import { ValidatorRecord } from "@marinade.finance/marinade-ts-sdk/dist/src/marinade-state/borsh";
+import { MarinadeFinanceProgram } from "@marinade.finance/marinade-ts-sdk/dist/src/programs/marinade-finance-program";
+import { publicKey, struct, u8, u32, u64 } from "@project-serum/borsh";
+import { stakeAccountState } from "@soceanfi/solana-stake-sdk";
+import BN from "bn.js";
+// NOTE: NOT @solana/buffer-layout because there's a lot of instanceof checks in there
+// @ts-ignore
+import { seq } from "buffer-layout";
+import JSBI from "jsbi";
 
 import type {
   CanAcceptStakeAccountParams,
-  CreateCleanupInstructionsParams,
+  CreateSetupInstructionsParams,
   CreateSwapInstructionsParams,
   StakePool,
   StakePoolQuoteParams,
 } from "@/unstake-ag/stakePools";
 
-import { WRAPPED_SOL_MINT } from "@jup-ag/core";
-import { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
-import {
-  AccountInfo,
-  PublicKey,
-  StakeProgram,
-  SystemProgram,
-  SYSVAR_CLOCK_PUBKEY,
-  Transaction,
-  TransactionInstruction,
-} from "@solana/web3.js";
-import JSBI from "jsbi";
-import BN from "bn.js";
-import {
-  Marinade as MarinadeInstance,
-  MarinadeState,
-  MarinadeUtils,
-} from "@marinade.finance/marinade-ts-sdk";
-import { stakeAccountState } from "@soceanfi/solana-stake-sdk";
-import { getOrCreateAssociatedTokenAccount } from "@marinade.finance/marinade-ts-sdk/dist/src/util";
-import { ValidatorRecord } from "@marinade.finance/marinade-ts-sdk/dist/src/marinade-state/borsh";
-// import { MarinadeFinanceProgram } from "@marinade.finance/marinade-ts-sdk/dist/src/programs/marinade-finance-program";
-// import { MarinadeFinanceIdl } from "@marinade.finance/marinade-ts-sdk/dist/src/programs/idl/marinade-finance-idl";
+// Redefining ValidatorRecord layouts because marinade doesnt export them
 
-export class Marinade implements StakePool {
-  marinade = new MarinadeInstance();
-  outputToken: PublicKey = WRAPPED_SOL_MINT;
+const VALIDATOR_RECORD_LAYOUT = struct<ValidatorRecord>([
+  publicKey("validatorAccount"),
+  u64("activeBalance"),
+  u32("score"),
+  u64("lastStakeDeltaEpoch"),
+  u8("duplicationFlagBumpSeed"),
+  // marinade's internal impl of their List struct assumes ValidatorRecord is
+  // 61-byte long, even though its only 53 bytes long.
+  // So items are placed at offsets of i*61
+  u64("_padding"),
+]);
 
-  program: typeof this.marinade.marinadeFinanceProgram;
+// serum's vec<> type has u32 as length,
+// but marinade's List is u64
+class ValidatorRecordList extends Struct {
+  // @ts-ignore
+  length: BN;
+
+  // @ts-ignore
+  values: ValidatorRecord[];
+}
+
+interface MarinadeCtorParams {
+  validatorRecordsAddr: PublicKey;
+}
+
+export class MarinadeStakePool implements StakePool {
+  // https://github.com/marinade-finance/liquid-staking-program/blob/447f9607a8c755cac7ad63223febf047142c6c8f/programs/marinade-finance/src/stake_system/deposit_stake_account.rs#L20
+  public static readonly DEPOSIT_WAIT_EPOCHS: number = 2;
+
+  label: string = "Marinade";
+
+  outputToken: PublicKey = new PublicKey(
+    "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
+  );
+
+  program: MarinadeFinanceProgram;
 
   // cached state
-  validatorRecords: ValidatorRecord[];
-  state: MarinadeState;
-  pool: IdlAccounts<Unstake>["pool"] | null;
-  protocolFee: ProtocolFeeAccount | null;
-  fee: number | null;
-  poolSolReservesLamports: number | null;
+  validatorRecords: ValidatorRecord[] | null;
+
+  state: MarinadeStateResponse | null;
 
   // addr/pda cache
-  poolAddr: PublicKey;
-  protocolFeeAddr: PublicKey;
-  feeAddr: PublicKey;
-  poolSolReservesAddr: PublicKey;
+  stateAddr: PublicKey;
+
+  validatorRecordsAddr: PublicKey;
+
+  stakeDepositAuthority: PublicKey;
+
+  stakeWithdrawAuthority: PublicKey;
+
+  mSolMintAuthority: PublicKey;
 
   // following jup convention for ctor args
   constructor(
-    poolAddress: PublicKey,
+    stateAddr: PublicKey,
     // just pass in an AccountInfo with the right pubkey and owner
     // and not use the data since we're gonna call fetch all accounts and update() anyway
-    poolAccountInfo: AccountInfo<Buffer>,
-    state: MarinadeState,
-    validatorRecords: ValidatorRecord[],
+    stateAccountInfo: AccountInfo<Buffer>,
+    { validatorRecordsAddr }: MarinadeCtorParams,
   ) {
-    const progId = poolAccountInfo.owner;
+    const progId = stateAccountInfo.owner;
     // if last arg is undefined, anchor attemps to load defaultprovider
-    this.program = this.marinade.marinadeFinanceProgram;
-
-    this.pool = null;
-    this.protocolFee = null;
-    this.fee = null;
-    this.poolSolReservesLamports = null;
-
-    this.poolAddr = poolAddress;
-
-    // TODO: export sync versions of the PDA functions in @unstake-it/sol
-    // and replace these with those
-    this.protocolFeeAddr = PublicKey.findProgramAddressSync(
-      [Buffer.from("protocol-fee")],
+    this.program = new MarinadeFinanceProgram(
       progId,
-    )[0];
-    this.feeAddr = PublicKey.findProgramAddressSync(
-      [this.poolAddr.toBuffer(), Buffer.from("fee")],
-      progId,
-    )[0];
-    this.poolSolReservesAddr = PublicKey.findProgramAddressSync(
-      [this.poolAddr.toBuffer()],
-      progId,
-    )[0];
+      "fake-truthy-value" as any,
+    );
 
-    this.state = state;
-    this.validatorRecords = validatorRecords;
+    this.validatorRecords = null;
+    this.state = null;
+
+    this.stateAddr = stateAddr;
+    this.validatorRecordsAddr = validatorRecordsAddr;
+    [this.stakeDepositAuthority] = PublicKey.findProgramAddressSync(
+      [this.stateAddr.toBuffer(), Buffer.from("deposit")],
+      progId,
+    );
+    [this.stakeWithdrawAuthority] = PublicKey.findProgramAddressSync(
+      [this.stateAddr.toBuffer(), Buffer.from("withdraw")],
+      progId,
+    );
+    [this.mSolMintAuthority] = PublicKey.findProgramAddressSync(
+      [this.stateAddr.toBuffer(), Buffer.from("st_mint")],
+      progId,
+    );
   }
 
   /**
-   * Accepts all stake accs
-   * @param
-   */
-  /**
-   * Marinade stake pool only accept activated stake accounts staked to
-   * validators in the validator list
+   * Marinade stake pool only accepts:
+   * - activated stake accounts (can cancel deactivation in setup)
+   * - cannot have excess lamport balance (can withdraw excess in setup)
+   * - no lockup
+   * - staked to validators in the validator list
+   * - delegation.stake >= stake_system.min_stake
+   * - currentEpoch >= activation_epoch + DEPOSIT_WAIT_EPOCHS
+   * - below its staking cap
+   * - staker not already set to marinade's stake authority
+   * - withdrawer not already set to marinade's withdraw authority
    * @param param0
    */
   canAcceptStakeAccount({
     stakeAccount,
     currentEpoch,
   }: CanAcceptStakeAccountParams): boolean {
+    if (!this.state) {
+      throw new Error("marinade state not yet fetched");
+    }
     if (!this.validatorRecords) {
       throw new Error("validator records not yet fetched");
     }
-    const state = stakeAccountState(stakeAccount.data, new BN(currentEpoch));
+    const { staker, withdrawer } = stakeAccount.data.info.meta.authorized;
+    if (staker.equals(this.stakeDepositAuthority)) {
+      return false;
+    }
+    if (withdrawer.equals(this.stakeWithdrawAuthority)) {
+      return false;
+    }
+    const stakeState = stakeAccountState(
+      stakeAccount.data,
+      new BN(currentEpoch),
+    );
     if (
-      state === "inactive" ||
-      state === "activating" ||
+      stakeState === "inactive" ||
+      stakeState === "activating" ||
       !stakeAccount.data.info.stake
     ) {
       return false;
     }
-    const { voter } = stakeAccount.data.info.stake.delegation;
+    const { voter, activationEpoch, stake } =
+      stakeAccount.data.info.stake.delegation;
+    if (
+      currentEpoch <
+      activationEpoch.toNumber() + MarinadeStakePool.DEPOSIT_WAIT_EPOCHS
+    ) {
+      return false;
+    }
+    if (stake.lt(this.state.stakeSystem.minStake)) {
+      return false;
+    }
+    if (
+      stake.add(this.totalLamportsUnderControl()).gt(this.state.stakingSolCap)
+    ) {
+      return false;
+    }
     return Boolean(
       this.validatorRecords.find((validator) =>
         validator.validatorAccount.equals(voter),
@@ -123,141 +187,197 @@ export class Marinade implements StakePool {
     );
   }
 
-  createSetupInstructions(): TransactionInstruction[] {
-    // no need to reactivate stake acc etc because
-    // unstake program accepts all stake accounts
-    return [];
+  // eslint-disable-next-line class-methods-use-this
+  createSetupInstructions({
+    currentEpoch,
+    stakeAccount,
+    stakeAccountPubkey,
+  }: CreateSetupInstructionsParams): TransactionInstruction[] {
+    const res = [];
+    // reactivate if deactivating
+    const state = stakeAccountState(stakeAccount.data, new BN(currentEpoch));
+    if (state === "deactivating") {
+      if (!stakeAccount.data.info.stake) {
+        throw new Error("stakeAccount.data.info.stake null");
+      }
+      res.push(
+        ...StakeProgram.delegate({
+          authorizedPubkey: stakeAccount.data.info.meta.authorized.staker,
+          stakePubkey: stakeAccountPubkey,
+          votePubkey: stakeAccount.data.info.stake.delegation.voter,
+        }).instructions,
+      );
+    }
+    // withdraw excess lamports
+    const {
+      meta: { rentExemptReserve },
+      stake,
+    } = stakeAccount.data.info;
+    if (!stake) {
+      throw new Error("expected stake to be in Stake state");
+    }
+    const expectedLamports = rentExemptReserve.add(stake.delegation.stake);
+    const excessLamports = new BN(stakeAccount.lamports).sub(expectedLamports);
+    if (!excessLamports.isZero()) {
+      res.push(
+        ...StakeProgram.withdraw({
+          authorizedPubkey: stakeAccount.data.info.meta.authorized.staker,
+          stakePubkey: stakeAccountPubkey,
+          toPubkey: stakeAccount.data.info.meta.authorized.withdrawer,
+          lamports: excessLamports.toNumber(),
+        }).instructions,
+      );
+    }
+    return res;
   }
 
   createSwapInstructions({
     stakeAccountPubkey,
-    withdrawerAuth,
+    stakeAccountVotePubkey,
+    stakerAuth,
     payer,
     destinationTokenAccount,
   }: CreateSwapInstructionsParams): TransactionInstruction[] {
-    if (!this.protocolFee) {
-      throw new Error("protocol fee account not cached");
+    if (!this.state) {
+      throw new Error("marinade state not fetched");
     }
-
-    const ownerAddress = stakeAccountPubkey;
-    const transaction = new Transaction();
-
-    const associatedTokenAccountInfos = await getOrCreateAssociatedTokenAccount(
-      this.provider,
-      this.state.mSolMintAddress,
-      ownerAddress,
+    if (!this.validatorRecords) {
+      throw new Error("validator records not fetched");
+    }
+    const validatorIndex = this.validatorRecords.findIndex((v) =>
+      v.validatorAccount.equals(stakeAccountVotePubkey),
     );
-    const createAssociateTokenInstruction =
-      associatedTokenAccountInfos.createAssociateTokenInstruction;
-    const associatedMSolTokenAccountAddress =
-      associatedTokenAccountInfos.associatedTokenAccountAddress;
-
-    if (createAssociateTokenInstruction) {
-      transaction.add(createAssociateTokenInstruction);
+    if (validatorIndex < 0) {
+      throw new Error("validator not part of marinade");
     }
-
-    const liquidUnstakeInstruction =
-      await this.program.liquidUnstakeInstructionBuilder({
-        amountLamports,
-        marinadeState: this.state,
-        ownerAddress,
-        associatedMSolTokenAccountAddress,
-      });
-
-    transaction.add(liquidUnstakeInstruction);
-
-    return transaction.instructions;
+    return [
+      this.program.depositStakeAccountInstruction({
+        accounts: {
+          state: this.stateAddr,
+          validatorList: this.validatorRecordsAddr,
+          stakeList: this.state.stakeSystem.stakeList.account,
+          msolMintAuthority: this.mSolMintAuthority,
+          duplicationFlag: this.findDuplicationFlag(
+            this.validatorRecords[validatorIndex],
+          ),
+          stakeAccount: stakeAccountPubkey,
+          stakeAuthority: stakerAuth,
+          rentPayer: payer,
+          msolMint: this.outputToken,
+          mintTo: destinationTokenAccount,
+          clock: SYSVAR_CLOCK_PUBKEY,
+          rent: SYSVAR_RENT_PUBKEY,
+          systemProgram: SystemProgram.programId,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          stakeProgram: StakeProgram.programId,
+        },
+        validatorIndex,
+      }),
+    ];
   }
 
-  createCleanupInstruction({
-    stakeAccountPubkey,
-    stakeAccount,
-    currentEpoch,
-  }: CreateCleanupInstructionsParams): TransactionInstruction[] {
-    const state = stakeAccountState(stakeAccount.data, new BN(currentEpoch));
-    if (state === "active" || state === "activating") {
-      return [
-        this.program.program.instruction.instruction.deactivateStakeAccount({
-          accounts: {
-            stakeAccount: stakeAccountPubkey,
-            poolAccount: this.poolAddr,
-            poolSolReserves: this.poolSolReservesAddr,
-            clock: SYSVAR_CLOCK_PUBKEY,
-            stakeProgram: StakeProgram.programId,
-          },
-        }),
-      ];
-    }
+  // eslint-disable-next-line class-methods-use-this
+  createCleanupInstruction(): TransactionInstruction[] {
     return [];
   }
 
   getAccountsForUpdate(): PublicKey[] {
-    return [
-      this.poolAddr,
-      this.protocolFeeAddr,
-      this.feeAddr,
-      this.poolSolReservesAddr,
-    ];
+    return [this.stateAddr, this.validatorRecordsAddr];
   }
 
-  // TODO: test this
   update(accountInfoMap: AccountInfoMap): void {
-    const pool = accountInfoMap.get(this.poolAddr.toString());
-    if (pool) {
-      this.pool = this.program.coder.accounts.decode("Pool", pool.data);
-    }
-    const protocolFee = accountInfoMap.get(this.protocolFeeAddr.toString());
-    if (protocolFee) {
-      this.protocolFee = this.program.coder.accounts.decode(
-        "ProtocolFee",
-        protocolFee.data,
+    const state = accountInfoMap.get(this.stateAddr.toString());
+    if (state) {
+      const newState = this.program.program.coder.accounts.decode(
+        "State",
+        state.data,
       );
-    }
-    const fee = accountInfoMap.get(this.feeAddr.toString());
-    if (fee) {
-      this.fee = this.program.coder.accounts.decode("Fee", fee.data);
-    }
-    const solReserves = accountInfoMap.get(this.poolSolReservesAddr.toString());
-    if (solReserves) {
-      this.poolSolReservesLamports = solReserves.lamports;
+      this.state = newState;
+      const validatorRecords = accountInfoMap.get(
+        this.validatorRecordsAddr.toString(),
+      );
+      if (validatorRecords) {
+        this.validatorRecords = struct<ValidatorRecordList>([
+          u64("length"),
+          seq(
+            VALIDATOR_RECORD_LAYOUT,
+            newState.validatorSystem.validatorList.count,
+            "values",
+          ),
+        ]).decode(validatorRecords.data).values;
+      }
     }
   }
 
-  getQuote({ amount }: StakePoolQuoteParams): Quote {
-    if (!this.fee) {
-      throw new Error("fee account not fetched");
+  getQuote({ stakeAmount, unstakedAmount }: StakePoolQuoteParams): Quote {
+    if (!this.state) {
+      throw new Error("marinade state not fetched");
     }
-    if (this.poolSolReservesLamports === null) {
-      throw new Error("SOL reserves lamports not fetched");
-    }
-    if (!this.pool) {
-      throw new Error("pool account not fetched");
-    }
-    const stakeAccountLamports = new BN(amount.toString());
-    const solReservesLamports = new BN(this.poolSolReservesLamports);
-    const estFeeDeductedLamports = new BN(
-      MarinadeUtils.unstakeNowFeeBp(
-        this.fee,
-        this.fee,
-        new BN(this.pool.stakeAccount.toString()),
-        solReservesLamports,
-        stakeAccountLamports,
-      ),
+    const amount = JSBI.add(stakeAmount, unstakedAmount);
+    const marinadeTotalLamports = JSBI.BigInt(
+      this.totalVirtualStakedLamports().toString(),
     );
-    const outAmountBN = stakeAccountLamports.sub(estFeeDeductedLamports);
-    const outAmount = JSBI.BigInt(outAmountBN.toString());
-    const notEnoughLiquidity = outAmountBN.gt(solReservesLamports);
+    const mSolSupply = JSBI.BigInt(this.state.msolSupply);
+    // https://github.com/marinade-finance/liquid-staking-program/blob/447f9607a8c755cac7ad63223febf047142c6c8f/programs/marinade-finance/src/stake_system/deposit_stake_account.rs#L282
+    const outAmount = JSBI.divide(
+      JSBI.multiply(stakeAmount, marinadeTotalLamports),
+      mSolSupply,
+    );
+    // TODO: should we count the absorbed rent as fees?
     return {
-      notEnoughLiquidity,
+      notEnoughLiquidity: false,
       minOutAmount: outAmount,
       inAmount: amount,
       outAmount,
-      feeAmount: JSBI.BigInt(estFeeDeductedLamports.toString()),
+      feeAmount: JSBI.BigInt(0),
       feeMint: this.outputToken.toString(),
       // Note: name is pct, but actually rate (0.0 - 1.0)
-      feePct:
-        estFeeDeductedLamports.toNumber() / stakeAccountLamports.toNumber(),
+      feePct: 0,
       priceImpactPct: 0,
     };
+  }
+
+  /**
+   * https://github.com/marinade-finance/liquid-staking-program/blob/a309057f1eb3413070846d34e8fd5d83e99dc1c6/programs/marinade-finance/src/state.rs#L175
+   * Assumes marinade state fetched
+   */
+  private totalCoolingDown(): BN {
+    const state = this.state!;
+    return state.stakeSystem.delayedUnstakeCoolingDown.add(
+      state.emergencyCoolingDown,
+    );
+  }
+
+  /**
+   * https://github.com/marinade-finance/liquid-staking-program/blob/a309057f1eb3413070846d34e8fd5d83e99dc1c6/programs/marinade-finance/src/state.rs#L183
+   * Assumes marinade state fetched
+   */
+  private totalLamportsUnderControl(): BN {
+    const state = this.state!;
+    return state.validatorSystem.totalActiveBalance
+      .add(this.totalCoolingDown())
+      .add(state.availableReserveBalance);
+  }
+
+  /**
+   * https://github.com/marinade-finance/liquid-staking-program/blob/a309057f1eb3413070846d34e8fd5d83e99dc1c6/programs/marinade-finance/src/state.rs#L211
+   * Assumes marinade state fetched
+   */
+  private totalVirtualStakedLamports() {
+    const state = this.state!;
+    return this.totalLamportsUnderControl().sub(state.circulatingTicketBalance);
+  }
+
+  private findDuplicationFlag({
+    validatorAccount,
+  }: ValidatorRecord): PublicKey {
+    return PublicKey.findProgramAddressSync(
+      [
+        this.stateAddr.toBuffer(),
+        Buffer.from("unique_validator"),
+        validatorAccount.toBuffer(),
+      ],
+      this.program.program.programId,
+    )[0];
   }
 }

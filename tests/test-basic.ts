@@ -9,10 +9,13 @@ import { outLamports, routeMarketLabels, UnstakeAg } from "@/unstake-ag";
 
 describe("test basic functionality", () => {
   it("load and route", async () => {
+    // NOTE: this stake account needs to exist on mainnet for the test to work
     const testStakeAccPubkey = new PublicKey(
-      "8rmCcsqJcLxdvJmaP9vqtM74vppRSCzr8kg7jsxFHPHT",
+      "38V7xqBsHxANQTGfUNLyy7XUiZifdp9krWEggcrD99He",
     );
-    const conn = new Connection("https://solana-api.projectserum.com");
+    const conn = new Connection(
+      "https://try-rpc.mainnet.solana.blockdaemon.tech",
+    );
     const unstake = await UnstakeAg.load({
       cluster: "mainnet-beta",
       connection: conn,
