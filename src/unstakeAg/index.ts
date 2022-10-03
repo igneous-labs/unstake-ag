@@ -200,13 +200,16 @@ export class UnstakeAg {
             stakeAccount,
             currentEpoch,
           );
-          const { outAmount } = sp.getQuote({
+          const { outAmount, notEnoughLiquidity } = sp.getQuote({
             sourceMint:
               stakeAccount.data.info.stake?.delegation.voter ??
               StakeProgram.programId,
             stakeAmount,
             unstakedAmount,
           });
+          if (notEnoughLiquidity) {
+            return null;
+          }
           const stakePoolRoute = {
             stakeAccInput: {
               stakePool: sp,
