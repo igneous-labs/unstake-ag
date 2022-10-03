@@ -1,15 +1,3 @@
-/* eslint-disable */
-
-import type {
-  CanAcceptStakeAccountParams,
-  CreateCleanupInstructionsParams,
-  CreateSwapInstructionsParams,
-  StakePool,
-  StakePoolQuoteParams,
-} from "@/unstake-ag/stakePools";
-import { WRAPPED_SOL_MINT } from "@jup-ag/core";
-import { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
-import { stakeAccountState } from "@soceanfi/solana-stake-sdk";
 import {
   AccountInfo,
   PublicKey,
@@ -18,33 +6,52 @@ import {
   SYSVAR_CLOCK_PUBKEY,
   TransactionInstruction,
 } from "@solana/web3.js";
+import { WRAPPED_SOL_MINT } from "@jup-ag/core";
+import { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
+import { stakeAccountState } from "@soceanfi/solana-stake-sdk";
 import {
   applyFee,
   BN,
   Fee,
+  IDL_JSON as UNSTAKE_IDL_JSON,
   IdlAccounts,
   Program,
   ProtocolFeeAccount,
   Unstake,
-  IDL_JSON as UNSTAKE_IDL_JSON,
 } from "@unstake-it/sol";
 import JSBI from "jsbi";
 
+import type {
+  CanAcceptStakeAccountParams,
+  CreateCleanupInstructionsParams,
+  CreateSwapInstructionsParams,
+  StakePool,
+  StakePoolQuoteParams,
+} from "@/unstake-ag/stakePools";
+
 export class UnstakeIt implements StakePool {
   outputToken: PublicKey = WRAPPED_SOL_MINT;
+
+  label: string = "unstake.it";
 
   program: Program<Unstake>;
 
   // cached state
   pool: IdlAccounts<Unstake>["pool"] | null;
+
   protocolFee: ProtocolFeeAccount | null;
+
   fee: Fee | null;
+
   poolSolReservesLamports: number | null;
 
   // addr/pda cache
   poolAddr: PublicKey;
+
   protocolFeeAddr: PublicKey;
+
   feeAddr: PublicKey;
+
   poolSolReservesAddr: PublicKey;
 
   // following jup convention for ctor args
@@ -71,24 +78,25 @@ export class UnstakeIt implements StakePool {
 
     // TODO: export sync versions of the PDA functions in @unstake-it/sol
     // and replace these with those
-    this.protocolFeeAddr = PublicKey.findProgramAddressSync(
+    [this.protocolFeeAddr] = PublicKey.findProgramAddressSync(
       [Buffer.from("protocol-fee")],
       progId,
-    )[0];
-    this.feeAddr = PublicKey.findProgramAddressSync(
+    );
+    [this.feeAddr] = PublicKey.findProgramAddressSync(
       [this.poolAddr.toBuffer(), Buffer.from("fee")],
       progId,
-    )[0];
-    this.poolSolReservesAddr = PublicKey.findProgramAddressSync(
+    );
+    [this.poolSolReservesAddr] = PublicKey.findProgramAddressSync(
       [this.poolAddr.toBuffer()],
       progId,
-    )[0];
+    );
   }
 
   /**
    * Accepts all stake accs
    * @param
    */
+  // eslint-disable-next-line class-methods-use-this
   canAcceptStakeAccount({
     stakeAccount,
   }: CanAcceptStakeAccountParams): boolean {
@@ -98,6 +106,7 @@ export class UnstakeIt implements StakePool {
     );
   }
 
+  // eslint-disable-next-line class-methods-use-this
   createSetupInstructions(): TransactionInstruction[] {
     // no need to reactivate stake acc etc because
     // unstake program accepts all stake accounts
@@ -193,7 +202,7 @@ export class UnstakeIt implements StakePool {
     }
   }
 
-  getQuote({ amount }: StakePoolQuoteParams): Quote {
+  getQuote({ stakeAmount, unstakedAmount }: StakePoolQuoteParams): Quote {
     if (!this.fee) {
       throw new Error("fee account not fetched");
     }
@@ -203,6 +212,7 @@ export class UnstakeIt implements StakePool {
     if (!this.pool) {
       throw new Error("pool account not fetched");
     }
+    const amount = JSBI.add(stakeAmount, unstakedAmount);
     const stakeAccountLamports = new BN(amount.toString());
     const solReservesLamports = new BN(this.poolSolReservesLamports);
     const estFeeDeductedLamports = applyFee(this.fee, {

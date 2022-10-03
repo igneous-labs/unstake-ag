@@ -53,6 +53,7 @@
     "postbuild": "echo '{\"type\":\"commonjs\"}' | npx json > dist/cjs/package.json && echo '{\"type\":\"module\"} ' | npx json > dist/esm/package.json"
   },
   "devDependencies": {
+    "@types/chai": "^4.3.3",
     "@types/mocha": "^9.1.0",
     "@types/node": "^17.0.18",
     "@typescript-eslint/eslint-plugin": "^5.10.0",
@@ -80,9 +81,13 @@
   "dependencies": {
     "@jup-ag/core": "^2.0.0-beta.4",
     "@marinade.finance/marinade-ts-sdk": "^3.1.3",
+    "@project-serum/borsh": "^0.2.5",
     "@soceanfi/solana-stake-sdk": "^0.1.0",
+    "@soceanfi/stake-pool-sdk": "^0.4.3",
+    "@solana/spl-token": "~0.2.0",
     "@solana/web3.js": "^1.61.1",
-    "@unstake-it/sol": "^0.1.1",
+    "@unstake-it/sol": "^0.1.2",
+    "bn.js": "^5",
     "jsbi": "^4.3.0"
   },
   "publishConfig": {
