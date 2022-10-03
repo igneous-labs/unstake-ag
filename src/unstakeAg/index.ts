@@ -156,6 +156,7 @@ export class UnstakeAg {
     stakeAccount,
     amountLamports,
     slippagePct,
+    shouldIgnoreRouteErrors = true,
   }: ComputeRoutesParams): Promise<UnstakeRoute[]> {
     const msSinceLastFetch = Date.now() - this.lastUpdateStakePoolsTimestamp;
     if (
@@ -170,51 +171,58 @@ export class UnstakeAg {
     // each stakePool returns array of routes
     const maybeRoutes = await Promise.all(
       this.stakePools.map(async (sp) => {
-        if (
-          !sp.canAcceptStakeAccount({
-            currentEpoch,
+        try {
+          if (
+            !sp.canAcceptStakeAccount({
+              currentEpoch,
+              stakeAccount,
+            })
+          ) {
+            return null;
+          }
+          const { stakeAmount, unstakedAmount } = calcStakeUnstakedAmount(
+            amountLamports,
             stakeAccount,
-          })
-        ) {
-          return null;
+            currentEpoch,
+          );
+          const { outAmount } = sp.getQuote({
+            sourceMint:
+              stakeAccount.data.info.stake?.delegation.voter ??
+              StakeProgram.programId,
+            stakeAmount,
+            unstakedAmount,
+          });
+          const stakePoolRoute = {
+            stakeAccInput: {
+              stakePool: sp,
+              inAmount: amountLamports,
+              outAmount: BigInt(outAmount.toString()),
+            },
+          };
+          if (sp.outputToken.equals(WRAPPED_SOL_MINT)) {
+            return [stakePoolRoute];
+          }
+          // If sp.outputToken !== SOL, continue route through jupiter to reach SOL
+          const { routesInfos } = await this.jupiter.computeRoutes({
+            inputMint: sp.outputToken,
+            outputMint: WRAPPED_SOL_MINT,
+            amount: outAmount,
+            slippage: slippagePct,
+          });
+          const smallRoutes = filterSmallTxSizeJupRoutes(routesInfos);
+          if (smallRoutes.length === 0) {
+            return null;
+          }
+          return smallRoutes.map((jupRoute) => ({
+            ...stakePoolRoute,
+            jup: jupRoute,
+          }));
+        } catch (e) {
+          if (shouldIgnoreRouteErrors) {
+            return null;
+          }
+          throw e;
         }
-        const { stakeAmount, unstakedAmount } = calcStakeUnstakedAmount(
-          amountLamports,
-          stakeAccount,
-          currentEpoch,
-        );
-        const { outAmount } = sp.getQuote({
-          sourceMint:
-            stakeAccount.data.info.stake?.delegation.voter ??
-            StakeProgram.programId,
-          stakeAmount,
-          unstakedAmount,
-        });
-        const stakePoolRoute = {
-          stakeAccInput: {
-            stakePool: sp,
-            inAmount: amountLamports,
-            outAmount: BigInt(outAmount.toString()),
-          },
-        };
-        if (sp.outputToken.equals(WRAPPED_SOL_MINT)) {
-          return [stakePoolRoute];
-        }
-        // If sp.outputToken !== SOL, continue route through jupiter to reach SOL
-        const { routesInfos } = await this.jupiter.computeRoutes({
-          inputMint: sp.outputToken,
-          outputMint: WRAPPED_SOL_MINT,
-          amount: outAmount,
-          slippage: slippagePct,
-        });
-        const smallRoutes = filterSmallTxSizeJupRoutes(routesInfos);
-        if (smallRoutes.length === 0) {
-          return null;
-        }
-        return smallRoutes.map((jupRoute) => ({
-          ...stakePoolRoute,
-          jup: jupRoute,
-        }));
       }),
     );
     const routes = maybeRoutes
@@ -497,6 +505,15 @@ export interface ComputeRoutesParams {
    * In percent (0 - 100)
    */
   slippagePct: number;
+
+  /**
+   * Silently ignore routes where errors were thrown
+   * during computation such as failing to fetch
+   * required accounts.
+   *
+   * Defaults to true
+   */
+  shouldIgnoreRouteErrors?: boolean;
 }
 
 export interface ExchangeParams {
