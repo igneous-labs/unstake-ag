@@ -20,6 +20,7 @@ import {
   Unstake,
 } from "@unstake-it/sol";
 import JSBI from "jsbi";
+import { isLockupInForce } from "unstakeAg/utils";
 
 import type {
   CanAcceptStakeAccountParams,
@@ -96,17 +97,18 @@ export class UnstakeIt implements StakePool {
   }
 
   /**
-   * Accepts all stake accs
+   * Accepts all stake accs that arent locked up
    * @param
    */
   // eslint-disable-next-line class-methods-use-this
   canAcceptStakeAccount({
     stakeAccount,
+    currentEpoch,
   }: CanAcceptStakeAccountParams): boolean {
-    return (
+    const correctState =
       stakeAccount.data.type === "initialized" ||
-      stakeAccount.data.type === "delegated"
-    );
+      stakeAccount.data.type === "delegated";
+    return correctState && !isLockupInForce(stakeAccount.data, currentEpoch);
   }
 
   // eslint-disable-next-line class-methods-use-this

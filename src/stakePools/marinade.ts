@@ -24,6 +24,7 @@ import BN from "bn.js";
 // @ts-ignore
 import { seq } from "buffer-layout";
 import JSBI from "jsbi";
+import { isLockupInForce } from "unstakeAg/utils";
 
 import type {
   CanAcceptStakeAccountParams,
@@ -145,6 +146,9 @@ export class MarinadeStakePool implements StakePool {
     }
     if (!this.validatorRecords) {
       throw new Error("validator records not yet fetched");
+    }
+    if (isLockupInForce(stakeAccount.data, currentEpoch)) {
+      return false;
     }
     const { staker, withdrawer } = stakeAccount.data.info.meta.authorized;
     if (staker.equals(this.stakeDepositAuthority)) {

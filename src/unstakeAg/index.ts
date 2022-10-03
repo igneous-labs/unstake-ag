@@ -147,6 +147,8 @@ export class UnstakeAg {
   }
 
   // copied from jup's prefetchAmms
+  // TODO: ideally we use the same accountInfosMap as jupiter
+  // so we dont fetch duplicate accounts e.g. marinade state
   async updateStakePools(): Promise<void> {
     const accountsStr = this.stakePoolsAccountsToUpdate.map((pk) =>
       pk.toBase58(),

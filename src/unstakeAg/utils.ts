@@ -232,3 +232,15 @@ export function calcStakeUnstakedAmount(
     unstakedAmount,
   };
 }
+
+/**
+ * TODO: this should be exported from @soceanfi/solana-stake-sdk
+ */
+export function isLockupInForce(
+  stakeAcc: StakeAccount,
+  currentEpoch: number,
+): boolean {
+  const { unixTimestamp, epoch } = stakeAcc.info.meta.lockup;
+  // Assumes local time is a good approx of on-chain unix time
+  return unixTimestamp > Date.now() / 1_000 || epoch > currentEpoch;
+}
