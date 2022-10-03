@@ -207,6 +207,16 @@
     decimal.js "~10.3.1"
     tiny-invariant "~1.2.0"
 
+"@marinade.finance/marinade-ts-sdk@^3.1.3":
+  version "3.1.3"
+  resolved "https://registry.yarnpkg.com/@marinade.finance/marinade-ts-sdk/-/marinade-ts-sdk-3.1.3.tgz#011143e419e991994bee713e3f14b76f51ed9297"
+  integrity sha512-6ST/08Xic0zwJ0YVPi7VppSb+0zBqj9zitjaqJ0HLmX5kdchJ8BjEGYo8XHixwm+lXNVAGK9BRTAsLUAq6hgdw==
+  dependencies:
+    "@project-serum/anchor" "^0.18.2"
+    "@solana/spl-token" "^0.1.8"
+    borsh "^0.6.0"
+    bs58 "^5.0.0"
+
 "@mercurial-finance/optimist@0.1.6":
   version "0.1.6"
   resolved "https://registry.yarnpkg.com/@mercurial-finance/optimist/-/optimist-0.1.6.tgz#c91795ba86d889111743160a81996c6a89b2fa6f"
@@ -285,6 +295,26 @@
   version "0.11.1"
   resolved "https://registry.yarnpkg.com/@project-serum/anchor/-/anchor-0.11.1.tgz#155bff2c70652eafdcfd5559c81a83bb19cec9ff"
   integrity sha512-oIdm4vTJkUy6GmE6JgqDAuQPKI7XM4TPJkjtoIzp69RZe0iAD9JP2XHx7lV1jLdYXeYHqDXfBt3zcq7W91K6PA==
+  dependencies:
+    "@project-serum/borsh" "^0.2.2"
+    "@solana/web3.js" "^1.17.0"
+    base64-js "^1.5.1"
+    bn.js "^5.1.2"
+    bs58 "^4.0.1"
+    buffer-layout "^1.2.0"
+    camelcase "^5.3.1"
+    crypto-hash "^1.3.0"
+    eventemitter3 "^4.0.7"
+    find "^0.3.0"
+    js-sha256 "^0.9.0"
+    pako "^2.0.3"
+    snake-case "^3.0.4"
+    toml "^3.0.0"
+
+"@project-serum/anchor@^0.18.2":
+  version "0.18.2"
+  resolved "https://registry.yarnpkg.com/@project-serum/anchor/-/anchor-0.18.2.tgz#0f13b5c2046446b7c24cf28763eec90febb28485"
+  integrity sha512-uyjiN/3Ipp+4hrZRm/hG18HzGLZyvP790LXrCsGO3IWxSl28YRhiGEpKnZycfMW94R7nxdUoE3wY67V+ZHSQBQ==
   dependencies:
     "@project-serum/borsh" "^0.2.2"
     "@solana/web3.js" "^1.17.0"
@@ -961,6 +991,15 @@ borsh@^0.4.0:
   dependencies:
     "@types/bn.js" "^4.11.5"
     bn.js "^5.0.0"
+    bs58 "^4.0.0"
+    text-encoding-utf-8 "^1.0.2"
+
+borsh@^0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/borsh/-/borsh-0.6.0.tgz#a7c9eeca6a31ca9e0607cb49f329cb659eb791e1"
+  integrity sha512-sl5k89ViqsThXQpYa9XDtz1sBl3l1lI313cFUY1HKr+wvMILnb+58xpkqTNrYbelh99dY7K8usxoCusQmqix9Q==
+  dependencies:
+    bn.js "^5.2.0"
     bs58 "^4.0.0"
     text-encoding-utf-8 "^1.0.2"
 
