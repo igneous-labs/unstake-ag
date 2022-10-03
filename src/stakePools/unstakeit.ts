@@ -62,10 +62,13 @@ export class UnstakeIt implements StakePool {
     poolAccountInfo: AccountInfo<Buffer>,
   ) {
     const progId = poolAccountInfo.owner;
-    // if last arg is undefined, anchor attemps to load defaultprovider
+    // ts-ignore required, multiple typedefs of anchor types from conflictng versions
+    // @ts-ignore
     this.program = new Program(
+      // @ts-ignore
       UNSTAKE_IDL_JSON,
       progId,
+      // if last arg is undefined, anchor attemps to load defaultprovider
       "fake-truthy-value" as any,
     );
 
