@@ -1,4 +1,12 @@
-# <div align="center"><a href="https://unstake.it/"><img src="assets/logo.png" height="100" alt="unstake.it"></a></div>
+<div align="center"><a href="https://unstake.it/"><img src="assets/logo.png" height="100" alt="unstake.it"></a></div>
+
+<div align="center">
+
+[![npm-version](https://img.shields.io/npm/v/@unstake-it/sol-ag?style=flat)](https://npmjs.com/@unstake-it/sol-ag)
+[![npm-license](https://img.shields.io/npm/l/@unstake-it/sol-ag?style=flat)](https://npmjs.com/@unstake-it/sol-ag)
+[![Twitter](https://img.shields.io/twitter/follow/unstakeit?style=flat&color=f24f83)](https://twitter.com/unstakeit)
+
+</div>
 
 # unstake.it Staked SOL Instant Unstake Aggregator Typescript SDK
 
@@ -88,7 +96,7 @@ const {
 
 ```ts
 // returned transactions do not have `recentBlockhash` or `feePayer` set
-// and have nothing signed
+// and are not signed
 const { setupTransaction, unstakeTransaction, cleanupTransaction } =
   await unstake.exchange({
     route: bestRoute,
@@ -102,4 +110,3 @@ const { setupTransaction, unstakeTransaction, cleanupTransaction } =
 
 - [SDK Typedoc](https://unstake-ag.vercel.app)
 - [unstake.it](https://unstake.it)
-- [twitter](https://twitter.com/unstakeit)
