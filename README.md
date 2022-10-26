@@ -88,6 +88,7 @@ const {
 
 ```ts
 // returned transactions do not have `recentBlockhash` or `feePayer` set
+// and have nothing signed
 const { setupTransaction, unstakeTransaction, cleanupTransaction } =
   await unstake.exchange({
     route: bestRoute,
