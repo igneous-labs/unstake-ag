@@ -15,10 +15,10 @@ import {
 import { Jupiter, JupiterLoadParams, WRAPPED_SOL_MINT } from "@jup-ag/core";
 import { StakeAccount } from "@soceanfi/solana-stake-sdk";
 import { UnstakeRoute } from "route";
-import { MarinadeStakePool } from "stakePools/marinade";
 
 import {
   EverstakeSplStakePool,
+  MarinadeStakePool,
   OfficialSplStakePool,
   SoceanSplStakePool,
   StakePool,
@@ -57,9 +57,12 @@ export class UnstakeAg {
   jupiter: Jupiter;
 
   /**
-   * Same as jupiter's. For refreshing stakePools
+   * Same as jupiter's. For refreshing stakePools.
+   *
    * -1, it will not fetch when shouldFetch == false
+   *
    * 0, it will fetch everytime
+   *
    * A duration in ms, the time interval between AMM accounts refetch, recommendation for a UI 20 seconds,
    */
   routeCacheDuration: number;
@@ -268,12 +271,12 @@ export class UnstakeAg {
     stakeAccount,
     stakeAccountPubkey: inputStakeAccount,
     user,
-    currentEpoch,
   }: ExchangeParams): Promise<ExchangeReturn> {
     if (!stakeAccount.data.info.stake) {
       throw new Error("stake account not delegated");
     }
 
+    const { epoch: currentEpoch } = await this.connection.getEpochInfo();
     const withdrawerAuth = stakeAccount.data.info.meta.authorized.withdrawer;
     const stakerAuth = stakeAccount.data.info.meta.authorized.staker;
     const setupIxs = [];
@@ -423,7 +426,8 @@ export class UnstakeAg {
 /**
  *
  * @param param0
- * @returns expected amount of lamports to be received for the given unstake route
+ * @returns expected amount of lamports to be received for the given unstake route,
+ *          excluding slippage.
  */
 export function outLamports({ stakeAccInput, jup }: UnstakeRoute): bigint {
   if (!jup) {
@@ -539,7 +543,6 @@ export interface ExchangeParams {
   stakeAccount: AccountInfo<StakeAccount>;
   stakeAccountPubkey: PublicKey;
   user: PublicKey;
-  currentEpoch: number;
 }
 
 export interface ExchangeReturn {

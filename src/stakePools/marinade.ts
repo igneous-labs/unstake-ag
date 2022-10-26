@@ -58,7 +58,7 @@ class ValidatorRecordList extends Struct {
   values: ValidatorRecord[];
 }
 
-interface MarinadeCtorParams {
+export interface MarinadeCtorParams {
   validatorRecordsAddr: PublicKey;
 }
 

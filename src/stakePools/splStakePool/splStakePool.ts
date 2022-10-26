@@ -34,7 +34,7 @@ import {
   KnownSplStakePoolProgramIdStr,
 } from "@/unstake-ag/unstakeAg/address";
 
-interface SplStakePoolCtorParams {
+export interface SplStakePoolCtorParams {
   validatorListAddr: PublicKey;
   outputToken: PublicKey;
   label: string;

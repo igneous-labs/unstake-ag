@@ -35,10 +35,7 @@ describe("test basic functionality", () => {
       ),
     );
     console.log(routes.length);
-    const [{ epoch: currentEpoch }, { blockhash }] = await Promise.all([
-      conn.getEpochInfo(),
-      conn.getLatestBlockhash(),
-    ]);
+    const { blockhash } = await conn.getLatestBlockhash();
     const serializeConfig = {
       requireAllSignatures: false,
       verifyAllSignatures: false,
@@ -52,7 +49,6 @@ describe("test basic functionality", () => {
             stakeAccount,
             stakeAccountPubkey: testStakeAccPubkey,
             user,
-            currentEpoch,
           });
         if (setupTransaction) {
           setupTransaction.recentBlockhash = blockhash;
