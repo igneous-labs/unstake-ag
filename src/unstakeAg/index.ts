@@ -14,6 +14,7 @@ import {
 } from "@solana/web3.js";
 import { Jupiter, JupiterLoadParams, WRAPPED_SOL_MINT } from "@jup-ag/core";
 import { StakeAccount } from "@soceanfi/solana-stake-sdk";
+import { STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS } from "@soceanfi/stake-pool-sdk";
 import { UnstakeRoute } from "route";
 import { MarinadeStakePool } from "stakePools/marinade";
 
@@ -169,10 +170,19 @@ export class UnstakeAg {
 
   async computeRoutes({
     stakeAccount,
-    amountLamports,
+    amountLamports: amountLamportsArgs,
     slippagePct,
     shouldIgnoreRouteErrors = true,
   }: ComputeRoutesParams): Promise<UnstakeRoute[]> {
+    if (
+      amountLamportsArgs < BigInt(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString())
+    ) {
+      return [];
+    }
+    const amountLamports =
+      amountLamportsArgs > BigInt(stakeAccount.lamports)
+        ? BigInt(stakeAccount.lamports)
+        : amountLamportsArgs;
     const msSinceLastFetch = Date.now() - this.lastUpdateStakePoolsTimestamp;
     if (
       msSinceLastFetch > this.routeCacheDuration ||
@@ -189,6 +199,7 @@ export class UnstakeAg {
         try {
           if (
             !sp.canAcceptStakeAccount({
+              amountLamports,
               currentEpoch,
               stakeAccount,
             })

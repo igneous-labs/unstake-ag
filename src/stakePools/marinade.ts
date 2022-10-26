@@ -32,7 +32,10 @@ import type {
   StakePool,
   StakePoolQuoteParams,
 } from "@/unstake-ag/stakePools";
-import { isLockupInForce } from "@/unstake-ag/unstakeAg/utils";
+import {
+  calcStakeUnstakedAmount,
+  isLockupInForce,
+} from "@/unstake-ag/unstakeAg/utils";
 
 // Redefining ValidatorRecord layouts because marinade doesnt export them
 
@@ -140,6 +143,7 @@ export class MarinadeStakePool implements StakePool {
   canAcceptStakeAccount({
     stakeAccount,
     currentEpoch,
+    amountLamports,
   }: CanAcceptStakeAccountParams): boolean {
     if (!this.state) {
       throw new Error("marinade state not yet fetched");
@@ -168,14 +172,19 @@ export class MarinadeStakePool implements StakePool {
     ) {
       return false;
     }
-    const { voter, activationEpoch, stake } =
-      stakeAccount.data.info.stake.delegation;
+    const { voter, activationEpoch } = stakeAccount.data.info.stake.delegation;
     if (
       currentEpoch <
       activationEpoch.toNumber() + MarinadeStakePool.DEPOSIT_WAIT_EPOCHS
     ) {
       return false;
     }
+    const { stakeAmount } = calcStakeUnstakedAmount(
+      amountLamports,
+      stakeAccount,
+      currentEpoch,
+    );
+    const stake = new BN(stakeAmount.toString());
     if (stake.lt(this.state.stakeSystem.minStake)) {
       return false;
     }
