@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Staked SOL unstake aggregator",
   "homepage": "https://socean.fi",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "keywords": [
     "unstake.it",
     "staking",

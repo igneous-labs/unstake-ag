@@ -7,6 +7,11 @@ import { expect } from "chai";
 
 import { outLamports, routeMarketLabels, UnstakeAg } from "@/unstake-ag";
 
+// transient errors that can be ignored:
+// - jup program 0x1771: slippage tolerance exceeded
+// - jup program 0x1786: some orca whirlpools error, not sure what this is, but is transient
+// - BlockhashNotFound: rpc desynced
+
 describe("test basic functionality", () => {
   it("load and route", async () => {
     // NOTE: this stake account needs to exist on mainnet for the test to work
