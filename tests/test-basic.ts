@@ -53,7 +53,7 @@ describe("test basic functionality", () => {
     const routes = await unstake.computeRoutes({
       stakeAccount,
       amountLamports: BigInt(lamportsLessThanMarinadeMin),
-      slippagePct: 0.1,
+      slippageBps: 10,
     });
     await checkRoutes(unstake, stakeAccount, routes);
     for (const route of routes) {
@@ -69,7 +69,7 @@ describe("test basic functionality", () => {
       stakeAccount,
       amountLamports:
         BigInt(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString()) - BigInt(1),
-      slippagePct: 0.1,
+      slippageBps: 10,
     });
     expect(routes.length).to.eq(0);
   });
