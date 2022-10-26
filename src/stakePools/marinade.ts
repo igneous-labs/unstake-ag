@@ -14,7 +14,7 @@ import {
 import { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
 // Yes, the one from jup, not marinade, because we just need to deserialize the account, which is
 // MarinadeState.state and marinade sdk doesnt export just the account fields
-import { MarinadeStateResponse } from "@jup-ag/core/dist/lib/marinade/marinade-state.types";
+import { MarinadeStateResponse } from "@jup-ag/core/dist/lib/amms/marinade/marinade-state.types";
 import { ValidatorRecord } from "@marinade.finance/marinade-ts-sdk/dist/src/marinade-state/borsh";
 import { MarinadeFinanceProgram } from "@marinade.finance/marinade-ts-sdk/dist/src/programs/marinade-finance-program";
 import { publicKey, struct, u8, u32, u64 } from "@project-serum/borsh";
