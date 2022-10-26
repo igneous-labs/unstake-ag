@@ -102,15 +102,11 @@ const UNUSABLE_JUP_MARKETS_LABELS: Set<string> = new Set(["Serum", "Raydium"]);
  * @param routes
  * @returns
  */
-export function filterSmallTxSizeJupRoutes(routes: RouteInfo[]): RouteInfo[] {
-  const MAX_JUP_MARKETS = 1;
+export function filterNotSupportedJupRoutes(routes: RouteInfo[]): RouteInfo[] {
   return routes.filter((route) => {
     const marketsInvolved = route.marketInfos
       .map((m) => m.amm.label.split("+").map((str) => str.trim()))
       .flat();
-    if (marketsInvolved.length > MAX_JUP_MARKETS) {
-      return false;
-    }
     for (let i = 0; i < marketsInvolved.length; i++) {
       const market = marketsInvolved[i];
       if (UNUSABLE_JUP_MARKETS_LABELS.has(market)) {
