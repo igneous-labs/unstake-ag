@@ -30,7 +30,7 @@ describe("test basic functionality", () => {
     const routes = await unstake.computeRoutes({
       stakeAccount,
       amountLamports: BigInt(stakeAccount.lamports),
-      slippagePct: 0.1,
+      slippageBps: 10, // 10 BPS === 0.1%
     });
     console.log(routes);
     console.log(

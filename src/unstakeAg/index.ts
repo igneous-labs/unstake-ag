@@ -38,7 +38,7 @@ import {
   chunkedGetMultipleAccountInfos,
   doesTokenAccExist,
   dummyAccountInfoForProgramOwner,
-  filterSmallTxSizeJupRoutes,
+  filterNotSupportedJupRoutes,
   genShortestUnusedSeed,
 } from "@/unstake-ag/unstakeAg/utils";
 
@@ -173,7 +173,7 @@ export class UnstakeAg {
   async computeRoutes({
     stakeAccount,
     amountLamports,
-    slippagePct,
+    slippageBps,
     shouldIgnoreRouteErrors = true,
   }: ComputeRoutesParams): Promise<UnstakeRoute[]> {
     const msSinceLastFetch = Date.now() - this.lastUpdateStakePoolsTimestamp;
@@ -228,13 +228,14 @@ export class UnstakeAg {
             inputMint: sp.outputToken,
             outputMint: WRAPPED_SOL_MINT,
             amount: outAmount,
-            slippage: slippagePct,
+            slippageBps,
+            onlyDirectRoutes: true,
           });
-          const smallRoutes = filterSmallTxSizeJupRoutes(routesInfos);
-          if (smallRoutes.length === 0) {
+          const supportedRoutes = filterNotSupportedJupRoutes(routesInfos);
+          if (supportedRoutes.length === 0) {
             return null;
           }
-          return smallRoutes.map((jupRoute) => ({
+          return supportedRoutes.map((jupRoute) => ({
             ...stakePoolRoute,
             jup: jupRoute,
           }));
@@ -524,9 +525,9 @@ export interface ComputeRoutesParams {
   amountLamports: bigint;
 
   /**
-   * In percent (0 - 100)
+   * In basis point (0 - 10_000)
    */
-  slippagePct: number;
+  slippageBps: number;
 
   /**
    * Silently ignore routes where errors were thrown
