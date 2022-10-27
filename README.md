@@ -59,7 +59,7 @@ $ yarn add @unstake-it/sol-ag
 
 ```ts
 import { Connection } from "@solana/web3.js";
-import { UnstakeAg } from "@/unstake-ag";
+import { UnstakeAg } from "@unstake-it/sol-ag";
 
 const connection = new Connection("https://api.mainnet-beta.solana.com");
 
