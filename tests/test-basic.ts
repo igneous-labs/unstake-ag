@@ -49,6 +49,7 @@ describe("test basic functionality", () => {
       stakeAccount,
       amountLamports: BigInt(stakeAccount.lamports),
       slippageBps: 10, // 10 BPS === 0.1%
+      shouldIgnoreRouteErrors: false,
     });
     await checkRoutes(unstake, stakeAccount, routes);
   });
@@ -59,6 +60,7 @@ describe("test basic functionality", () => {
       stakeAccount,
       amountLamports: BigInt(lamportsLessThanMarinadeMin),
       slippageBps: 10,
+      shouldIgnoreRouteErrors: false,
     });
     await checkRoutes(unstake, stakeAccount, routes);
     for (const route of routes) {
@@ -75,6 +77,7 @@ describe("test basic functionality", () => {
       amountLamports:
         BigInt(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString()) - BigInt(1),
       slippageBps: 10,
+      shouldIgnoreRouteErrors: false,
     });
     expect(routes.length).to.eq(0);
   });

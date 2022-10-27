@@ -19,6 +19,8 @@ import type {
 // commonJS workaround
 // TODO: change this back into a normal import once @unstake-it/sol supports esm
 import * as unstakeit from "@unstake-it/sol";
+// TODO: change this back to from "@unstake-it/sol" once @unstake-it/sol supports esm
+import BN from "bn.js";
 import JSBI from "jsbi";
 
 import type {
@@ -29,8 +31,9 @@ import type {
   StakePoolQuoteParams,
 } from "@/unstake-ag/stakePools";
 import { isLockupInForce } from "@/unstake-ag/unstakeAg/utils";
-
-const { applyFee, BN, IDL_JSON: UNSTAKE_IDL_JSON, Program } = unstakeit;
+// commonJS workaround
+// TODO: change this back into a normal import once @unstake-it/sol supports esm
+const { applyFee, IDL_JSON: UNSTAKE_IDL_JSON, Program } = unstakeit;
 
 export class UnstakeIt implements StakePool {
   outputToken: PublicKey = WRAPPED_SOL_MINT;

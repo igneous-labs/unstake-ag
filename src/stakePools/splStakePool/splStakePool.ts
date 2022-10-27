@@ -18,7 +18,7 @@ import {
   StakePool as SplStakePoolStruct,
   ValidatorList,
 } from "@soceanfi/stake-pool-sdk";
-import { BN } from "bn.js";
+import BN from "bn.js";
 import JSBI from "jsbi";
 
 import type {
