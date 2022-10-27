@@ -9,18 +9,17 @@ import {
 import { WRAPPED_SOL_MINT } from "@jup-ag/core";
 import { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
 import { stakeAccountState } from "@soceanfi/solana-stake-sdk";
-import {
-  applyFee,
-  BN,
+import type {
   Fee,
-  IDL_JSON as UNSTAKE_IDL_JSON,
   IdlAccounts,
-  Program,
+  Program as ProgramType,
   ProtocolFeeAccount,
   Unstake,
 } from "@unstake-it/sol";
+// commonJS workaround
+// TODO: change this back into a normal import once @unstake-it/sol supports esm
+import * as unstakeit from "@unstake-it/sol";
 import JSBI from "jsbi";
-import { isLockupInForce } from "unstakeAg/utils";
 
 import type {
   CanAcceptStakeAccountParams,
@@ -29,13 +28,17 @@ import type {
   StakePool,
   StakePoolQuoteParams,
 } from "@/unstake-ag/stakePools";
+import { isLockupInForce } from "@/unstake-ag/unstakeAg/utils";
+
+const { applyFee, BN, IDL_JSON: UNSTAKE_IDL_JSON, Program } = unstakeit;
 
 export class UnstakeIt implements StakePool {
   outputToken: PublicKey = WRAPPED_SOL_MINT;
 
   label: string = "unstake.it";
 
-  program: Program<Unstake>;
+  // TODO: revert to Program once @unstake-it/sol supports esm
+  program: ProgramType<Unstake>;
 
   // cached state
   pool: IdlAccounts<Unstake>["pool"] | null;

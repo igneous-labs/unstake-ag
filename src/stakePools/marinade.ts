@@ -16,7 +16,7 @@ import { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
 // MarinadeState.state and marinade sdk doesnt export just the account fields
 import type { MarinadeStateResponse } from "@jup-ag/core/dist/lib/amms/marinade/marinade-state.types";
 import { ValidatorRecord } from "@marinade.finance/marinade-ts-sdk/dist/src/marinade-state/borsh";
-import { MarinadeFinanceProgram } from "@marinade.finance/marinade-ts-sdk/dist/src/programs/marinade-finance-program";
+import { MarinadeFinanceProgram } from "@marinade.finance/marinade-ts-sdk/dist/src/programs/marinade-finance-program.js";
 import { publicKey, struct, u8, u32, u64 } from "@project-serum/borsh";
 import { stakeAccountState } from "@soceanfi/solana-stake-sdk";
 import BN from "bn.js";
