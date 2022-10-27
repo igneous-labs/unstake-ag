@@ -18,14 +18,20 @@ The SDK is heavily inspired by, and uses, [@jup-ag/core](https://www.npmjs.com/p
 
 Contents:
 - [unstake.it Staked SOL Instant Unstake Aggregator Typescript SDK](#unstakeit-staked-sol-instant-unstake-aggregator-typescript-sdk)
+  - [API](#api)
   - [Installation](#installation)
     - [npm](#npm)
     - [yarn](#yarn)
-  - [API](#api)
   - [Example](#example)
     - [Initialize](#initialize)
     - [Compute Routes](#compute-routes)
     - [Create Transaction(s) from Routes](#create-transactions-from-route)
+
+## API
+
+For easy dapp integration without having to install this SDK, we provide a ready-to-use API at https://api.unstake.it
+
+API documentation is available at https://api.unstake.it
 
 ## Installation
 
@@ -40,12 +46,6 @@ $ npm install @unstake-it/sol-ag
 ```bash
 $ yarn add @unstake-it/sol-ag
 ```
-
-## API
-
-For easy dapp integration without having to install this SDK, we provide a ready-to-use API at https://unstake-it-api.vercel.app
-
-Documentation and examples are available at https://unstake-it-api.vercel.app
 
 ## Example
 
@@ -108,5 +108,5 @@ const { setupTransaction, unstakeTransaction, cleanupTransaction } =
 
 ## Learn More
 
-- [SDK Typedoc](https://unstake-ag.vercel.app)
+- [SDK Typedoc](https://api.unstake.it)
 - [unstake.it](https://unstake.it)
