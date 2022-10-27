@@ -1,6 +1,6 @@
 {
   "name": "@unstake-it/sol-ag",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Staked SOL unstake aggregator",
   "homepage": "https://unstake.it",
   "license": "Apache-2.0",
