@@ -83,7 +83,7 @@ const stakeAccount = await getStakeAccount(connection, stakeAccountPubkey);
 const routes = await unstake.computeRoutes({
   stakeAccount,
   amountLamports: BigInt(stakeAccount.lamports),
-  slippagePct: 0.1,
+  slippageBps: 10,
 });
 const bestRoute = routes[0];
 const {
