@@ -1,4 +1,9 @@
-<div align="center"><a href="https://unstake.it/"><img src="assets/logo.png" height="100" alt="unstake.it"></a></div>
+<div align="center">
+  <a href="https://unstake.it/">
+  <!-- need to use raw.githubusercontent.com URL for it to work with externally (vercel) hosted typedoc -->
+  <img src="https://raw.githubusercontent.com/igneous-labs/unstake-ag/master/assets/logo.png" height="100" alt="unstake.it">
+  </a>
+</div>
 
 <div align="center">
 
@@ -26,6 +31,7 @@ Contents:
     - [Initialize](#initialize)
     - [Compute Routes](#compute-routes)
     - [Create Transaction(s) from Routes](#create-transactions-from-route)
+  - [Learn More](#learn-more)
 
 ## API
 
@@ -108,5 +114,5 @@ const { setupTransaction, unstakeTransaction, cleanupTransaction } =
 
 ## Learn More
 
-- [SDK Typedoc](https://api.unstake.it)
+- [SDK Typedoc](https://unstake-ag.vercel.app)
 - [unstake.it](https://unstake.it)
