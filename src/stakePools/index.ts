@@ -139,5 +139,6 @@ export interface CreateCleanupInstructionsParams extends WithPayer {
   destinationTokenAccount: PublicKey;
 }
 
+export * from "./marinade";
 export * from "./splStakePool";
 export * from "./unstakeit";

@@ -27,6 +27,11 @@ const SERIALIZE_CONFIG_MOCK_SIG = {
   verifyAllSignatures: false,
 };
 
+// transient errors that can be ignored:
+// - jup program 0x1771: slippage tolerance exceeded
+// - jup program 0x1786: some orca whirlpools error, not sure what this is, but is transient
+// - BlockhashNotFound: rpc desynced
+
 describe("test basic functionality", () => {
   let unstake: UnstakeAg;
   let stakeAccount: AccountInfo<StakeAccount>;
@@ -89,7 +94,6 @@ async function checkRoutes(
     ),
   );
   console.log(routes.length);
-  const { epoch: currentEpoch } = await CONN.getEpochInfo();
   const results = await Promise.allSettled(
     routes.map(async (route) => {
       const routeLabel = routeMarketLabels(route).join(" + ");
@@ -99,7 +103,6 @@ async function checkRoutes(
           stakeAccount,
           stakeAccountPubkey: TEST_STAKE_ACC_PUBKEY,
           user,
-          currentEpoch,
         });
       const { blockhash } = await CONN.getLatestBlockhash();
       if (setupTransaction) {

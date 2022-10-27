@@ -36,16 +36,24 @@ import type {
 } from "@/unstake-ag/stakePools";
 import { SplStakePool } from "@/unstake-ag/stakePools/splStakePool/splStakePool";
 
-// Layouts and typdefs copied from https://github.com/everstake/eversol-ts-sdk/blob/master/src/service/layouts.ts
-// with fields renamed to fit StakePoolStruct
-// eversol sdk doesnt re-export them
-
-interface RateOfExchange {
+/**
+ * Layouts and typdefs copied from
+ * https://github.com/everstake/eversol-ts-sdk/blob/master/src/service/layouts.ts
+ * with fields renamed to fit StakePoolStruct.
+ * Eversol sdk doesnt re-export them
+ */
+export interface RateOfExchange {
   denominator: BN;
   numerator: BN;
 }
 
-class EverstakeStakePoolStruct extends Struct {
+/**
+ * Layouts and typdefs copied from
+ * https://github.com/everstake/eversol-ts-sdk/blob/master/src/service/layouts.ts
+ * with fields renamed to fit StakePoolStruct.
+ * Eversol sdk doesnt re-export them
+ */
+export class EverstakeStakePoolStruct extends Struct {
   // @ts-ignore
   accountType: AccountType;
 
