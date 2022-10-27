@@ -2,7 +2,7 @@
   "name": "@unstake-it/sol-ag",
   "version": "0.0.1",
   "description": "Staked SOL unstake aggregator",
-  "homepage": "https://socean.fi",
+  "homepage": "https://unstake.it",
   "license": "Apache-2.0",
   "keywords": [
     "unstake.it",
