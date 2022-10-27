@@ -20,7 +20,6 @@ import {
 } from "@soceanfi/stake-pool-sdk";
 import { BN } from "bn.js";
 import JSBI from "jsbi";
-import { isLockupInForce } from "unstakeAg/utils";
 
 import type {
   CanAcceptStakeAccountParams,
@@ -33,6 +32,7 @@ import {
   KNOWN_SPL_STAKE_POOL_PROGRAM_IDS_STR,
   KnownSplStakePoolProgramIdStr,
 } from "@/unstake-ag/unstakeAg/address";
+import { isLockupInForce } from "@/unstake-ag/unstakeAg/utils";
 
 export interface SplStakePoolCtorParams {
   validatorListAddr: PublicKey;
