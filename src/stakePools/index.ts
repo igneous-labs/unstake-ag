@@ -105,6 +105,11 @@ interface WithPayer {
 
 export interface CanAcceptStakeAccountParams {
   stakeAccount: AccountInfo<StakeAccount>;
+  /**
+   * The amount in lamports to be unstaked.
+   * Should be <= stakeAccount.lamports.
+   */
+  amountLamports: bigint;
   currentEpoch: number;
 }
 
