@@ -14,7 +14,7 @@ import {
 import { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
 // Yes, the one from jup, not marinade, because we just need to deserialize the account, which is
 // MarinadeState.state and marinade sdk doesnt export just the account fields
-import { MarinadeStateResponse } from "@jup-ag/core/dist/lib/amms/marinade/marinade-state.types";
+import type { MarinadeStateResponse } from "@jup-ag/core/dist/lib/amms/marinade/marinade-state.types";
 import { ValidatorRecord } from "@marinade.finance/marinade-ts-sdk/dist/src/marinade-state/borsh";
 import { MarinadeFinanceProgram } from "@marinade.finance/marinade-ts-sdk/dist/src/programs/marinade-finance-program";
 import { publicKey, struct, u8, u32, u64 } from "@project-serum/borsh";
@@ -32,7 +32,10 @@ import type {
   StakePool,
   StakePoolQuoteParams,
 } from "@/unstake-ag/stakePools";
-import { isLockupInForce } from "@/unstake-ag/unstakeAg/utils";
+import {
+  calcStakeUnstakedAmount,
+  isLockupInForce,
+} from "@/unstake-ag/unstakeAg/utils";
 
 // Redefining ValidatorRecord layouts because marinade doesnt export them
 
@@ -140,6 +143,7 @@ export class MarinadeStakePool implements StakePool {
   canAcceptStakeAccount({
     stakeAccount,
     currentEpoch,
+    amountLamports,
   }: CanAcceptStakeAccountParams): boolean {
     if (!this.state) {
       throw new Error("marinade state not yet fetched");
@@ -168,14 +172,19 @@ export class MarinadeStakePool implements StakePool {
     ) {
       return false;
     }
-    const { voter, activationEpoch, stake } =
-      stakeAccount.data.info.stake.delegation;
+    const { voter, activationEpoch } = stakeAccount.data.info.stake.delegation;
     if (
       currentEpoch <
       activationEpoch.toNumber() + MarinadeStakePool.DEPOSIT_WAIT_EPOCHS
     ) {
       return false;
     }
+    const { stakeAmount } = calcStakeUnstakedAmount(
+      amountLamports,
+      stakeAccount,
+      currentEpoch,
+    );
+    const stake = new BN(stakeAmount.toString());
     if (stake.lt(this.state.stakeSystem.minStake)) {
       return false;
     }

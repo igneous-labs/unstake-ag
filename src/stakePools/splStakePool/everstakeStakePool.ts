@@ -223,8 +223,8 @@ export class EverstakeSplStakePool extends SplStakePool {
   override canAcceptStakeAccount(params: CanAcceptStakeAccountParams): boolean {
     return (
       super.canAcceptStakeAccount(params) &&
-      params.stakeAccount.lamports >=
-        EverstakeSplStakePool.MINIMUM_DEPOSIT_LAMPORTS
+      params.amountLamports >=
+        BigInt(EverstakeSplStakePool.MINIMUM_DEPOSIT_LAMPORTS)
     );
   }
 
