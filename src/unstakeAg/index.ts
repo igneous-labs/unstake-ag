@@ -64,7 +64,9 @@ export class UnstakeAg {
    *
    * 0, it will fetch everytime
    *
-   * A duration in ms, the time interval between AMM accounts refetch, recommendation for a UI 20 seconds,
+   * A duration in ms, the time interval between AMM accounts refetch, recommendation for a UI 20 seconds
+   *
+   * Defaults to 0
    */
   routeCacheDuration: number;
 
@@ -175,6 +177,7 @@ export class UnstakeAg {
     stakeAccount,
     amountLamports: amountLamportsArgs,
     slippageBps,
+    jupFeeBps,
     shouldIgnoreRouteErrors = true,
   }: ComputeRoutesParams): Promise<UnstakeRoute[]> {
     if (
@@ -241,6 +244,7 @@ export class UnstakeAg {
             amount: outAmount,
             slippageBps,
             onlyDirectRoutes: true,
+            feeBps: jupFeeBps,
           });
           const supportedRoutes = filterNotSupportedJupRoutes(routesInfos);
           if (supportedRoutes.length === 0) {
@@ -283,6 +287,7 @@ export class UnstakeAg {
     stakeAccount,
     stakeAccountPubkey: inputStakeAccount,
     user,
+    jupFeeAccount,
   }: ExchangeParams): Promise<ExchangeReturn> {
     if (!stakeAccount.data.info.stake) {
       throw new Error("stake account not delegated");
@@ -393,6 +398,7 @@ export class UnstakeAg {
         userPublicKey: user,
         // since we're putting it in setup and cleanup always
         wrapUnwrapSOL: false,
+        feeAccount: jupFeeAccount,
       });
       if (setupTransaction) {
         setupIxs.push(...setupTransaction.instructions);
@@ -541,6 +547,14 @@ export interface ComputeRoutesParams {
   slippageBps: number;
 
   /**
+   * Optional additional fee to charge on jup swaps,
+   * passed as `feeBps` to `jupiter.computeRoutes()`
+   *
+   * Defaults to undefined
+   */
+  jupFeeBps?: number;
+
+  /**
    * Silently ignore routes where errors were thrown
    * during computation such as failing to fetch
    * required accounts.
@@ -551,10 +565,32 @@ export interface ComputeRoutesParams {
 }
 
 export interface ExchangeParams {
+  /**
+   * A route returned by `computeRoutes()`
+   */
   route: UnstakeRoute;
+
+  /**
+   * Fetched on-chain data of the stake account
+   * to unstake
+   */
   stakeAccount: AccountInfo<StakeAccount>;
+
+  /**
+   * Pubkey of the stake account to unstake
+   */
   stakeAccountPubkey: PublicKey;
+
+  /**
+   * Withdraw authority of the stake account to unstake
+   */
   user: PublicKey;
+
+  /**
+   * Wrapped SOL account to receive optional additional fee on
+   * jup swaps when `jupFeeBps` is set on `computeRoutes()`
+   */
+  jupFeeAccount?: PublicKey;
 }
 
 export interface ExchangeReturn {
