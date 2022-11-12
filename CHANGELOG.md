@@ -9,7 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- factored out `UnstakeAg.createStakePools()` to allow for easy creation of `UnstakeAg` with existing `Jupiter` objects
+- Resolutions for `node-fetch` and `cross-fetch`, resolve dependabot security alert
+
+### Changed
+
+- Factored out `UnstakeAg.createStakePools()` to allow for easy creation of `UnstakeAg` with existing `Jupiter` objects
 
 ## [0.1.3] - 2022-10-27
 
