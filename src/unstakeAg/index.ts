@@ -37,7 +37,7 @@ import {
 import {
   calcStakeUnstakedAmount,
   chunkedGetMultipleAccountInfos,
-  doesTokenAccExist,
+  doTokenProgramAccsExist,
   dummyAccountInfoForProgramOwner,
   filterNotSupportedJupRoutes,
   genShortestUnusedSeed,
@@ -271,7 +271,8 @@ export class UnstakeAg {
     // sort by best route first (out lamports is the most)
     return routes.sort((routeA, routeB) => {
       const res = outLamports(routeB) - outLamports(routeA);
-      // bigint-number incompatibility
+      // bigint-number incompatibility,
+      // cant do `return res;`
       if (res < 0) {
         return -1;
       }
@@ -336,12 +337,17 @@ export class UnstakeAg {
     const destinationTokenAccount = isDirectToSol
       ? user
       : await getAssociatedTokenAddress(stakePool.outputToken, user);
-    // Create ATA if not exist
+    // Create ATAs for intermediate xSOL and wSOL if not exist
     if (!isDirectToSol) {
-      const intermediateAtaExists = await doesTokenAccExist(
-        this.connection,
-        destinationTokenAccount,
+      const wSolTokenAcc = await getAssociatedTokenAddress(
+        WRAPPED_SOL_MINT,
+        user,
       );
+      const [intermediateAtaExists, wSolAtaExists] =
+        await doTokenProgramAccsExist(this.connection, [
+          destinationTokenAccount,
+          wSolTokenAcc,
+        ]);
       if (!intermediateAtaExists) {
         setupIxs.push(
           createAssociatedTokenAccountInstruction(
@@ -354,12 +360,7 @@ export class UnstakeAg {
       }
       // we handle wrap-unwrap SOL in setup-cleanup txs in order
       // to reserve max space for the unstake tx
-      const wSolTokenAcc = await getAssociatedTokenAddress(
-        WRAPPED_SOL_MINT,
-        user,
-      );
-      const wSolExists = await doesTokenAccExist(this.connection, wSolTokenAcc);
-      if (!wSolExists) {
+      if (!wSolAtaExists) {
         setupIxs.push(
           createAssociatedTokenAccountInstruction(
             user,
@@ -410,8 +411,9 @@ export class UnstakeAg {
       // exchange() still adds create wrapped SOL ix despite `wrapUnwrapSOL: false`
       // because SOL is not the input token.
       // So just delete all associated token prog instructions
-      // since we are handling it above already
-      // and we shouldnt have any intermediate tokens anyway
+      // since we are handling it above already,
+      // and we shouldnt have any other intermediate tokens anyway
+      // since `onlyDirectRoutes: true`
       const filteredSwapIx = swapTransaction.instructions.filter(
         (ix) => !ix.programId.equals(ASSOCIATED_TOKEN_PROGRAM_ID),
       );

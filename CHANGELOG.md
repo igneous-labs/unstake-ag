@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Factored out `UnstakeAg.createStakePools()` to allow for easy creation of `UnstakeAg` with existing `Jupiter` objects
+- Minor optimization to `exchange()` to batch getAccount() calls together
+- Update `@jup-ag/core` to `3.0.0-beta.6`
 
 ## [0.1.3] - 2022-10-27
 

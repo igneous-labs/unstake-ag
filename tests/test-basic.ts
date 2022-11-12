@@ -124,7 +124,7 @@ async function checkRoutes(
         `${routeMarketLabels(r).join(" + ")}: ${outLamports(r).toString()}`,
     ),
   );
-  console.log(routes.length);
+  console.log("# of routes:", routes.length);
   const results = await Promise.allSettled(
     routes.map(async (route) => {
       const routeLabel = routeMarketLabels(route).join(" + ");
@@ -157,20 +157,16 @@ async function checkRoutes(
         "cleanup:",
         cleanupTransaction?.serialize(SERIALIZE_CONFIG_MOCK_SIG).length,
       );
-      // try simulating transactions with no setupTransactions to
+      // try simulating setupTransaction or unstakeTransaction to
       // make sure they work
-      if (!setupTransaction) {
-        const sim = await CONN.simulateTransaction(
-          unstakeTransaction,
-          undefined,
-        );
-        expect(
+      const txToSim = setupTransaction || unstakeTransaction;
+      const sim = await CONN.simulateTransaction(txToSim, undefined);
+      expect(
+        sim.value.err,
+        `Failed to simulate ${routeLabel}\nError: ${JSON.stringify(
           sim.value.err,
-          `Failed to simulate ${routeLabel}\nError: ${JSON.stringify(
-            sim.value.err,
-          )}\nLogs:\n${sim.value.logs?.join("\n")}`,
-        ).to.be.null;
-      }
+        )}\nLogs:\n${sim.value.logs?.join("\n")}`,
+      ).to.be.null;
     }),
   );
   expect(
@@ -185,4 +181,6 @@ async function checkRoutes(
       .filter((maybeReason) => Boolean(maybeReason))
       .join("\n\n")}`,
   ).to.be.true;
+  // newline
+  console.log();
 }
