@@ -124,7 +124,7 @@ async function checkRoutes(
         `${routeMarketLabels(r).join(" + ")}: ${outLamports(r).toString()}`,
     ),
   );
-  console.log(routes.length);
+  console.log("# of routes:", routes.length);
   const results = await Promise.allSettled(
     routes.map(async (route) => {
       const routeLabel = routeMarketLabels(route).join(" + ");
@@ -185,4 +185,6 @@ async function checkRoutes(
       .filter((maybeReason) => Boolean(maybeReason))
       .join("\n\n")}`,
   ).to.be.true;
+  // newline
+  console.log();
 }

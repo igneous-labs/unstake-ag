@@ -1,8 +1,4 @@
-import {
-  getAccount,
-  TokenAccountNotFoundError,
-  TokenInvalidAccountOwnerError,
-} from "@solana/spl-token-v2";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { AccountInfo, Connection, PublicKey } from "@solana/web3.js";
 import { RouteInfo } from "@jup-ag/core";
 import { StakeAccount, stakeAccountState } from "@soceanfi/solana-stake-sdk";
@@ -125,22 +121,32 @@ export function routeMarketLabels(route: UnstakeRoute): string[] {
   return res;
 }
 
-export async function doesTokenAccExist(
+/**
+ * Checks if accounts owned by the token program exists.
+ * Does not differentiate between mint and tokenAccount accounts.
+ * Returns false if account exists but not owned by token program
+ *
+ * @param connection
+ * @param tokenAccs
+ * @returns
+ */
+export async function doTokenProgramAccsExist(
   connection: Connection,
-  tokenAcc: PublicKey,
-): Promise<boolean> {
-  try {
-    await getAccount(connection, tokenAcc);
-    return true;
-  } catch (e) {
-    if (
-      e instanceof TokenAccountNotFoundError ||
-      e instanceof TokenInvalidAccountOwnerError
-    ) {
+  tokenAccs: PublicKey[],
+): Promise<boolean[]> {
+  const result = await chunkedGetMultipleAccountInfos(
+    connection,
+    tokenAccs.map((pk) => pk.toString()),
+  );
+  return result.map((optAccount) => {
+    if (optAccount === null) {
       return false;
     }
-    throw e;
-  }
+    if (!optAccount.owner.equals(TOKEN_PROGRAM_ID)) {
+      return false;
+    }
+    return true;
+  });
 }
 
 export async function genShortestUnusedSeed(
