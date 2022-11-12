@@ -29,6 +29,7 @@ Contents:
     - [yarn](#yarn)
   - [Example](#example)
     - [Initialize](#initialize)
+    - [Initialize with Reference to Shared Jupiter object](#initialize-with-reference-to-shared-jupiter-object)
     - [Compute Routes](#compute-routes)
     - [Create Transaction(s) from Routes](#create-transactions-from-route)
   - [Learn More](#learn-more)
@@ -70,6 +71,27 @@ const unstake = await UnstakeAg.load({
   cluster: "mainnet-beta",
   connection,
 });
+```
+
+### Initialize with Reference to Shared Jupiter object
+
+If you're already using the `@jup-ag/core` SDK elsewhere in your code, you can construct an `UnstakeAg` object that uses the same existing `Jupiter` object to avoid fetching and caching duplicate accounts.
+
+```ts
+import { Jupiter, JupiterLoadParams } from "@jup-ag/core";
+import { UnstakeAg } from "@unstake-it/sol-ag";
+
+const myJupParams: JupiterLoadParams = { ... };
+
+const jupiter = await Jupiter.load(myJupParams);
+
+const stakePools = UnstakeAg.createStakePools(myJupParams.cluster);
+
+const unstake = new UnstakeAg(myJupParams, stakePools, jupiter);
+
+// call unstake.updateStakePools()
+// to perform an initial fetch of all stake pools' accounts
+await unstake.updateStakePools();
 ```
 
 ### Compute Routes
