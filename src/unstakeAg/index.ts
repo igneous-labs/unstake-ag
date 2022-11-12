@@ -87,16 +87,9 @@ export class UnstakeAg {
     this.lastUpdateStakePoolsTimestamp = 0;
   }
 
-  static async load(params: JupiterLoadParams): Promise<UnstakeAg> {
-    // we can't use serum markets anyway
-    params.shouldLoadSerumOpenOrders = false;
-    // TODO: this throws `missing <Account>` sometimes
-    // if RPC is slow to return. Not sure how to mitigate
-    const jupiter = await Jupiter.load(params);
-    const { cluster } = params;
-
+  static createStakePools(cluster: Cluster): StakePool[] {
     // TODO: add other StakePools
-    const stakePools = [
+    return [
       new UnstakeIt(
         UNSTAKE_IT_ADDRESS_MAP[cluster].pool,
         dummyAccountInfoForProgramOwner(
@@ -145,6 +138,16 @@ export class UnstakeAg {
           ),
       ),
     ];
+  }
+
+  static async load(params: JupiterLoadParams): Promise<UnstakeAg> {
+    // we can't use serum markets anyway
+    params.shouldLoadSerumOpenOrders = false;
+    // TODO: this throws `missing <Account>` sometimes
+    // if RPC is slow to return. Not sure how to mitigate
+    const jupiter = await Jupiter.load(params);
+    const { cluster } = params;
+    const stakePools = UnstakeAg.createStakePools(cluster);
     const res = new UnstakeAg(params, stakePools, jupiter);
     await res.updateStakePools();
     return res;
