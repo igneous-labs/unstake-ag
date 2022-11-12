@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Option to add `feeBps` to jup swaps
 - Resolutions for `node-fetch` and `cross-fetch`, resolve dependabot security alert
 
 ### Changed
