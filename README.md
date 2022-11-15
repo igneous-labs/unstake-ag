@@ -106,6 +106,9 @@ const routes = await unstake.computeRoutes({
   stakeAccount,
   amountLamports: BigInt(stakeAccount.lamports),
   slippageBps: 10,
+  // you can optionally collect a fee on top
+  // of any jup swaps, just as you can in jup sdk
+  jupFeeBps: 3,
 });
 const bestRoute = routes[0];
 const {
@@ -131,6 +134,12 @@ const { setupTransaction, unstakeTransaction, cleanupTransaction } =
     stakeAccount,
     stakeAccountPubkey,
     user: stakeAccount.data.info.meta.authorized.withdrawer,
+    // You can optionally provide a mapping of StakePool output tokens / wrapped SOL
+    // to your token account of the same type to collect stake pool referral fees / jup swap fees
+    feeAccounts: {
+      "So11111111111111111111111111111111111111112": MY_WRAPPED_SOL_ACCOUNT,
+      "5oVNBeEEQvYi1cX3ir8Dx5n1P7pdxydbGF2X4TxVusJm": MY_SCNSOL_ACCOUNT,
+    },
   });
 ```
 

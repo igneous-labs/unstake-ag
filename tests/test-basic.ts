@@ -2,11 +2,14 @@
 // allow `expect().to.be.true`
 
 import { AccountInfo, Connection, PublicKey } from "@solana/web3.js";
+import { WRAPPED_SOL_MINT } from "@jup-ag/core";
 import { getStakeAccount, StakeAccount } from "@soceanfi/solana-stake-sdk";
 import { STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS } from "@soceanfi/stake-pool-sdk";
 import { expect } from "chai";
+import { SOCEAN_ADDRESS_MAP } from "unstakeAg/address";
 
 import {
+  FeeAccounts,
   outLamports,
   routeMarketLabels,
   UnstakeAg,
@@ -23,6 +26,18 @@ const TEST_STAKE_ACC_PUBKEY = new PublicKey(
 const TEST_WSOL_ACC_PUBKEY = new PublicKey(
   "ANP74VNsHwSrq9uUSjiSNyNWvf6ZPrKTmE4gHoNd13Lg",
 );
+
+// NB: this token acc needs to exist on mainnet for test to work
+// This should be the psyfi scnsol reserves
+const TEST_SCNSOL_ACC_PUBKEY = new PublicKey(
+  "E3MhxxGwazbendioKejk39R5Y5ne5tvB7uhongEaeCPt",
+);
+
+const REFERRAL_DESTINATIONS = {
+  [WRAPPED_SOL_MINT.toString()]: TEST_WSOL_ACC_PUBKEY,
+  [SOCEAN_ADDRESS_MAP["mainnet-beta"].stakePoolToken.toString()]:
+    TEST_SCNSOL_ACC_PUBKEY,
+};
 
 const CONN = new Connection("https://try-rpc.mainnet.solana.blockdaemon.tech", {
   wsEndpoint: "wss://try-rpc.mainnet.solana.blockdaemon.tech:8443/websocket",
@@ -98,7 +113,7 @@ describe("test basic functionality", () => {
     expect(routes.length).to.eq(0);
   });
 
-  it("full unstake with jup fees", async () => {
+  it("full unstake with referral fees", async () => {
     const routes = await unstake.computeRoutes({
       stakeAccount,
       amountLamports: BigInt(stakeAccount.lamports),
@@ -106,7 +121,7 @@ describe("test basic functionality", () => {
       jupFeeBps: 3,
       shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
     });
-    await checkRoutes(unstake, stakeAccount, routes, TEST_WSOL_ACC_PUBKEY);
+    await checkRoutes(unstake, stakeAccount, routes, REFERRAL_DESTINATIONS);
   });
 });
 
@@ -114,7 +129,7 @@ async function checkRoutes(
   unstake: UnstakeAg,
   stakeAccount: AccountInfo<StakeAccount>,
   routes: UnstakeRoute[],
-  jupFeeAccount?: PublicKey,
+  feeAccounts?: FeeAccounts,
 ) {
   const user = stakeAccount.data.info.meta.authorized.withdrawer;
   // console.log(routes);
@@ -134,7 +149,7 @@ async function checkRoutes(
           stakeAccount,
           stakeAccountPubkey: TEST_STAKE_ACC_PUBKEY,
           user,
-          jupFeeAccount,
+          feeAccounts,
         });
       const { blockhash } = await CONN.getLatestBlockhash();
       if (setupTransaction) {

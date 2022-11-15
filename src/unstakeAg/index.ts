@@ -291,7 +291,7 @@ export class UnstakeAg {
     stakeAccount,
     stakeAccountPubkey: inputStakeAccount,
     user,
-    jupFeeAccount,
+    feeAccounts = {},
   }: ExchangeParams): Promise<ExchangeReturn> {
     if (!stakeAccount.data.info.stake) {
       throw new Error("stake account not delegated");
@@ -381,6 +381,7 @@ export class UnstakeAg {
         stakeAccountPubkey,
         stakeAccountVotePubkey: stakeAccount.data.info.stake.delegation.voter,
         destinationTokenAccount,
+        feeAccount: feeAccounts[stakePool.outputToken.toString()],
       }),
     );
 
@@ -402,7 +403,7 @@ export class UnstakeAg {
         userPublicKey: user,
         // since we're putting it in setup and cleanup always
         wrapUnwrapSOL: false,
-        feeAccount: jupFeeAccount,
+        feeAccount: feeAccounts[WRAPPED_SOL_MINT.toString()],
       });
       if (setupTransaction) {
         setupIxs.push(...setupTransaction.instructions);
@@ -595,8 +596,18 @@ export interface ExchangeParams {
    * Wrapped SOL account to receive optional additional fee on
    * jup swaps when `jupFeeBps` is set on `computeRoutes()`
    */
-  jupFeeAccount?: PublicKey;
+  feeAccounts?: FeeAccounts;
 }
+
+/**
+ * Map of token mint to token accounts to receive referral fees
+ * If token is So11111111111111111111111111111111111111112,
+ * the value should be a wrapped SOL token account, not a system account.
+ * SyncNative is not guaranteed to be called after transferring SOL referral fees
+ */
+export type FeeAccounts = {
+  [token in string]?: PublicKey;
+};
 
 export interface ExchangeReturn {
   setupTransaction?: Transaction;

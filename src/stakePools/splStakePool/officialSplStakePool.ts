@@ -17,6 +17,7 @@ export class OfficialSplStakePool extends SplStakePool {
     withdrawerAuth,
     destinationTokenAccount,
     stakeAccountVotePubkey,
+    feeAccount: referrer,
   }: CreateSwapInstructionsParams): TransactionInstruction[] {
     if (!this.stakePool) {
       throw new Error("stakePool not fetched");
@@ -43,8 +44,7 @@ export class OfficialSplStakePool extends SplStakePool {
       this.stakePool.reserveStake,
       destinationTokenAccount,
       this.stakePool.managerFeeAccount,
-      // no referrer
-      this.stakePool.managerFeeAccount,
+      referrer ?? this.stakePool.managerFeeAccount,
       this.stakePool.poolMint,
       TOKEN_PROGRAM_ID,
     );
