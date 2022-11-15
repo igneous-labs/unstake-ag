@@ -28,6 +28,7 @@ import {
 import {
   DAOPOOL_ADDRESS_MAP,
   EVERSOL_ADDRESS_MAP,
+  JITO_ADDRESS_MAP,
   JPOOL_ADDRESS_MAP,
   MARINADE_ADDRESS_MAP,
   SOCEAN_ADDRESS_MAP,
@@ -127,6 +128,7 @@ export class UnstakeAg {
         { splAddrMap: JPOOL_ADDRESS_MAP, label: "JPool" },
         { splAddrMap: SOLBLAZE_ADDRESS_MAP, label: "SolBlaze" },
         { splAddrMap: DAOPOOL_ADDRESS_MAP, label: "DAOPool" },
+        { splAddrMap: JITO_ADDRESS_MAP, label: "Jito" },
       ].map(
         ({ splAddrMap, label }) =>
           new OfficialSplStakePool(
