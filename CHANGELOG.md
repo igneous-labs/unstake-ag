@@ -7,13 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
-### Added
-
-- `forceFetch` parameter to match jup's
-
 ### Fixed
 
 - `routeCacheDuration = -1` behaviour was previously equivalent to `= 0` behaviour. Fixed it to match jup's.
+
+### Added
+
+- `forceFetch` parameter to match jup's
+- Jito Stake Pool
+
+### Changed
+
+- Use jupiter's `ammsToExclude` param to control which DEXes can't be used
+- Add GooseFX to ammsToExclude list due to too many accounts when trying to swap mSOL -> SOL
 
 ## [0.1.4] - 2022-11-12
 
