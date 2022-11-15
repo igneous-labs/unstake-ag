@@ -129,10 +129,20 @@ export class UnstakeIt implements StakePool {
     withdrawerAuth,
     payer,
     destinationTokenAccount,
+    feeAccount: referrer,
   }: CreateSwapInstructionsParams): TransactionInstruction[] {
     if (!this.protocolFee) {
       throw new Error("protocol fee account not cached");
     }
+    const remainingAccounts = referrer
+      ? [
+          {
+            pubkey: referrer,
+            isSigner: false,
+            isWritable: true,
+          },
+        ]
+      : undefined;
     return [
       this.program.instruction.unstake({
         accounts: {
@@ -155,6 +165,7 @@ export class UnstakeIt implements StakePool {
           stakeProgram: StakeProgram.programId,
           systemProgram: SystemProgram.programId,
         },
+        remainingAccounts,
       }),
     ];
   }

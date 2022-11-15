@@ -130,6 +130,15 @@ export interface CreateSwapInstructionsParams
    * is delegated to
    */
   stakeAccountVotePubkey: PublicKey;
+
+  /**
+   * Pubkey of the outputToken token account to receive
+   * referral fees.
+   *
+   * Assumes this account has been created and is of the correct
+   * token type
+   */
+  feeAccount?: PublicKey;
 }
 
 export interface CreateCleanupInstructionsParams extends WithPayer {
