@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Note: Version 0 of Semantic Versioning is handled differently from version 1 and above. The minor version will be incremented upon a breaking change and the patch version will be incremented for features.
 
-## [UNRELEASED]
+## [0.2.0] - 2022-11-15
 
 ### Fixed
 
@@ -20,7 +20,7 @@ Note: Version 0 of Semantic Versioning is handled differently from version 1 and
 
 ### Changed
 
-- `jupFeeAccount` single wSOL account -> `feeAccounts` map of token mints to token accounts to receive referral fees from both jup and stake pools
+- (BREAKING) `jupFeeAccount` single wSOL account -> `feeAccounts` map of token mints to token accounts to receive referral fees from both jup and stake pools
 - Use jupiter's `ammsToExclude` param to control which DEXes can't be used
 - Add GooseFX to ammsToExclude list due to too many accounts when trying to swap mSOL -> SOL
 
