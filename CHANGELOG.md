@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Jito Stake Pool
 
+### Changed
+
+- Use jupiter's `ammsToExclude` param to control which DEXes can't be used
+- Add GooseFX to ammsToExclude list due to too many accounts when trying to swap mSOL -> SOL
+
 ## [0.1.4] - 2022-11-12
 
 ### Added
