@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+### Fixed
+
+- `routeCacheDuration = -1` behaviour was previously equivalent to `= 0` behaviour. Fixed it to match jup's.
+
 ### Added
 
+- `forceFetch` parameter to match jup's
 - Jito Stake Pool
 
 ### Changed

@@ -187,6 +187,7 @@ export class UnstakeAg {
     amountLamports: amountLamportsArgs,
     slippageBps,
     jupFeeBps,
+    forceFetch = false,
     shouldIgnoreRouteErrors = true,
   }: ComputeRoutesParams): Promise<UnstakeRoute[]> {
     if (
@@ -200,8 +201,9 @@ export class UnstakeAg {
         : amountLamportsArgs;
     const msSinceLastFetch = Date.now() - this.lastUpdateStakePoolsTimestamp;
     if (
-      msSinceLastFetch > this.routeCacheDuration ||
-      this.routeCacheDuration < 0
+      (this.routeCacheDuration > -1 &&
+        msSinceLastFetch > this.routeCacheDuration) ||
+      forceFetch
     ) {
       await this.updateStakePools();
       this.lastUpdateStakePoolsTimestamp = Date.now();
@@ -254,6 +256,7 @@ export class UnstakeAg {
             slippageBps,
             onlyDirectRoutes: true,
             feeBps: jupFeeBps,
+            forceFetch,
           });
           return routesInfos.map((jupRoute) => ({
             ...stakePoolRoute,
@@ -552,6 +555,14 @@ export interface ComputeRoutesParams {
    * In basis point (0 - 10_000)
    */
   slippageBps: number;
+
+  /**
+   * Same as `jupiter.computeRoutes()` 's `forceFetch`:
+   * If true, refetches all jup accounts and stake pool accounts
+   *
+   * Default to false
+   */
+  forceFetch?: boolean;
 
   /**
    * Optional additional fee to charge on jup swaps,
