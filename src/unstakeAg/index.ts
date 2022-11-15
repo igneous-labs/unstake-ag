@@ -39,8 +39,8 @@ import {
   chunkedGetMultipleAccountInfos,
   doTokenProgramAccsExist,
   dummyAccountInfoForProgramOwner,
-  filterNotSupportedJupRoutes,
   genShortestUnusedSeed,
+  UNUSABLE_JUP_MARKETS_LABELS,
 } from "@/unstake-ag/unstakeAg/utils";
 
 export { routeMarketLabels } from "./utils";
@@ -145,6 +145,10 @@ export class UnstakeAg {
   static async load(params: JupiterLoadParams): Promise<UnstakeAg> {
     // we can't use serum markets anyway
     params.shouldLoadSerumOpenOrders = false;
+    params.ammsToExclude = params.ammsToExclude ?? {};
+    for (const amm of UNUSABLE_JUP_MARKETS_LABELS) {
+      params.ammsToExclude[amm] = true;
+    }
     // TODO: this throws `missing <Account>` sometimes
     // if RPC is slow to return. Not sure how to mitigate
     const jupiter = await Jupiter.load(params);
@@ -249,11 +253,7 @@ export class UnstakeAg {
             onlyDirectRoutes: true,
             feeBps: jupFeeBps,
           });
-          const supportedRoutes = filterNotSupportedJupRoutes(routesInfos);
-          if (supportedRoutes.length === 0) {
-            return null;
-          }
-          return supportedRoutes.map((jupRoute) => ({
+          return routesInfos.map((jupRoute) => ({
             ...stakePoolRoute,
             jup: jupRoute,
           }));
