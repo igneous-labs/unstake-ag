@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [UNRELEASED]
+
+### Changed
+- Use jupiter's `ammsToExclude` param to control which DEXes can't be used
+- Add GooseFX to ammsToExclude list due to too many accounts when trying to swap mSOL -> SOL
+
 ## [0.1.4] - 2022-11-12
 
 ### Added
