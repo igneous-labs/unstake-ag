@@ -143,45 +143,51 @@ async function checkRoutes(
   const results = await Promise.allSettled(
     routes.map(async (route) => {
       const routeLabel = routeMarketLabels(route).join(" + ");
-      const { setupTransaction, unstakeTransaction, cleanupTransaction } =
-        await unstake.exchange({
-          route,
-          stakeAccount,
-          stakeAccountPubkey: TEST_STAKE_ACC_PUBKEY,
-          user,
-          feeAccounts,
-        });
-      const { blockhash } = await CONN.getLatestBlockhash();
-      if (setupTransaction) {
-        setupTransaction.recentBlockhash = blockhash;
-        setupTransaction.feePayer = user;
-      }
-      unstakeTransaction.recentBlockhash = blockhash;
-      unstakeTransaction.feePayer = user;
-      // console.log(unstakeTransaction.instructions.map(ix => `${ix.programId.toString()}: ${ix.keys.map(m => m.pubkey.toString())}`));
-      if (cleanupTransaction) {
-        cleanupTransaction.recentBlockhash = blockhash;
-        cleanupTransaction.feePayer = user;
-      }
-      console.log(
-        routeLabel,
-        "setup:",
-        setupTransaction?.serialize(SERIALIZE_CONFIG_MOCK_SIG).length,
-        "unstake:",
-        unstakeTransaction.serialize(SERIALIZE_CONFIG_MOCK_SIG).length,
-        "cleanup:",
-        cleanupTransaction?.serialize(SERIALIZE_CONFIG_MOCK_SIG).length,
-      );
-      // try simulating setupTransaction or unstakeTransaction to
-      // make sure they work
-      const txToSim = setupTransaction || unstakeTransaction;
-      const sim = await CONN.simulateTransaction(txToSim, undefined);
-      expect(
-        sim.value.err,
-        `Failed to simulate ${routeLabel}\nError: ${JSON.stringify(
+      try {
+        const { setupTransaction, unstakeTransaction, cleanupTransaction } =
+          await unstake.exchange({
+            route,
+            stakeAccount,
+            stakeAccountPubkey: TEST_STAKE_ACC_PUBKEY,
+            user,
+            feeAccounts,
+          });
+        const { blockhash } = await CONN.getLatestBlockhash();
+        if (setupTransaction) {
+          setupTransaction.recentBlockhash = blockhash;
+          setupTransaction.feePayer = user;
+        }
+        unstakeTransaction.recentBlockhash = blockhash;
+        unstakeTransaction.feePayer = user;
+        // console.log(unstakeTransaction.instructions.map(ix => `${ix.programId.toString()}: ${ix.keys.map(m => m.pubkey.toString())}`));
+        if (cleanupTransaction) {
+          cleanupTransaction.recentBlockhash = blockhash;
+          cleanupTransaction.feePayer = user;
+        }
+        console.log(
+          routeLabel,
+          "setup:",
+          setupTransaction?.serialize(SERIALIZE_CONFIG_MOCK_SIG).length,
+          "unstake:",
+          unstakeTransaction.serialize(SERIALIZE_CONFIG_MOCK_SIG).length,
+          "cleanup:",
+          cleanupTransaction?.serialize(SERIALIZE_CONFIG_MOCK_SIG).length,
+        );
+        // try simulating setupTransaction or unstakeTransaction to
+        // make sure they work
+        const txToSim = setupTransaction || unstakeTransaction;
+        const sim = await CONN.simulateTransaction(txToSim, undefined);
+        expect(
           sim.value.err,
-        )}\nLogs:\n${sim.value.logs?.join("\n")}`,
-      ).to.be.null;
+          `Error: ${JSON.stringify(
+            sim.value.err,
+          )}\nLogs:\n${sim.value.logs?.join("\n")}`,
+        ).to.be.null;
+      } catch (e) {
+        const err = e as Error;
+        err.message = `${routeLabel}: ${err.message}`;
+        throw err;
+      }
     }),
   );
   expect(

@@ -1,6 +1,6 @@
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { AccountInfo, Connection, PublicKey } from "@solana/web3.js";
-import { RouteInfo } from "@jup-ag/core";
+import { Amm } from "@jup-ag/core";
 import { StakeAccount, stakeAccountState } from "@soceanfi/solana-stake-sdk";
 import { STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS } from "@soceanfi/stake-pool-sdk";
 import BN from "bn.js";
@@ -87,8 +87,16 @@ export function dummyAccountInfoForProgramOwner(
  *
  * TODO: add more as they come up
  */
-const UNUSABLE_JUP_MARKETS_LABELS: Set<string> = new Set(["Serum", "Raydium"]);
+export const UNUSABLE_JUP_MARKETS_LABELS: Set<Amm["label"]> = new Set([
+  // 1300+ with spl
+  "Serum",
+  // 1300+ with spl
+  "Raydium",
+  // 1256 with marinade
+  "GooseFX",
+]);
 
+// Not used for now, implementing this functionality using jup's ammsToExclude functionality
 /**
  * Markets we can use (known so-far, check by seeing if
  * `Error: Transaction too large` is thrown in test-basic):
@@ -98,6 +106,7 @@ const UNUSABLE_JUP_MARKETS_LABELS: Set<string> = new Set(["Serum", "Raydium"]);
  * @param routes
  * @returns
  */
+/*
 export function filterNotSupportedJupRoutes(routes: RouteInfo[]): RouteInfo[] {
   return routes.filter((route) => {
     const marketsInvolved = route.marketInfos
@@ -105,13 +114,14 @@ export function filterNotSupportedJupRoutes(routes: RouteInfo[]): RouteInfo[] {
       .flat();
     for (let i = 0; i < marketsInvolved.length; i++) {
       const market = marketsInvolved[i];
-      if (UNUSABLE_JUP_MARKETS_LABELS.has(market)) {
+      if (UNUSABLE_JUP_MARKETS_LABELS.has(market as Amm['label'])) {
         return false;
       }
     }
     return true;
   });
 }
+*/
 
 export function routeMarketLabels(route: UnstakeRoute): string[] {
   const res = [route.stakeAccInput.stakePool.label];
