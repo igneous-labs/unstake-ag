@@ -256,3 +256,14 @@ export function isLockupInForce(
   // Assumes local time is a good approx of on-chain unix time
   return unixTimestamp > Date.now() / 1_000 || epoch > currentEpoch;
 }
+
+/**
+ * Deduplicate public keys
+ * TODO: PublicKey -> string -> PublicKey conversion is probably slow,
+ * see if theres a better way
+ * @param arr
+ * @returns
+ */
+export function dedupPubkeys(arr: PublicKey[]): string[] {
+  return [...new Set(arr.map((pk) => pk.toString()))];
+}

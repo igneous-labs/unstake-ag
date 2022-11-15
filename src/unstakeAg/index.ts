@@ -38,6 +38,7 @@ import {
 import {
   calcStakeUnstakedAmount,
   chunkedGetMultipleAccountInfos,
+  dedupPubkeys,
   doTokenProgramAccsExist,
   dummyAccountInfoForProgramOwner,
   genShortestUnusedSeed,
@@ -73,9 +74,12 @@ export class UnstakeAg {
 
   lastUpdateStakePoolsTimestamp: number;
 
-  get stakePoolsAccountsToUpdate(): PublicKey[] {
-    return this.stakePools.map((sp) => sp.getAccountsForUpdate()).flat();
-  }
+  /**
+   * PublicKeys of all accounts of StakePools + WithdrawStakePools, deduped
+   */
+  // initialized in this.setPoolsAccountsToUpdate() but ts cant detect that
+  // @ts-ignore
+  poolsAccountsToUpdate: string[];
 
   constructor(
     { cluster, connection, routeCacheDuration }: JupiterLoadParams,
@@ -88,6 +92,7 @@ export class UnstakeAg {
     this.stakePools = stakePools;
     this.jupiter = jupiter;
     this.lastUpdateStakePoolsTimestamp = 0;
+    this.setPoolsAccountsToUpdate();
   }
 
   static createStakePools(cluster: Cluster): StakePool[] {
@@ -161,20 +166,29 @@ export class UnstakeAg {
     return res;
   }
 
+  /**
+   * Sets this.poolsAccountsToUpdate to deduped list of all
+   * required accounts for StakePools and WithdrawStakePools.
+   * Call this if this.stakePools or this.withdrawStakePools
+   * change for some reason.
+   */
+  setPoolsAccountsToUpdate(): void {
+    this.poolsAccountsToUpdate = dedupPubkeys(
+      this.stakePools.map((sp) => sp.getAccountsForUpdate()).flat(),
+    );
+  }
+
   // copied from jup's prefetchAmms
   // TODO: ideally we use the same accountInfosMap as jupiter
   // so we dont fetch duplicate accounts e.g. marinade state
   async updateStakePools(): Promise<void> {
-    const accountsStr = this.stakePoolsAccountsToUpdate.map((pk) =>
-      pk.toBase58(),
-    );
     const accountInfosMap = new Map();
     const accountInfos = await chunkedGetMultipleAccountInfos(
       this.connection,
-      accountsStr,
+      this.poolsAccountsToUpdate,
     );
     accountInfos.forEach((item, index) => {
-      const publicKeyStr = accountsStr[index];
+      const publicKeyStr = this.poolsAccountsToUpdate[index];
       if (item) {
         accountInfosMap.set(publicKeyStr, item);
       }
