@@ -199,7 +199,7 @@ export function dummyStakeAccountInfo({
 
 /**
  * Markets that we can't use because they use too many accounts
- * resulting in tx too large
+ * resulting in tx too large, or they dont list any xSOL-SOL pairs
  *
  * TODO: add more as they come up
  */
@@ -210,6 +210,23 @@ export const UNUSABLE_JUP_MARKETS_LABELS: Set<Amm["label"]> = new Set([
   "Raydium",
   // 1256 with marinade
   "GooseFX",
+
+  // Markets below dont have any xSOL-SOL pairs listed.
+  // Comment them out to discover new markets + listings
+
+  "Cropper",
+  "Cykura",
+  "DeltaFi",
+  "Invariant",
+  "Lifinity",
+  "Lifinity V2",
+  "Meteora",
+  "Step",
+  "Penguin",
+  "Stepn",
+  "Sencha",
+  "Saber (Decimals)",
+  "Unknown",
 ]);
 
 // Not used for now, implementing this functionality using jup's ammsToExclude functionality
