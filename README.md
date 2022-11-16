@@ -86,12 +86,14 @@ const myJupParams: JupiterLoadParams = { ... };
 const jupiter = await Jupiter.load(myJupParams);
 
 const stakePools = UnstakeAg.createStakePools(myJupParams.cluster);
+const withdrawStakePools = UnstakeAg.createWithdrawStakePools(myJupParams.cluster);
+const hybridPools = UnstakeAg.createHybridPools(myJupParams.cluster);
 
-const unstake = new UnstakeAg(myJupParams, stakePools, jupiter);
+const unstake = new UnstakeAg(myJupParams, stakePools, withdrawStakePools, hybridPools, jupiter);
 
-// call unstake.updateStakePools()
+// call unstake.updatePools()
 // to perform an initial fetch of all stake pools' accounts
-await unstake.updateStakePools();
+await unstake.updatePools();
 ```
 
 ### Compute Routes

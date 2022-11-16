@@ -3,6 +3,7 @@ import type {
   PublicKey,
   TransactionInstruction,
 } from "@solana/web3.js";
+import { AccountInfoMap } from "@jup-ag/core/dist/lib/amm";
 import type { StakeAccount } from "@soceanfi/solana-stake-sdk";
 
 import type {
@@ -31,6 +32,12 @@ export interface WithdrawStakePool {
    * Only handles withdrawing max 1 stake account
    */
   getWithdrawStakeQuote(params: WithdrawStakeQuoteParams): WithdrawStakeQuote;
+
+  // below methods are same signature as that from @jup-ag/core
+
+  getAccountsForUpdate(): PublicKey[];
+
+  update(accountInfoMap: AccountInfoMap): void;
 }
 
 export interface CreateWithdrawStakeInstructionsParams

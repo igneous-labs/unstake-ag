@@ -30,6 +30,7 @@ import {
   EVERSOL_ADDRESS_MAP,
   JITO_ADDRESS_MAP,
   JPOOL_ADDRESS_MAP,
+  LAINE_ADDRESS_MAP,
   MARINADE_ADDRESS_MAP,
   SOCEAN_ADDRESS_MAP,
   SOLBLAZE_ADDRESS_MAP,
@@ -44,14 +45,31 @@ import {
   genShortestUnusedSeed,
   UNUSABLE_JUP_MARKETS_LABELS,
 } from "@/unstake-ag/unstakeAg/utils";
+import { WithdrawStakePool } from "@/unstake-ag/withdrawStakePools";
 
 export { routeMarketLabels } from "./utils";
+
+export type HybridPool = StakePool & WithdrawStakePool;
 
 /**
  * Main exported class
  */
 export class UnstakeAg {
+  /**
+   * Pools that only implement StakePool
+   */
   stakePools: StakePool[];
+
+  /**
+   * Pools that only implement WithdrawStakePool;
+   */
+  withdrawStakePools: WithdrawStakePool[];
+
+  /**
+   * Pools that implement both StakePool and WithdrawStakePool.
+   * Should have no overlap with `stakePools` and `withdrawStakePools`
+   */
+  hybridPools: HybridPool[];
 
   cluster: Cluster;
 
@@ -72,7 +90,7 @@ export class UnstakeAg {
    */
   routeCacheDuration: number;
 
-  lastUpdateStakePoolsTimestamp: number;
+  lastUpdatePoolsTimestamp: number;
 
   /**
    * PublicKeys of all accounts of StakePools + WithdrawStakePools, deduped
@@ -84,14 +102,18 @@ export class UnstakeAg {
   constructor(
     { cluster, connection, routeCacheDuration }: JupiterLoadParams,
     stakePools: StakePool[],
+    withdrawStakePools: WithdrawStakePool[],
+    hybridPools: HybridPool[],
     jupiter: Jupiter,
   ) {
     this.cluster = cluster;
     this.connection = connection;
     this.routeCacheDuration = routeCacheDuration ?? 0;
     this.stakePools = stakePools;
+    this.withdrawStakePools = withdrawStakePools;
+    this.hybridPools = hybridPools;
     this.jupiter = jupiter;
-    this.lastUpdateStakePoolsTimestamp = 0;
+    this.lastUpdatePoolsTimestamp = 0;
     this.setPoolsAccountsToUpdate();
   }
 
@@ -111,6 +133,17 @@ export class UnstakeAg {
           validatorRecordsAddr: MARINADE_ADDRESS_MAP[cluster].validatorRecords,
         },
       ),
+    ];
+  }
+
+  // TODO: lido
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  static createWithdrawStakePools(_cluster: Cluster): WithdrawStakePool[] {
+    return [];
+  }
+
+  static createHybridPools(cluster: Cluster): HybridPool[] {
+    return [
       new SoceanSplStakePool(
         SOCEAN_ADDRESS_MAP[cluster].stakePool,
         dummyAccountInfoForProgramOwner(SOCEAN_ADDRESS_MAP[cluster].program),
@@ -134,6 +167,7 @@ export class UnstakeAg {
         { splAddrMap: SOLBLAZE_ADDRESS_MAP, label: "SolBlaze" },
         { splAddrMap: DAOPOOL_ADDRESS_MAP, label: "DAOPool" },
         { splAddrMap: JITO_ADDRESS_MAP, label: "Jito" },
+        { splAddrMap: LAINE_ADDRESS_MAP, label: "Laine" },
       ].map(
         ({ splAddrMap, label }) =>
           new OfficialSplStakePool(
@@ -161,8 +195,16 @@ export class UnstakeAg {
     const jupiter = await Jupiter.load(params);
     const { cluster } = params;
     const stakePools = UnstakeAg.createStakePools(cluster);
-    const res = new UnstakeAg(params, stakePools, jupiter);
-    await res.updateStakePools();
+    const withdrawStakePools = UnstakeAg.createWithdrawStakePools(cluster);
+    const hybridPools = UnstakeAg.createHybridPools(cluster);
+    const res = new UnstakeAg(
+      params,
+      stakePools,
+      withdrawStakePools,
+      hybridPools,
+      jupiter,
+    );
+    await res.updatePools();
     return res;
   }
 
@@ -173,15 +215,18 @@ export class UnstakeAg {
    * change for some reason.
    */
   setPoolsAccountsToUpdate(): void {
-    this.poolsAccountsToUpdate = dedupPubkeys(
-      this.stakePools.map((sp) => sp.getAccountsForUpdate()).flat(),
-    );
+    const allPubkeys = [
+      this.stakePools,
+      this.withdrawStakePools,
+      this.hybridPools,
+    ].flatMap((pools) => pools.flatMap((p) => p.getAccountsForUpdate()));
+    this.poolsAccountsToUpdate = dedupPubkeys(allPubkeys);
   }
 
   // copied from jup's prefetchAmms
   // TODO: ideally we use the same accountInfosMap as jupiter
   // so we dont fetch duplicate accounts e.g. marinade state
-  async updateStakePools(): Promise<void> {
+  async updatePools(): Promise<void> {
     const accountInfosMap = new Map();
     const accountInfos = await chunkedGetMultipleAccountInfos(
       this.connection,
@@ -193,7 +238,9 @@ export class UnstakeAg {
         accountInfosMap.set(publicKeyStr, item);
       }
     });
-    this.stakePools.forEach((sp) => sp.update(accountInfosMap));
+    [this.stakePools, this.withdrawStakePools, this.hybridPools].forEach(
+      (pools) => pools.forEach((p) => p.update(accountInfosMap)),
+    );
   }
 
   async computeRoutes({
@@ -213,20 +260,20 @@ export class UnstakeAg {
       amountLamportsArgs > BigInt(stakeAccount.lamports)
         ? BigInt(stakeAccount.lamports)
         : amountLamportsArgs;
-    const msSinceLastFetch = Date.now() - this.lastUpdateStakePoolsTimestamp;
+    const msSinceLastFetch = Date.now() - this.lastUpdatePoolsTimestamp;
     if (
       (this.routeCacheDuration > -1 &&
         msSinceLastFetch > this.routeCacheDuration) ||
       forceFetch
     ) {
-      await this.updateStakePools();
-      this.lastUpdateStakePoolsTimestamp = Date.now();
+      await this.updatePools();
+      this.lastUpdatePoolsTimestamp = Date.now();
     }
 
     const { epoch: currentEpoch } = await this.connection.getEpochInfo();
     // each stakePool returns array of routes
     const maybeRoutes = await Promise.all(
-      this.stakePools.map(async (sp) => {
+      [...this.stakePools, ...this.hybridPools].map(async (sp) => {
         try {
           if (
             !sp.canAcceptStakeAccount({

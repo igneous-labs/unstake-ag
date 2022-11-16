@@ -21,6 +21,7 @@ import {
   decodeValidatorList,
   Fee,
   Lockup,
+  ValidatorStakeInfo,
 } from "@soceanfi/stake-pool-sdk";
 import BN from "bn.js";
 import JSBI from "jsbi";
@@ -34,7 +35,12 @@ import {
   SplStakePool,
   StakePoolNotFetchedError,
 } from "@/unstake-ag/stakePools/splStakePool/splStakePool";
-import { decrementStakePoolIxData } from "@/unstake-ag/stakePools/splStakePool/utils";
+import {
+  applyStakePoolFeeBigInt,
+  applyStakePoolFeeJSBI,
+  decrementStakePoolIxData,
+} from "@/unstake-ag/stakePools/splStakePool/utils";
+import { CreateWithdrawStakeInstructionsParams } from "@/unstake-ag/withdrawStakePools";
 
 /**
  * Layouts and typdefs copied from
@@ -236,6 +242,46 @@ export class EverstakeSplStakePool extends SplStakePool {
     return ixs;
   }
 
+  override createWithdrawStakeInstructions(
+    args: CreateWithdrawStakeInstructionsParams,
+  ): TransactionInstruction[] {
+    const ixs = super.createWithdrawStakeInstructions(args);
+    decrementStakePoolIxData(this.programId, ixs);
+    return ixs;
+  }
+
+  override findTransientStakeAccount(
+    validatorStakeInfo: ValidatorStakeInfo,
+  ): PublicKey {
+    return PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("transient"),
+        validatorStakeInfo.voteAccountAddress.toBuffer(),
+        this.stakePoolAddr.toBuffer(),
+        validatorStakeInfo.transientSeedSuffixStart.toBuffer(),
+      ],
+      this.programId,
+    )[0];
+  }
+
+  override calcWithdrawalReceipt(withdrawStakeTokens: bigint): {
+    lamportsReceived: bigint;
+    withdrawStakeTokensFeePaid: bigint;
+  } {
+    const { withdrawalFee } = this.stakePool!;
+    const withdrawStakeTokensFeePaid = applyStakePoolFeeBigInt(
+      withdrawalFee,
+      withdrawStakeTokens,
+    );
+    const burnt = withdrawStakeTokens - withdrawStakeTokensFeePaid;
+    const lamportsReceived =
+      this.convertAmountOfPoolTokensToAmountOfLamports(burnt);
+    return {
+      lamportsReceived,
+      withdrawStakeTokensFeePaid,
+    };
+  }
+
   override update(accountInfoMap: AccountInfoMap): void {
     const stakePool = accountInfoMap.get(this.stakePoolAddr.toString());
     if (stakePool) {
@@ -270,11 +316,11 @@ export class EverstakeSplStakePool extends SplStakePool {
           ),
         )
       : stakeAmount;
-    const stakeDepositFee = applyFee(
+    const stakeDepositFee = applyStakePoolFeeJSBI(
       this.stakePool.stakeDepositFee,
       this.convertAmountOfLamportsToAmountOfPoolTokens(stakedAmountChargeable),
     );
-    const solDepositFee = applyFee(
+    const solDepositFee = applyStakePoolFeeJSBI(
       this.stakePool.solDepositFee,
       this.convertAmountOfLamportsToAmountOfPoolTokens(unstakedAmount),
     );
@@ -337,18 +383,23 @@ export class EverstakeSplStakePool extends SplStakePool {
       JSBI.BigInt(rateOfExchange.numerator.toString()),
     );
   }
-}
 
-/**
- *
- * @param fee
- * @param amount
- * @returns number of token atomics to subtract from `amount` as fee
- */
-function applyFee(fee: Fee, amount: JSBI): JSBI {
-  if (fee.denominator.isZero()) return JSBI.BigInt(0);
-  return JSBI.divide(
-    JSBI.multiply(amount, JSBI.BigInt(fee.numerator.toString())),
-    JSBI.BigInt(fee.denominator.toString()),
-  );
+  /**
+   * See: https://github.com/everstake/solana-program-library/blob/22534fe3885e698598e92b2fe20da3a8adbfc5ff/stake-pool/program/src/state.rs#L186
+   * Assumes this.stakePool already fetched
+   *
+   * @param lamports
+   */
+  private convertAmountOfPoolTokensToAmountOfLamports(
+    poolTokens: bigint,
+  ): bigint {
+    const { rateOfExchange } = this.stakePool!;
+    if (!rateOfExchange) {
+      return poolTokens;
+    }
+    return (
+      (poolTokens * BigInt(rateOfExchange.numerator.toString())) /
+      BigInt(rateOfExchange.denominator.toString())
+    );
+  }
 }

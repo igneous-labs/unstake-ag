@@ -34,6 +34,7 @@ import type {
   StakePool,
   StakePoolQuoteParams,
 } from "@/unstake-ag/stakePools";
+import { applyStakePoolFeeBigInt } from "@/unstake-ag/stakePools/splStakePool/utils";
 import {
   KNOWN_SPL_STAKE_POOL_PROGRAM_IDS_STR,
   KnownSplStakePoolProgramIdStr,
@@ -389,23 +390,23 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
 
   // TODO: export this from stake-pool-sdk
   /**
-   * Assumes this.stakePool already fetched
+   * Assumes this.stakePool already fetched.
+   * Returns lamportsReceived and stakePoolToken fee paid for a given
+   * stakePoolToken withdrawal
    * @param withdrawStakeTokens
    * @returns
    */
-  private calcWithdrawalReceipt(withdrawStakeTokens: bigint): {
+  protected calcWithdrawalReceipt(withdrawStakeTokens: bigint): {
     lamportsReceived: bigint;
     withdrawStakeTokensFeePaid: bigint;
   } {
     const { withdrawalFee, totalStakeLamports, poolTokenSupply } =
       this.stakePool!;
-    const hasFee =
-      !withdrawalFee.numerator.isZero() && !withdrawalFee.denominator.isZero();
-    const withdrawalFeeNum = BigInt(withdrawalFee.numerator.toString());
-    const withdrawalFeeDenom = BigInt(withdrawalFee.denominator.toString());
-    const withdrawStakeTokensFeePaid = hasFee
-      ? (withdrawStakeTokens * withdrawalFeeNum) / withdrawalFeeDenom
-      : BigInt(0);
+
+    const withdrawStakeTokensFeePaid = applyStakePoolFeeBigInt(
+      withdrawalFee,
+      withdrawStakeTokens,
+    );
     const burnt = withdrawStakeTokens - withdrawStakeTokensFeePaid;
     const num = burnt * BigInt(totalStakeLamports.toString());
     const poolTokenSupplyBI = BigInt(poolTokenSupply.toString());
