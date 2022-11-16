@@ -296,7 +296,6 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
   getWithdrawStakeQuote({
     currentEpoch,
     tokenAmount,
-    newStakeAuths,
   }: WithdrawStakeQuoteParams): WithdrawStakeQuote {
     if (!this.stakePool) {
       throw new StakePoolNotFetchedError();
@@ -357,8 +356,7 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
       }
     }
 
-    const { lamportsReceived, withdrawStakeTokensFeePaid } =
-      this.calcWithdrawalReceipt(tokenAmount);
+    const { lamportsReceived } = this.calcWithdrawalReceipt(tokenAmount);
     if (lamportsReceived === BigInt(0)) {
       return WITHDRAW_STAKE_QUOTE_FAILED;
     }
@@ -376,12 +374,10 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
     return {
       result: {
         stakeSplitFrom,
-        withdrawalFee: withdrawStakeTokensFeePaid,
         outputStakeAccount: dummyStakeAccountInfo({
           currentEpoch: new BN(currentEpoch),
           lamports: Number(lamportsReceived),
           stakeState: poolHasNoActive ? "activating" : "active",
-          stakeAuths: newStakeAuths,
           voter: validatorToWithdrawFrom.voteAccountAddress,
         }),
       },

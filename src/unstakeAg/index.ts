@@ -12,8 +12,13 @@ import {
 } from "@solana/web3.js";
 import { Jupiter, JupiterLoadParams, WRAPPED_SOL_MINT } from "@jup-ag/core";
 import { STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS } from "@soceanfi/stake-pool-sdk";
-import { UnstakeRoute } from "route";
+import { UnstakeXSolRouteWithdrawStake } from "index";
 
+import type {
+  UnstakeRoute,
+  UnstakeXSolRoute,
+  UnstakeXSolRouteJupDirect,
+} from "@/unstake-ag/route";
 import {
   EverstakeSplStakePool,
   MarinadeStakePool,
@@ -35,8 +40,10 @@ import {
 } from "@/unstake-ag/unstakeAg/address";
 import type {
   ComputeRoutesParams,
+  ComputeRoutesXSolParams,
   ExchangeParams,
   ExchangeReturn,
+  HybridPool,
 } from "@/unstake-ag/unstakeAg/types";
 import {
   calcStakeUnstakedAmount,
@@ -45,13 +52,13 @@ import {
   doTokenProgramAccsExist,
   dummyAccountInfoForProgramOwner,
   genShortestUnusedSeed,
+  isHybridPool,
   outLamports,
+  outLamportsXSol,
   tryMergeExchangeReturn,
   UNUSABLE_JUP_MARKETS_LABELS,
 } from "@/unstake-ag/unstakeAg/utils";
 import { WithdrawStakePool } from "@/unstake-ag/withdrawStakePools";
-
-export type HybridPool = StakePool & WithdrawStakePool;
 
 /**
  * Main exported class
@@ -80,7 +87,7 @@ export class UnstakeAg {
   jupiter: Jupiter;
 
   /**
-   * Same as jupiter's. For refreshing stakePools.
+   * Same as jupiter's. For refreshing pools.
    *
    * -1, it will not fetch when shouldFetch == false
    *
@@ -95,7 +102,7 @@ export class UnstakeAg {
   lastUpdatePoolsTimestamp: number;
 
   /**
-   * PublicKeys of all accounts of StakePools + WithdrawStakePools, deduped
+   * PublicKeys of all accounts of all pools, deduped
    */
   // initialized in this.setPoolsAccountsToUpdate() but ts cant detect that
   // @ts-ignore
@@ -245,13 +252,27 @@ export class UnstakeAg {
     );
   }
 
+  async refreshPoolsIfExpired(forceFetch: boolean): Promise<void> {
+    const msSinceLastFetch = Date.now() - this.lastUpdatePoolsTimestamp;
+    if (
+      (this.routeCacheDuration > -1 &&
+        msSinceLastFetch > this.routeCacheDuration) ||
+      forceFetch
+    ) {
+      await this.updatePools();
+      this.lastUpdatePoolsTimestamp = Date.now();
+    }
+  }
+
   async computeRoutes({
     stakeAccount,
     amountLamports: amountLamportsArgs,
     slippageBps,
     jupFeeBps,
+    currentEpoch: currentEpochOption,
     forceFetch = false,
     shouldIgnoreRouteErrors = true,
+    stakePoolsToExclude,
   }: ComputeRoutesParams): Promise<UnstakeRoute[]> {
     if (
       amountLamportsArgs < BigInt(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString())
@@ -262,20 +283,19 @@ export class UnstakeAg {
       amountLamportsArgs > BigInt(stakeAccount.lamports)
         ? BigInt(stakeAccount.lamports)
         : amountLamportsArgs;
-    const msSinceLastFetch = Date.now() - this.lastUpdatePoolsTimestamp;
-    if (
-      (this.routeCacheDuration > -1 &&
-        msSinceLastFetch > this.routeCacheDuration) ||
-      forceFetch
-    ) {
-      await this.updatePools();
-      this.lastUpdatePoolsTimestamp = Date.now();
-    }
 
-    const { epoch: currentEpoch } = await this.connection.getEpochInfo();
+    await this.refreshPoolsIfExpired(forceFetch);
+
+    const currentEpoch =
+      currentEpochOption ?? (await this.connection.getEpochInfo()).epoch;
+
     // each stakePool returns array of routes
+    let pools = [...this.stakePools, ...this.hybridPools];
+    if (stakePoolsToExclude) {
+      pools = pools.filter(({ label }) => !stakePoolsToExclude[label]);
+    }
     const maybeRoutes = await Promise.all(
-      [...this.stakePools, ...this.hybridPools].map(async (sp) => {
+      pools.map(async (sp) => {
         try {
           if (
             !sp.canAcceptStakeAccount({
@@ -513,7 +533,113 @@ export class UnstakeAg {
       cleanupTransaction,
     });
   }
+
+  async computeRoutesXSol(
+    args: ComputeRoutesXSolParams,
+  ): Promise<UnstakeXSolRoute[]> {
+    const outputMint = WRAPPED_SOL_MINT;
+    const {
+      inputMint,
+      amount,
+      slippageBps,
+      feeBps: jupFeeBps,
+      forceFetch = false,
+      shouldIgnoreRouteErrors = true,
+      stakePoolsToExclude: stakePoolsToExcludeOption,
+    } = args;
+
+    await this.refreshPoolsIfExpired(forceFetch);
+
+    const jupRoutesPromise: Promise<UnstakeXSolRouteJupDirect[]> = this.jupiter
+      .computeRoutes({ ...args, outputMint })
+      .then(({ routesInfos }) =>
+        routesInfos.flatMap((routeInfo) => ({ jup: routeInfo })),
+      )
+      .catch((e) => {
+        if (shouldIgnoreRouteErrors) {
+          return [] as UnstakeXSolRouteJupDirect[];
+        }
+        throw e;
+      });
+
+    const pool: WithdrawStakePool | undefined = [
+      ...this.hybridPools,
+      ...this.withdrawStakePools,
+    ].find((p) => p.withdrawStakeToken.equals(inputMint));
+    let unstakeRoutesPromise: Promise<UnstakeXSolRouteWithdrawStake[]>;
+    if (!pool) {
+      unstakeRoutesPromise = Promise.resolve([]);
+    } else {
+      unstakeRoutesPromise = this.connection
+        .getEpochInfo()
+        .then(async ({ epoch: currentEpoch }) => {
+          const { result } = pool.getWithdrawStakeQuote({
+            currentEpoch,
+            tokenAmount: BigInt(amount.toString()),
+          });
+          if (!result) {
+            return [];
+          }
+          const { outputStakeAccount, stakeSplitFrom } = result;
+          const outAmount = BigInt(outputStakeAccount.lamports);
+          let stakePoolsToExclude = stakePoolsToExcludeOption;
+          // withdrawing the stake, then depositing the stake
+          // again = back to xSOL
+          if (
+            isHybridPool(pool) &&
+            pool.outputToken.equals(pool.withdrawStakeToken)
+          ) {
+            stakePoolsToExclude = {
+              [pool.label]: true,
+            };
+          }
+          const unstakeRoutes = await this.computeRoutes({
+            stakeAccount: outputStakeAccount,
+            amountLamports: outAmount,
+            slippageBps,
+            jupFeeBps,
+            currentEpoch,
+            forceFetch,
+            shouldIgnoreRouteErrors,
+            stakePoolsToExclude,
+          });
+          return unstakeRoutes.map((unstake) => ({
+            withdrawStake: {
+              withdrawStakePool: pool,
+              inAmount: BigInt(amount.toString()),
+              outAmount,
+              stakeSplitFrom,
+            },
+            unstake,
+          }));
+        })
+        .catch((e) => {
+          if (shouldIgnoreRouteErrors) {
+            return [] as UnstakeXSolRouteWithdrawStake[];
+          }
+          throw e;
+        });
+    }
+
+    const routes = (
+      await Promise.all([jupRoutesPromise, unstakeRoutesPromise])
+    ).flat();
+    // sort by best route first (out lamports is the most)
+    return routes.sort((routeA, routeB) => {
+      const res = outLamportsXSol(routeB) - outLamportsXSol(routeA);
+      // bigint-number incompatibility,
+      // cant do `return res;`
+      if (res < 0) {
+        return -1;
+      }
+      if (res > 0) {
+        return 1;
+      }
+      return 0;
+    });
+  }
 }
 
+export * from "./address";
 export * from "./types";
 export * from "./utils";

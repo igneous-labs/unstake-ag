@@ -6,12 +6,17 @@ import { WRAPPED_SOL_MINT } from "@jup-ag/core";
 import { getStakeAccount, StakeAccount } from "@soceanfi/solana-stake-sdk";
 import { STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS } from "@soceanfi/stake-pool-sdk";
 import { expect } from "chai";
-import { SOCEAN_ADDRESS_MAP } from "unstakeAg/address";
+import JSBI from "jsbi";
 
 import {
+  EVERSOL_ADDRESS_MAP,
   FeeAccounts,
+  LAINE_ADDRESS_MAP,
   outLamports,
+  outLamportsXSol,
   routeMarketLabels,
+  routeMarketLabelsXSol,
+  SOCEAN_ADDRESS_MAP,
   UnstakeAg,
   UnstakeRoute,
 } from "@/unstake-ag";
@@ -122,6 +127,45 @@ describe("test basic functionality", () => {
       shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
     });
     await checkRoutes(unstake, stakeAccount, routes, REFERRAL_DESTINATIONS);
+  });
+
+  it("scnSOL", async () => {
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: SOCEAN_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+    });
+    console.log(
+      routes.map(
+        (route) => `${routeMarketLabelsXSol(route)} ${outLamportsXSol(route)}`,
+      ),
+    );
+  });
+
+  it("laineSOL", async () => {
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: LAINE_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+    });
+    console.log(
+      routes.map(
+        (route) => `${routeMarketLabelsXSol(route)} ${outLamportsXSol(route)}`,
+      ),
+    );
+  });
+
+  it("everSOL", async () => {
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: EVERSOL_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+    });
+    console.log(
+      routes.map(
+        (route) => `${routeMarketLabelsXSol(route)} ${outLamportsXSol(route)}`,
+      ),
+    );
   });
 });
 

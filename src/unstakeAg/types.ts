@@ -1,7 +1,21 @@
 import type { AccountInfo, PublicKey, Transaction } from "@solana/web3.js";
+import type { Jupiter } from "@jup-ag/core";
 import type { StakeAccount } from "@soceanfi/solana-stake-sdk";
 
 import type { UnstakeRoute } from "@/unstake-ag/route";
+import type { StakePool } from "@/unstake-ag/stakePools";
+import type { WithdrawStakePool } from "@/unstake-ag/withdrawStakePools";
+
+export type HybridPool = StakePool & WithdrawStakePool;
+
+/**
+ * Exclude certain stake pools from the route search
+ *
+ * e.g. { "Marinade": true }
+ */
+export type StakePoolsToExclude = {
+  [label in string]?: boolean;
+};
 
 export interface ComputeRoutesParams {
   /**
@@ -46,6 +60,14 @@ export interface ComputeRoutesParams {
    * Defaults to true
    */
   shouldIgnoreRouteErrors?: boolean;
+
+  /**
+   * Current epoch. If not provided, computeRoutes()
+   * will call getEpochInfo() to fetch it
+   */
+  currentEpoch?: number;
+
+  stakePoolsToExclude?: StakePoolsToExclude;
 }
 
 export interface ExchangeParams {
@@ -92,3 +114,19 @@ export interface ExchangeReturn {
   unstakeTransaction: Transaction;
   cleanupTransaction?: Transaction;
 }
+
+export type ComputeRoutesXSolParams = Omit<
+  Parameters<Jupiter["computeRoutes"]>[0],
+  "outputMint"
+> & {
+  /**
+   * Silently ignore routes where errors were thrown
+   * during computation such as failing to fetch
+   * required accounts.
+   *
+   * Defaults to true
+   */
+  shouldIgnoreRouteErrors?: boolean;
+
+  stakePoolsToExclude?: StakePoolsToExclude;
+};

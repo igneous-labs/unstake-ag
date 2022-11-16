@@ -17,9 +17,14 @@ import { STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS } from "@soceanfi/stake-pool-sdk";
 import BN from "bn.js";
 import JSBI from "jsbi";
 
-import { PubkeyFromSeed, WithStakeAuths } from "@/unstake-ag/common";
-import { UnstakeRoute } from "@/unstake-ag/route";
-import type { ExchangeReturn } from "@/unstake-ag/unstakeAg/types";
+import { PubkeyFromSeed } from "@/unstake-ag/common";
+import {
+  UnstakeRoute,
+  UnstakeXSolRoute,
+  UnstakeXSolRouteJupDirect,
+} from "@/unstake-ag/route";
+import type { ExchangeReturn, HybridPool } from "@/unstake-ag/unstakeAg/types";
+import type { WithdrawStakePool } from "@/unstake-ag/withdrawStakePools";
 
 // Copied from jup core.cjs.development.js
 function chunks<T>(array: Array<T>, size: number) {
@@ -104,7 +109,6 @@ interface DummyStakeAccountParams {
   currentEpoch: BN;
   lamports: number;
   stakeState: StakeState;
-  stakeAuths: WithStakeAuths;
   voter: PublicKey;
 }
 
@@ -133,7 +137,6 @@ export function dummyStakeAccountInfo({
   currentEpoch,
   lamports,
   stakeState,
-  stakeAuths: { stakerAuth, withdrawerAuth },
   voter,
 }: DummyStakeAccountParams): AccountInfo<StakeAccount> {
   const data: StakeAccount = {
@@ -142,8 +145,8 @@ export function dummyStakeAccountInfo({
       meta: {
         rentExemptReserve: STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
         authorized: {
-          staker: stakerAuth,
-          withdrawer: withdrawerAuth,
+          staker: PublicKey.default,
+          withdrawer: PublicKey.default,
         },
         lockup: {
           unixTimestamp: 0,
@@ -155,6 +158,7 @@ export function dummyStakeAccountInfo({
     },
   };
   if (stakeState !== "inactive") {
+    data.type = "delegated";
     const stake = new BN(lamports).sub(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS);
     let activationEpoch;
     let deactivationEpoch;
@@ -241,6 +245,16 @@ export function routeMarketLabels(route: UnstakeRoute): string[] {
     res.push(...route.jup.marketInfos.map((m) => m.amm.label));
   }
   return res;
+}
+
+export function routeMarketLabelsXSol(route: UnstakeXSolRoute): string[] {
+  if (isXSolRouteJupDirect(route)) {
+    return route.jup.marketInfos.map((m) => m.amm.label);
+  }
+  return [
+    route.withdrawStake.withdrawStakePool.label,
+    ...routeMarketLabels(route.unstake),
+  ];
 }
 
 /**
@@ -465,4 +479,21 @@ export function tryMergeExchangeReturn(
     unstakeTransaction: newUnstakeTransaction,
     cleanupTransaction: newCleanupTransaction,
   };
+}
+
+export function isHybridPool(pool: WithdrawStakePool): pool is HybridPool {
+  return "canAcceptStakeAccount" in pool;
+}
+
+export function isXSolRouteJupDirect(
+  route: UnstakeXSolRoute,
+): route is UnstakeXSolRouteJupDirect {
+  return "jup" in route;
+}
+
+export function outLamportsXSol(route: UnstakeXSolRoute): bigint {
+  if (isXSolRouteJupDirect(route)) {
+    return BigInt(route.jup.outAmount.toString());
+  }
+  return outLamports(route.unstake);
 }

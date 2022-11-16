@@ -60,7 +60,6 @@ export interface CreateWithdrawStakeInstructionsParams
 export interface WithdrawStakeQuoteParams {
   currentEpoch: number;
   tokenAmount: bigint;
-  newStakeAuths: WithStakeAuths;
 }
 
 export interface WithdrawStakeQuote {
@@ -70,11 +69,6 @@ export interface WithdrawStakeQuote {
   result?: {
     outputStakeAccount: AccountInfo<StakeAccount>;
     stakeSplitFrom: PublicKey;
-
-    /**
-     * denominated in `withdrawStakeToken` atomics
-     */
-    withdrawalFee: bigint;
   };
 }
 
