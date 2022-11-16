@@ -5,6 +5,7 @@ import {
   PublicKey,
   StakeProgram,
   SystemProgram,
+  Transaction,
 } from "@solana/web3.js";
 import { Amm } from "@jup-ag/core";
 import {
@@ -18,9 +19,10 @@ import JSBI from "jsbi";
 
 import { PubkeyFromSeed, WithStakeAuths } from "@/unstake-ag/common";
 import { UnstakeRoute } from "@/unstake-ag/route";
+import type { ExchangeReturn } from "@/unstake-ag/unstakeAg/types";
 
 // Copied from jup core.cjs.development.js
-export function chunks<T>(array: Array<T>, size: number) {
+function chunks<T>(array: Array<T>, size: number) {
   return Array.apply(0, new Array(Math.ceil(array.length / size))).map(
     (_, index) => array.slice(index * size, (index + 1) * size),
   );
@@ -377,4 +379,90 @@ export function isLockupInForce(
  */
 export function dedupPubkeys(arr: PublicKey[]): string[] {
   return [...new Set(arr.map((pk) => pk.toString()))];
+}
+
+/**
+ * TODO: Check that additional signatures required are accounted for
+ * i.e. actual tx size is `tx.serialize().length`
+ * and not `tx.serialize().length + 64 * additional required signatures`
+ * @param feePayer
+ * @param firstTx
+ * @param secondTx
+ * @returns a new transaction with the 2 transaction's instructions merged if possible, null otherwise
+ */
+export function tryMerge2Txs(
+  feePayer: PublicKey,
+  firstTx: Transaction,
+  secondTx: Transaction,
+): Transaction | null {
+  const MOCK_BLOCKHASH = "41xkyTsFaxnPvjv3eJMdjGfmQj3osuTLmqC3P13stSw3";
+  const SERIALIZE_CONFIG = {
+    requireAllSignatures: false,
+    verifyAllSignatures: false,
+  };
+  const merged = new Transaction();
+  merged.add(...firstTx.instructions);
+  merged.add(...secondTx.instructions);
+  merged.feePayer = feePayer;
+  merged.recentBlockhash = MOCK_BLOCKHASH;
+  try {
+    merged.serialize(SERIALIZE_CONFIG);
+  } catch (e) {
+    const msg = (e as Error).message;
+    if (msg && msg.includes("Transaction too large")) {
+      return null;
+    }
+    // uncaught
+    throw e;
+  }
+  merged.feePayer = undefined;
+  merged.recentBlockhash = undefined;
+  return merged;
+}
+
+/**
+ *
+ * @param param0
+ * @returns expected amount of lamports to be received for the given unstake route,
+ *          excluding slippage.
+ */
+export function outLamports({ stakeAccInput, jup }: UnstakeRoute): bigint {
+  if (!jup) {
+    return stakeAccInput.outAmount;
+  }
+  return BigInt(jup.outAmount.toString());
+}
+
+export function tryMergeExchangeReturn(
+  user: PublicKey,
+  { setupTransaction, unstakeTransaction, cleanupTransaction }: ExchangeReturn,
+): ExchangeReturn {
+  let newSetupTransaction = setupTransaction;
+  let newUnstakeTransaction = unstakeTransaction;
+  let newCleanupTransaction = cleanupTransaction;
+
+  if (setupTransaction) {
+    const mergeSetup = tryMerge2Txs(user, setupTransaction, unstakeTransaction);
+    if (mergeSetup) {
+      newSetupTransaction = undefined;
+      newUnstakeTransaction = mergeSetup;
+    }
+  }
+
+  if (cleanupTransaction) {
+    const mergeCleanup = tryMerge2Txs(
+      user,
+      newUnstakeTransaction,
+      cleanupTransaction,
+    );
+    if (mergeCleanup) {
+      newCleanupTransaction = undefined;
+      newUnstakeTransaction = mergeCleanup;
+    }
+  }
+  return {
+    setupTransaction: newSetupTransaction,
+    unstakeTransaction: newUnstakeTransaction,
+    cleanupTransaction: newCleanupTransaction,
+  };
 }
