@@ -67,7 +67,7 @@ export interface WithdrawStakeQuote {
    * If undefined, not enough liquidity for withdrawal
    */
   result?: {
-    outputStakeAccount: AccountInfo<StakeAccount>;
+    outputDummyStakeAccountInfo: AccountInfo<StakeAccount>;
     stakeSplitFrom: PublicKey;
   };
 }

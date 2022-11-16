@@ -60,9 +60,9 @@ export type UnstakeXSolRouteJupDirect = {
 export type UnstakeXSolRouteWithdrawStake = {
   withdrawStake: WithdrawStakeRoute;
   /**
-   * Should be `result.outputStakeAccount` of `WithdrawStakeQuote`
+   * Should be `result.outputDummyStakeAccountInfo` of `WithdrawStakeQuote`
    */
-  intermediateStake: AccountInfo<StakeAccount>;
+  intermediateDummyStakeAccountInfo: AccountInfo<StakeAccount>;
   unstake: UnstakeRoute;
 };
 

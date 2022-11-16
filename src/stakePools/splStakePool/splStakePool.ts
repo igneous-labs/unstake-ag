@@ -374,7 +374,7 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
     return {
       result: {
         stakeSplitFrom,
-        outputStakeAccount: dummyStakeAccountInfo({
+        outputDummyStakeAccountInfo: dummyStakeAccountInfo({
           currentEpoch: new BN(currentEpoch),
           lamports: Number(lamportsReceived),
           stakeState: poolHasNoActive ? "activating" : "active",

@@ -5,12 +5,10 @@ import { STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS } from "@soceanfi/stake-pool-sdk";
 import { expect } from "chai";
 import JSBI from "jsbi";
 
-import { checkRoutes } from "@/tests/utils";
+import { checkRoutes, checkRoutesXSol } from "@/tests/utils";
 import {
   EVERSOL_ADDRESS_MAP,
   LAINE_ADDRESS_MAP,
-  outLamportsXSol,
-  routeMarketLabelsXSol,
   SOCEAN_ADDRESS_MAP,
   UnstakeAg,
 } from "@/unstake-ag";
@@ -125,41 +123,38 @@ describe("test basic functionality", () => {
   });
 
   it("scnSOL", async () => {
+    const TEST_SCN_SOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "8qxk2T8UmNpTZoxTiMMv4N6sKHh7VxTHdAF9SvHy34LJ",
+    );
     const routes = await unstake.computeRoutesXSol({
       inputMint: SOCEAN_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
       amount: JSBI.BigInt(1_000_000_000),
       slippageBps: 10,
     });
-    console.log(
-      routes.map(
-        (route) => `${routeMarketLabelsXSol(route)} ${outLamportsXSol(route)}`,
-      ),
-    );
+    await checkRoutesXSol(unstake, routes, TEST_SCN_SOL_ACC_PUBKEY_HUMAN);
   });
 
   it("laineSOL", async () => {
+    const TEST_LAINE_SOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "8u8nU44mWpFcUvSWAwFEScKeLWiaWrPJqeuRzUXbZ2bj",
+    );
     const routes = await unstake.computeRoutesXSol({
       inputMint: LAINE_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
       amount: JSBI.BigInt(1_000_000_000),
       slippageBps: 10,
     });
-    console.log(
-      routes.map(
-        (route) => `${routeMarketLabelsXSol(route)} ${outLamportsXSol(route)}`,
-      ),
-    );
+    await checkRoutesXSol(unstake, routes, TEST_LAINE_SOL_ACC_PUBKEY_HUMAN);
   });
 
   it("everSOL", async () => {
+    const TEST_ESOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "JAEKNk5d2GFPnH3U3qkNk1yvq7NRn537KYGC6jNu52PL",
+    );
     const routes = await unstake.computeRoutesXSol({
       inputMint: EVERSOL_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
       amount: JSBI.BigInt(1_000_000_000),
       slippageBps: 10,
     });
-    console.log(
-      routes.map(
-        (route) => `${routeMarketLabelsXSol(route)} ${outLamportsXSol(route)}`,
-      ),
-    );
+    await checkRoutesXSol(unstake, routes, TEST_ESOL_ACC_PUBKEY_HUMAN);
   });
 });

@@ -582,8 +582,8 @@ export class UnstakeAg {
           if (!result) {
             return [];
           }
-          const { outputStakeAccount, stakeSplitFrom } = result;
-          const outAmount = BigInt(outputStakeAccount.lamports);
+          const { outputDummyStakeAccountInfo, stakeSplitFrom } = result;
+          const outAmount = BigInt(outputDummyStakeAccountInfo.lamports);
           let stakePoolsToExclude = stakePoolsToExcludeOption;
           // withdrawing the stake, then depositing the stake
           // again = back to xSOL
@@ -596,7 +596,7 @@ export class UnstakeAg {
             };
           }
           const unstakeRoutes = await this.computeRoutes({
-            stakeAccount: outputStakeAccount,
+            stakeAccount: outputDummyStakeAccountInfo,
             amountLamports: outAmount,
             slippageBps,
             jupFeeBps,
@@ -612,7 +612,7 @@ export class UnstakeAg {
               outAmount,
               stakeSplitFrom,
             },
-            intermediateStake: outputStakeAccount,
+            intermediateDummyStakeAccountInfo: outputDummyStakeAccountInfo,
             unstake,
           }));
         })
@@ -667,7 +667,7 @@ export class UnstakeAg {
     }
     const {
       withdrawStake: { withdrawStakePool, inAmount, stakeSplitFrom },
-      intermediateStake,
+      intermediateDummyStakeAccountInfo,
       unstake,
     } = route;
     const newStakeAccount = await genShortestUnusedSeed(
@@ -686,9 +686,14 @@ export class UnstakeAg {
         srcTokenAccountAuth: user,
         stakeSplitFrom,
       });
+    // replace dummy values with real values
+    intermediateDummyStakeAccountInfo.data.info.meta.authorized = {
+      staker: user,
+      withdrawer: user,
+    };
     const exchangeReturn = await this.exchange({
       route: unstake,
-      stakeAccount: intermediateStake,
+      stakeAccount: intermediateDummyStakeAccountInfo,
       stakeAccountPubkey: newStakeAccount.derived,
       user,
       feeAccounts,
