@@ -544,7 +544,7 @@ export class UnstakeAg {
       inputMint,
       amount,
       slippageBps,
-      feeBps: jupFeeBps,
+      jupFeeBps,
       forceFetch = false,
       shouldIgnoreRouteErrors = true,
       stakePoolsToExclude: stakePoolsToExcludeOption,

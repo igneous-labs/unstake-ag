@@ -142,7 +142,7 @@ export interface ExchangeReturn {
 
 export type ComputeRoutesXSolParams = Omit<
   Parameters<Jupiter["computeRoutes"]>[0],
-  "outputMint"
+  "outputMint" | "feeBps"
 > & {
   /**
    * Silently ignore routes where errors were thrown
@@ -152,6 +152,14 @@ export type ComputeRoutesXSolParams = Omit<
    * Defaults to true
    */
   shouldIgnoreRouteErrors?: boolean;
+
+  /**
+   * Optional additional fee to charge on jup swaps,
+   * passed as `feeBps` to `jupiter.computeRoutes()`
+   *
+   * Defaults to undefined
+   */
+  jupFeeBps?: number;
 
   stakePoolsToExclude?: StakePoolsToExclude;
 };
