@@ -1,9 +1,12 @@
+/* eslint-disable max-classes-per-file */
+
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import {
   AccountInfo,
   PublicKey,
   StakeAuthorizationLayout,
   StakeProgram,
+  SystemProgram,
   TransactionInstruction,
 } from "@solana/web3.js";
 import type { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
@@ -15,8 +18,11 @@ import {
   decodeValidatorList,
   depositStakeInstruction,
   Numberu64,
+  STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
   StakePool as SplStakePoolStruct,
   ValidatorList,
+  ValidatorStakeInfo,
+  withdrawStakeInstruction,
 } from "@soceanfi/stake-pool-sdk";
 import BN from "bn.js";
 import JSBI from "jsbi";
@@ -32,7 +38,18 @@ import {
   KNOWN_SPL_STAKE_POOL_PROGRAM_IDS_STR,
   KnownSplStakePoolProgramIdStr,
 } from "@/unstake-ag/unstakeAg/address";
-import { isLockupInForce } from "@/unstake-ag/unstakeAg/utils";
+import {
+  dummyStakeAccountInfo,
+  isLockupInForce,
+  STAKE_STATE_LEN,
+} from "@/unstake-ag/unstakeAg/utils";
+import {
+  CreateWithdrawStakeInstructionsParams,
+  WITHDRAW_STAKE_QUOTE_FAILED,
+  WithdrawStakePool,
+  WithdrawStakeQuote,
+  WithdrawStakeQuoteParams,
+} from "@/unstake-ag/withdrawStakePools";
 
 export interface SplStakePoolCtorParams {
   validatorListAddr: PublicKey;
@@ -40,8 +57,10 @@ export interface SplStakePoolCtorParams {
   label: string;
 }
 
-export abstract class SplStakePool implements StakePool {
+export abstract class SplStakePool implements StakePool, WithdrawStakePool {
   outputToken: PublicKey;
+
+  withdrawStakeToken: PublicKey;
 
   label: string;
 
@@ -74,6 +93,7 @@ export abstract class SplStakePool implements StakePool {
     }
 
     this.outputToken = outputToken;
+    this.withdrawStakeToken = outputToken;
     this.label = label;
 
     this.stakePool = null;
@@ -96,7 +116,7 @@ export abstract class SplStakePool implements StakePool {
     currentEpoch,
   }: CanAcceptStakeAccountParams): boolean {
     if (!this.validatorList) {
-      throw new Error("validator list not yet fetched");
+      throw new ValidatorListNotFetchedError();
     }
     if (isLockupInForce(stakeAccount.data, currentEpoch)) {
       return false;
@@ -147,19 +167,15 @@ export abstract class SplStakePool implements StakePool {
     feeAccount: referrer,
   }: CreateSwapInstructionsParams): TransactionInstruction[] {
     if (!this.stakePool) {
-      throw new Error("stakePool not fetched");
+      throw new StakePoolNotFetchedError();
     }
 
-    // TODO: export sync versions of these PDA util functions
-    // from stake-pool-sdk
-    const [stakePoolWithdrawAuth] = PublicKey.findProgramAddressSync(
-      [this.stakePoolAddr.toBuffer(), Buffer.from("withdraw")],
-      this.programId,
+    const stakePoolWithdrawAuth = this.findStakePoolWithdrawAuth();
+
+    const validatorStakeAccount = this.findValidatorStakeAccount(
+      stakeAccountVotePubkey,
     );
-    const [validatorStakeAccount] = PublicKey.findProgramAddressSync(
-      [stakeAccountVotePubkey.toBuffer(), this.stakePoolAddr.toBuffer()],
-      this.programId,
-    );
+
     return [
       ...StakeProgram.authorize({
         stakePubkey: stakeAccountPubkey,
@@ -213,7 +229,7 @@ export abstract class SplStakePool implements StakePool {
 
   getQuote({ stakeAmount, unstakedAmount }: StakePoolQuoteParams): Quote {
     if (!this.stakePool) {
-      throw new Error("stakePool not fetched");
+      throw new StakePoolNotFetchedError();
     }
     const amount = JSBI.add(stakeAmount, unstakedAmount);
     const { dropletsReceived, dropletsFeePaid } = calcStakeDeposit(
@@ -234,5 +250,221 @@ export abstract class SplStakePool implements StakePool {
         dropletsFeePaid.add(dropletsReceived).toNumber(),
       priceImpactPct: 0,
     };
+  }
+
+  createWithdrawStakeInstructions({
+    payer,
+    withdrawerAuth,
+    newStakeAccount: { base, derived, seed },
+    tokenAmount,
+    srcTokenAccount,
+    srcTokenAccountAuth,
+    stakeSplitFrom,
+  }: CreateWithdrawStakeInstructionsParams): TransactionInstruction[] {
+    if (!this.stakePool) {
+      throw new StakePoolNotFetchedError();
+    }
+    return [
+      SystemProgram.createAccountWithSeed({
+        fromPubkey: payer,
+        newAccountPubkey: derived,
+        basePubkey: base,
+        seed,
+        lamports: STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toNumber(),
+        space: STAKE_STATE_LEN,
+        programId: StakeProgram.programId,
+      }),
+      withdrawStakeInstruction(
+        this.programId,
+        this.stakePoolAddr,
+        this.validatorListAddr,
+        this.findStakePoolWithdrawAuth(),
+        stakeSplitFrom,
+        derived,
+        withdrawerAuth,
+        srcTokenAccountAuth,
+        srcTokenAccount,
+        this.stakePool.managerFeeAccount,
+        this.withdrawStakeToken,
+        TOKEN_PROGRAM_ID,
+        new Numberu64(tokenAmount.toString()),
+      ),
+    ];
+  }
+
+  getWithdrawStakeQuote({
+    currentEpoch,
+    tokenAmount,
+    newStakeAuths,
+  }: WithdrawStakeQuoteParams): WithdrawStakeQuote {
+    if (!this.stakePool) {
+      throw new StakePoolNotFetchedError();
+    }
+    if (!this.validatorList) {
+      throw new ValidatorListNotFetchedError();
+    }
+    const { preferredWithdrawValidatorVoteAddress } = this.stakePool;
+    const { validators } = this.validatorList;
+    // TODO: remove once fixed in stake-pool-sdk
+    // @ts-ignore
+    if (validators.length === 0) {
+      return WITHDRAW_STAKE_QUOTE_FAILED;
+    }
+    const poolHasNoActive = validators.every((v) =>
+      v.activeStakeLamports.isZero(),
+    );
+
+    // TODO: change to import once exported in stake-pool-sdk
+    const minActiveStakeLamports = new BN(1_000_000);
+    const transientUnwithdrawableLamports =
+      STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.add(minActiveStakeLamports);
+
+    let validatorToWithdrawFrom = validators[0];
+    let liquidity = poolHasNoActive
+      ? validatorToWithdrawFrom.transientStakeLamports.sub(
+          transientUnwithdrawableLamports,
+        )
+      : validatorToWithdrawFrom.activeStakeLamports;
+    for (let i = 1; i < validators.length; i++) {
+      const curr = validators[i];
+      const currLiq = poolHasNoActive
+        ? curr.transientStakeLamports.sub(transientUnwithdrawableLamports)
+        : curr.activeStakeLamports;
+      if (currLiq.gt(liquidity)) {
+        validatorToWithdrawFrom = curr;
+        liquidity = currLiq;
+      }
+    }
+
+    // if preferred validator is set, must withdraw from preferred validator unless 0
+    if (preferredWithdrawValidatorVoteAddress) {
+      const preferredValidator = validators.find((v) =>
+        v.voteAccountAddress.equals(preferredWithdrawValidatorVoteAddress),
+      );
+      if (!preferredValidator) {
+        // should be unreachable
+        throw new Error("preferred validator not part of stake pool");
+      }
+      const preferredLiq = poolHasNoActive
+        ? preferredValidator.transientStakeLamports.sub(
+            transientUnwithdrawableLamports,
+          )
+        : preferredValidator.activeStakeLamports;
+      if (preferredLiq.gt(new BN(0))) {
+        validatorToWithdrawFrom = preferredValidator;
+        liquidity = preferredLiq;
+      }
+    }
+
+    const { lamportsReceived, withdrawStakeTokensFeePaid } =
+      this.calcWithdrawalReceipt(tokenAmount);
+    if (lamportsReceived === BigInt(0)) {
+      return WITHDRAW_STAKE_QUOTE_FAILED;
+    }
+    if (
+      lamportsReceived < BigInt(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString())
+    ) {
+      return WITHDRAW_STAKE_QUOTE_FAILED;
+    }
+
+    const stakeSplitFrom = poolHasNoActive
+      ? this.findTransientStakeAccount(validatorToWithdrawFrom)
+      : this.findValidatorStakeAccount(
+          validatorToWithdrawFrom.voteAccountAddress,
+        );
+    return {
+      result: {
+        stakeSplitFrom,
+        withdrawalFee: withdrawStakeTokensFeePaid,
+        outputStakeAccount: dummyStakeAccountInfo({
+          currentEpoch: new BN(currentEpoch),
+          lamports: Number(lamportsReceived),
+          stakeState: poolHasNoActive ? "activating" : "active",
+          stakeAuths: newStakeAuths,
+          voter: validatorToWithdrawFrom.voteAccountAddress,
+        }),
+      },
+    };
+  }
+
+  // TODO: export this from stake-pool-sdk
+  /**
+   * Assumes this.stakePool already fetched
+   * @param withdrawStakeTokens
+   * @returns
+   */
+  private calcWithdrawalReceipt(withdrawStakeTokens: bigint): {
+    lamportsReceived: bigint;
+    withdrawStakeTokensFeePaid: bigint;
+  } {
+    const { withdrawalFee, totalStakeLamports, poolTokenSupply } =
+      this.stakePool!;
+    const hasFee =
+      !withdrawalFee.numerator.isZero() && !withdrawalFee.denominator.isZero();
+    const withdrawalFeeNum = BigInt(withdrawalFee.numerator.toString());
+    const withdrawalFeeDenom = BigInt(withdrawalFee.denominator.toString());
+    const withdrawStakeTokensFeePaid = hasFee
+      ? (withdrawStakeTokens * withdrawalFeeNum) / withdrawalFeeDenom
+      : BigInt(0);
+    const burnt = withdrawStakeTokens - withdrawStakeTokensFeePaid;
+    const num = burnt * BigInt(totalStakeLamports.toString());
+    const poolTokenSupplyBI = BigInt(poolTokenSupply.toString());
+    if (num < poolTokenSupplyBI || poolTokenSupply.isZero()) {
+      return {
+        lamportsReceived: BigInt(0),
+        withdrawStakeTokensFeePaid,
+      };
+    }
+    // on-chain logic is ceil div
+    const lamportsReceived =
+      (num + poolTokenSupplyBI - BigInt(1)) / poolTokenSupplyBI;
+    return {
+      lamportsReceived,
+      withdrawStakeTokensFeePaid,
+    };
+  }
+
+  // TODO: export sync versions of these PDA util functions
+  // from stake-pool-sdk
+
+  protected findStakePoolWithdrawAuth(): PublicKey {
+    return PublicKey.findProgramAddressSync(
+      [this.stakePoolAddr.toBuffer(), Buffer.from("withdraw")],
+      this.programId,
+    )[0];
+  }
+
+  protected findValidatorStakeAccount(
+    stakeAccountVotePubkey: PublicKey,
+  ): PublicKey {
+    return PublicKey.findProgramAddressSync(
+      [stakeAccountVotePubkey.toBuffer(), this.stakePoolAddr.toBuffer()],
+      this.programId,
+    )[0];
+  }
+
+  protected findTransientStakeAccount(
+    validatorStakeInfo: ValidatorStakeInfo,
+  ): PublicKey {
+    return PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("transient"),
+        validatorStakeInfo.voteAccountAddress.toBuffer(),
+        this.stakePoolAddr.toBuffer(),
+      ],
+      this.programId,
+    )[0];
+  }
+}
+
+export class StakePoolNotFetchedError extends Error {
+  constructor() {
+    super("stakePool not fetched");
+  }
+}
+
+class ValidatorListNotFetchedError extends Error {
+  constructor() {
+    super("validatorList not fetched");
   }
 }

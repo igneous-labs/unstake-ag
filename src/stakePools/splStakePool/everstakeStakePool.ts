@@ -30,7 +30,10 @@ import type {
   CreateSwapInstructionsParams,
   StakePoolQuoteParams,
 } from "@/unstake-ag/stakePools";
-import { SplStakePool } from "@/unstake-ag/stakePools/splStakePool/splStakePool";
+import {
+  SplStakePool,
+  StakePoolNotFetchedError,
+} from "@/unstake-ag/stakePools/splStakePool/splStakePool";
 import { decrementStakePoolIxData } from "@/unstake-ag/stakePools/splStakePool/utils";
 
 /**
@@ -249,7 +252,7 @@ export class EverstakeSplStakePool extends SplStakePool {
     unstakedAmount,
   }: StakePoolQuoteParams): Quote {
     if (!this.stakePool) {
-      throw new Error("stakePool not fetched");
+      throw new StakePoolNotFetchedError();
     }
     const amount = JSBI.add(stakeAmount, unstakedAmount);
     // eversol charges:

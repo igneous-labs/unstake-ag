@@ -1,11 +1,23 @@
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { AccountInfo, Connection, PublicKey } from "@solana/web3.js";
+import {
+  AccountInfo,
+  Connection,
+  PublicKey,
+  StakeProgram,
+  SystemProgram,
+} from "@solana/web3.js";
 import { Amm } from "@jup-ag/core";
-import { StakeAccount, stakeAccountState } from "@soceanfi/solana-stake-sdk";
+import {
+  StakeAccount,
+  stakeAccountState,
+  StakeState,
+} from "@soceanfi/solana-stake-sdk";
 import { STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS } from "@soceanfi/stake-pool-sdk";
 import BN from "bn.js";
 import JSBI from "jsbi";
-import { UnstakeRoute } from "route";
+
+import { PubkeyFromSeed, WithStakeAuths } from "@/unstake-ag/common";
+import { UnstakeRoute } from "@/unstake-ag/route";
 
 // Copied from jup core.cjs.development.js
 export function chunks<T>(array: Array<T>, size: number) {
@@ -78,6 +90,104 @@ export function dummyAccountInfoForProgramOwner(
     owner: programOwner,
     lamports: 0,
     data: Buffer.from(""),
+  };
+}
+
+// TODO: export from solana-stake-sdk
+export const STAKE_STATE_LEN = 200;
+
+export const U64_MAX = new BN("18446744073709551615");
+
+interface DummyStakeAccountParams {
+  currentEpoch: BN;
+  lamports: number;
+  stakeState: StakeState;
+  stakeAuths: WithStakeAuths;
+  voter: PublicKey;
+}
+
+/**
+ * Assumes no lockup.
+ * creditsObserved is set to 0
+ * warmupCooldownRate is set to 0
+ * stake is null if inactive
+ * activation/deactivation epoch is either 0, currentEpoch, or U64_MAX depending on state
+ *
+ * Alternative is a `splitStakeAccount()` function that copies
+ * everything but auths from an AccountInfo<StakeAccount> but
+ * that would mean having to fetch stake account data from onchain
+ *
+ * TODO: back to the drawing board if anything starts using creditsObserved or warmupCooldownRate
+ * TODO: activationEpoch set to 0 for active case means in cases where
+ * active stake acc is new, deposit to marinade will fail
+ *
+ * @param lamports
+ * @param currentEpoch
+ * @param stakeState
+ * @param stakeAuths
+ * @returns
+ */
+export function dummyStakeAccountInfo({
+  currentEpoch,
+  lamports,
+  stakeState,
+  stakeAuths: { stakerAuth, withdrawerAuth },
+  voter,
+}: DummyStakeAccountParams): AccountInfo<StakeAccount> {
+  const data: StakeAccount = {
+    type: "initialized" as const,
+    info: {
+      meta: {
+        rentExemptReserve: STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS,
+        authorized: {
+          staker: stakerAuth,
+          withdrawer: withdrawerAuth,
+        },
+        lockup: {
+          unixTimestamp: 0,
+          epoch: 0,
+          custodian: SystemProgram.programId,
+        },
+      },
+      stake: null,
+    },
+  };
+  if (stakeState !== "inactive") {
+    const stake = new BN(lamports).sub(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS);
+    let activationEpoch;
+    let deactivationEpoch;
+    switch (stakeState) {
+      case "activating":
+        activationEpoch = currentEpoch;
+        deactivationEpoch = U64_MAX;
+        break;
+      case "active":
+        activationEpoch = new BN(0);
+        deactivationEpoch = U64_MAX;
+        break;
+      case "deactivating":
+        activationEpoch = new BN(0);
+        deactivationEpoch = currentEpoch;
+        break;
+      default:
+        throw new Error("unreachable");
+    }
+    data.info.stake = {
+      creditsObserved: 0,
+      delegation: {
+        warmupCooldownRate: 0,
+        stake,
+        voter,
+        activationEpoch,
+        deactivationEpoch,
+      },
+    };
+  }
+  return {
+    executable: false,
+    owner: StakeProgram.programId,
+    lamports,
+    data,
   };
 }
 
@@ -163,7 +273,7 @@ export async function genShortestUnusedSeed(
   connection: Connection,
   basePubkey: PublicKey,
   programId: PublicKey,
-): Promise<{ derived: PublicKey; seed: string }> {
+): Promise<PubkeyFromSeed> {
   const MAX_SEED_LEN = 32;
   const ASCII_MAX = 127;
   let len = 1;
@@ -183,6 +293,7 @@ export async function genShortestUnusedSeed(
       const balance = await connection.getBalance(derived);
       if (balance === 0) {
         return {
+          base: basePubkey,
           derived,
           seed,
         };
