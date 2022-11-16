@@ -114,6 +114,7 @@ interface DummyStakeAccountParams {
 
 /**
  * Assumes no lockup.
+ * authorized is set to { staker: PublicKey.default, withdrawer: PublicKey.default }
  * creditsObserved is set to 0
  * warmupCooldownRate is set to 0
  * stake is null if inactive
@@ -127,10 +128,6 @@ interface DummyStakeAccountParams {
  * TODO: activationEpoch set to 0 for active case means in cases where
  * active stake acc is new, deposit to marinade will fail
  *
- * @param lamports
- * @param currentEpoch
- * @param stakeState
- * @param stakeAuths
  * @returns
  */
 export function dummyStakeAccountInfo({
