@@ -13,10 +13,6 @@ Note: Version 0 of Semantic Versioning is handled differently from version 1 and
 
 - Support for unstaking xSOL (liquid staking derivatives)
 
-### Changed
-
-- Add DEXes that dont have any xSOL/SOL pairs listed to jup's `ammsToExclude` 
-
 ## [0.2.0] - 2022-11-15
 
 ### Fixed
