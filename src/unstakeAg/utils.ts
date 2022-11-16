@@ -213,7 +213,8 @@ export const UNUSABLE_JUP_MARKETS_LABELS: Set<Amm["label"]> = new Set([
 
   // Markets below dont have any xSOL-SOL pairs listed.
   // Comment them out to discover new markets + listings
-
+  // EDIT: any DEX with SOL pairs is good for XSolJupDirect routes
+  /*
   "Cropper",
   "Cykura",
   "DeltaFi",
@@ -227,6 +228,7 @@ export const UNUSABLE_JUP_MARKETS_LABELS: Set<Amm["label"]> = new Set([
   "Sencha",
   "Saber (Decimals)",
   "Unknown",
+  */
 ]);
 
 // Not used for now, implementing this functionality using jup's ammsToExclude functionality
