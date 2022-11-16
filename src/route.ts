@@ -1,5 +1,6 @@
-import type { PublicKey } from "@solana/web3.js";
+import type { AccountInfo, PublicKey } from "@solana/web3.js";
 import type { RouteInfo } from "@jup-ag/core";
+import { StakeAccount } from "@soceanfi/solana-stake-sdk";
 
 import type { StakePool } from "@/unstake-ag/stakePools";
 import type { WithdrawStakePool } from "@/unstake-ag/withdrawStakePools";
@@ -58,6 +59,10 @@ export type UnstakeXSolRouteJupDirect = {
 
 export type UnstakeXSolRouteWithdrawStake = {
   withdrawStake: WithdrawStakeRoute;
+  /**
+   * Should be `result.outputStakeAccount` of `WithdrawStakeQuote`
+   */
+  intermediateStake: AccountInfo<StakeAccount>;
   unstake: UnstakeRoute;
 };
 

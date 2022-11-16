@@ -2,7 +2,7 @@ import type { AccountInfo, PublicKey, Transaction } from "@solana/web3.js";
 import type { Jupiter } from "@jup-ag/core";
 import type { StakeAccount } from "@soceanfi/solana-stake-sdk";
 
-import type { UnstakeRoute } from "@/unstake-ag/route";
+import type { UnstakeRoute, UnstakeXSolRoute } from "@/unstake-ag/route";
 import type { StakePool } from "@/unstake-ag/stakePools";
 import type { WithdrawStakePool } from "@/unstake-ag/withdrawStakePools";
 
@@ -93,8 +93,33 @@ export interface ExchangeParams {
   user: PublicKey;
 
   /**
-   * Wrapped SOL account to receive optional additional fee on
+   * Token account to receive optional additional fee on
    * jup swaps when `jupFeeBps` is set on `computeRoutes()`
+   * and referral fees on StakePools
+   */
+  feeAccounts?: FeeAccounts;
+}
+
+export interface ExchangeXSolParams {
+  /**
+   * A route returned by `computeRoutesXSol()`
+   */
+  route: UnstakeXSolRoute;
+
+  /**
+   * The owner of the xSOL tokens to unstake
+   */
+  user: PublicKey;
+
+  /**
+   * The xSOL token account to unstake from
+   */
+  srcTokenAccount: PublicKey;
+
+  /**
+   * Token account to receive optional additional fee on
+   * jup swaps when `jupFeeBps` is set on `computeRoutes()`
+   * and referral fees on StakePools
    */
   feeAccounts?: FeeAccounts;
 }

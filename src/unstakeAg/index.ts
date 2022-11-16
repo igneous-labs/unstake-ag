@@ -43,6 +43,7 @@ import type {
   ComputeRoutesXSolParams,
   ExchangeParams,
   ExchangeReturn,
+  ExchangeXSolParams,
   HybridPool,
 } from "@/unstake-ag/unstakeAg/types";
 import {
@@ -53,6 +54,7 @@ import {
   dummyAccountInfoForProgramOwner,
   genShortestUnusedSeed,
   isHybridPool,
+  isXSolRouteJupDirect,
   outLamports,
   outLamportsXSol,
   tryMergeExchangeReturn,
@@ -610,6 +612,7 @@ export class UnstakeAg {
               outAmount,
               stakeSplitFrom,
             },
+            intermediateStake: outputStakeAccount,
             unstake,
           }));
         })
@@ -637,6 +640,66 @@ export class UnstakeAg {
       }
       return 0;
     });
+  }
+
+  /**
+   * If withdraw stake route, the withdraw stake instruction will be added to setupTransaction.
+   * This means its possible for unstake to fail and user to end up with a stake account
+   * @param param0
+   * @returns
+   */
+  async exchangeXSol({
+    route,
+    user,
+    srcTokenAccount,
+    feeAccounts = {},
+  }: ExchangeXSolParams): Promise<ExchangeReturn> {
+    if (isXSolRouteJupDirect(route)) {
+      const {
+        transactions: { swapTransaction, ...rest },
+      } = await this.jupiter.exchange({
+        routeInfo: route.jup,
+        userPublicKey: user,
+        wrapUnwrapSOL: true,
+        feeAccount: feeAccounts[WRAPPED_SOL_MINT.toString()],
+      });
+      return { ...rest, unstakeTransaction: swapTransaction };
+    }
+    const {
+      withdrawStake: { withdrawStakePool, inAmount, stakeSplitFrom },
+      intermediateStake,
+      unstake,
+    } = route;
+    const newStakeAccount = await genShortestUnusedSeed(
+      this.connection,
+      user,
+      StakeProgram.programId,
+    );
+    const withdrawStakeInstructions =
+      withdrawStakePool.createWithdrawStakeInstructions({
+        payer: user,
+        stakerAuth: user,
+        withdrawerAuth: user,
+        newStakeAccount,
+        tokenAmount: inAmount,
+        srcTokenAccount,
+        srcTokenAccountAuth: user,
+        stakeSplitFrom,
+      });
+    const exchangeReturn = await this.exchange({
+      route: unstake,
+      stakeAccount: intermediateStake,
+      stakeAccountPubkey: newStakeAccount.derived,
+      user,
+      feeAccounts,
+    });
+    if (!exchangeReturn.setupTransaction) {
+      exchangeReturn.setupTransaction = new Transaction();
+    }
+    exchangeReturn.setupTransaction.instructions.unshift(
+      ...withdrawStakeInstructions,
+    );
+    return tryMergeExchangeReturn(user, exchangeReturn);
   }
 }
 
