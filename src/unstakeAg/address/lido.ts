@@ -1,7 +1,3 @@
-/**
- * TODO: use marinade's referral program as well when we are onboarded as a referrer
- */
-
 import { PublicKey } from "@solana/web3.js";
 
 import type { AddressMap } from "@/unstake-ag/unstakeAg/address";
