@@ -71,6 +71,7 @@ export class MarinadeStakePool implements StakePool {
 
   label: string = "Marinade";
 
+  // marinade uses same keys across all clusters
   outputToken: PublicKey = new PublicKey(
     "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
   );
