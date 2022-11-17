@@ -4,6 +4,6 @@
     "types": ["node", "mocha"],
     "rootDir": "."
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts"],
+  "include": ["src/**/*.ts", "tests/**/*.ts", "scripts/**/*.ts", "loader.js"],
   "exclude": ["node_modules", "dist"]
 }

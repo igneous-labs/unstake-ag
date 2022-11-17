@@ -52,7 +52,7 @@
     "esbuild-node:watch": "esbuild src/cli.ts --bundle --platform=node --watch --sourcemap=external --outfile=dist/esbuild/cli.js",
     "prepack": "yarn build",
     "postbuild": "echo '{\"type\":\"commonjs\"}' | npx json > dist/cjs/package.json && echo '{\"type\":\"module\"} ' | npx json > dist/esm/package.json",
-    "lut": "ts-node -r tsconfig-paths/register --esm scripts/lut.ts"
+    "lut": "node --experimental-specifier-resolution=node --loader ./loader.js ./scripts/lut.ts"
   },
   "devDependencies": {
     "@types/chai": "^4.3.3",
@@ -74,9 +74,7 @@
     "mocha": "^9.2.0",
     "prettier": "^2.5.1",
     "ts-mocha": "^9.0.2",
-    "ts-node": "^10.5.0",
     "tsc-alias": "^1.6.4",
-    "tsconfig-paths": "^3.12.0",
     "typedoc": "^0.22.11",
     "typescript": "^4.5.5"
   },
@@ -93,7 +91,9 @@
     "@unstake-it/sol": "^0.1.2",
     "bn.js": "^5",
     "buffer-layout": "^1.2.2",
-    "jsbi": "^4.3.0"
+    "jsbi": "^4.3.0",
+    "tsconfig-paths": "^3.12.0",
+    "ts-node": "^10.5.0"
   },
   "publishConfig": {
     "access": "public"
