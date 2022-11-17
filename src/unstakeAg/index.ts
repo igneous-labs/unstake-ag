@@ -601,9 +601,10 @@ export class UnstakeAg {
             slippageBps,
             jupFeeBps,
             currentEpoch,
-            forceFetch,
             shouldIgnoreRouteErrors,
             stakePoolsToExclude,
+            // already refreshed pools above
+            forceFetch: false,
           });
           return unstakeRoutes.map((unstake) => ({
             withdrawStake: {

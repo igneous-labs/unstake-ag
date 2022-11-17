@@ -319,6 +319,7 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
     const transientUnwithdrawableLamports =
       STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.add(minActiveStakeLamports);
 
+    // find largest validator to withdraw from
     let validatorToWithdrawFrom = validators[0];
     let liquidity = poolHasNoActive
       ? validatorToWithdrawFrom.transientStakeLamports.sub(
