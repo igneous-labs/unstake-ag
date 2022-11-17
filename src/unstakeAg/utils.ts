@@ -196,7 +196,7 @@ export function dummyStakeAccountInfo({
 
 /**
  * Markets that we can't use because they use too many accounts
- * resulting in tx too large, or they dont list any xSOL-SOL pairs
+ * resulting in tx too large
  *
  * TODO: add more as they come up
  */
@@ -210,7 +210,7 @@ export const UNUSABLE_JUP_MARKETS_LABELS: Set<Amm["label"]> = new Set([
 
   // Markets below dont have any xSOL-SOL pairs listed.
   // Comment them out to discover new markets + listings
-  // EDIT: any DEX with SOL pairs is good for XSolJupDirect routes
+  // EDIT: any DEX with any SOL pairs is good for XSolJupDirect routes
   /*
   "Cropper",
   "Cykura",

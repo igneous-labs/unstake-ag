@@ -12,6 +12,8 @@ Note: Version 0 of Semantic Versioning is handled differently from version 1 and
 ### Added
 
 - Support for unstaking xSOL (liquid staking derivatives)
+- laineSOL
+- stSOL
 
 ## [0.2.0] - 2022-11-15
 
