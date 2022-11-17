@@ -1,6 +1,9 @@
+import type { AccountInfo, PublicKey } from "@solana/web3.js";
 import type { RouteInfo } from "@jup-ag/core";
+import { StakeAccount } from "@soceanfi/solana-stake-sdk";
 
 import type { StakePool } from "@/unstake-ag/stakePools";
+import type { WithdrawStakePool } from "@/unstake-ag/withdrawStakePools";
 
 export interface StakeAccInputRoute {
   stakePool: StakePool;
@@ -29,3 +32,40 @@ export interface UnstakeRoute {
    */
   jup?: RouteInfo;
 }
+
+export interface WithdrawStakeRoute {
+  withdrawStakePool: WithdrawStakePool;
+
+  /**
+   * Amount of withdraw stake tokens to be unstaked
+   */
+  inAmount: bigint;
+
+  /**
+   * Amount of lamports in the stake account that this
+   * route will output
+   */
+  outAmount: bigint;
+
+  /**
+   * The stake account of the withdrawStakePool to split stake from
+   */
+  stakeSplitFrom: PublicKey;
+}
+
+export type UnstakeXSolRouteJupDirect = {
+  jup: RouteInfo;
+};
+
+export type UnstakeXSolRouteWithdrawStake = {
+  withdrawStake: WithdrawStakeRoute;
+  /**
+   * Should be `result.outputDummyStakeAccountInfo` of `WithdrawStakeQuote`
+   */
+  intermediateDummyStakeAccountInfo: AccountInfo<StakeAccount>;
+  unstake: UnstakeRoute;
+};
+
+export type UnstakeXSolRoute =
+  | UnstakeXSolRouteJupDirect
+  | UnstakeXSolRouteWithdrawStake;

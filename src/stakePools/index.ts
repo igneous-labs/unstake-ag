@@ -7,6 +7,8 @@ import type { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
 import type { StakeAccount } from "@soceanfi/solana-stake-sdk";
 import JSBI from "jsbi";
 
+import type { WithPayer, WithStakeAuths } from "@/unstake-ag/common";
+
 /**
  * StakePools can only handle ExactIn swapMode and only ever outputs their own outputToken.
  * Adapted from Jup's Quote params
@@ -92,15 +94,6 @@ export interface StakePool {
    * @param quoteParams
    */
   getQuote(quoteParams: StakePoolQuoteParams): Quote;
-}
-
-interface WithStakeAuths {
-  withdrawerAuth: PublicKey;
-  stakerAuth: PublicKey;
-}
-
-interface WithPayer {
-  payer: PublicKey;
 }
 
 export interface CanAcceptStakeAccountParams {

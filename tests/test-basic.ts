@@ -1,19 +1,16 @@
-/* eslint-disable @typescript-eslint/no-unused-expressions */
-// allow `expect().to.be.true`
-
 import { AccountInfo, Connection, PublicKey } from "@solana/web3.js";
 import { WRAPPED_SOL_MINT } from "@jup-ag/core";
 import { getStakeAccount, StakeAccount } from "@soceanfi/solana-stake-sdk";
 import { STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS } from "@soceanfi/stake-pool-sdk";
 import { expect } from "chai";
-import { SOCEAN_ADDRESS_MAP } from "unstakeAg/address";
+import JSBI from "jsbi";
 
+import { checkRoutes, checkRoutesXSol } from "@/tests/utils";
 import {
-  FeeAccounts,
-  outLamports,
-  routeMarketLabels,
+  EVERSOL_ADDRESS_MAP,
+  LAINE_ADDRESS_MAP,
+  SOCEAN_ADDRESS_MAP,
   UnstakeAg,
-  UnstakeRoute,
 } from "@/unstake-ag";
 
 // NB: this stake account needs to exist on mainnet for the test to work
@@ -42,11 +39,6 @@ const REFERRAL_DESTINATIONS = {
 const CONN = new Connection("https://try-rpc.mainnet.solana.blockdaemon.tech", {
   wsEndpoint: "wss://try-rpc.mainnet.solana.blockdaemon.tech:8443/websocket",
 });
-
-const SERIALIZE_CONFIG_MOCK_SIG = {
-  requireAllSignatures: false,
-  verifyAllSignatures: false,
-};
 
 // TODO: investigate
 // `panicked at 'called `Option::unwrap()` on a `None` value', /home/ubuntu/projects/gfx-ssl/gfx-solana-common/src/safe_math.rs:241:37`
@@ -82,7 +74,7 @@ describe("test basic functionality", () => {
       slippageBps: 10, // 10 BPS === 0.1%
       shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
     });
-    await checkRoutes(unstake, stakeAccount, routes);
+    await checkRoutes(unstake, stakeAccount, TEST_STAKE_ACC_PUBKEY, routes);
   });
 
   it("partial unstake", async () => {
@@ -93,7 +85,7 @@ describe("test basic functionality", () => {
       slippageBps: 10,
       shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
     });
-    await checkRoutes(unstake, stakeAccount, routes);
+    await checkRoutes(unstake, stakeAccount, TEST_STAKE_ACC_PUBKEY, routes);
     for (const route of routes) {
       expect(
         route.stakeAccInput.stakePool.label !== "Marinade",
@@ -121,87 +113,48 @@ describe("test basic functionality", () => {
       jupFeeBps: 3,
       shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
     });
-    await checkRoutes(unstake, stakeAccount, routes, REFERRAL_DESTINATIONS);
+    await checkRoutes(
+      unstake,
+      stakeAccount,
+      TEST_STAKE_ACC_PUBKEY,
+      routes,
+      REFERRAL_DESTINATIONS,
+    );
+  });
+
+  it("scnSOL", async () => {
+    const TEST_SCN_SOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "8qxk2T8UmNpTZoxTiMMv4N6sKHh7VxTHdAF9SvHy34LJ",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: SOCEAN_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+    });
+    await checkRoutesXSol(unstake, routes, TEST_SCN_SOL_ACC_PUBKEY_HUMAN);
+  });
+
+  it("laineSOL", async () => {
+    const TEST_LAINE_SOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "8u8nU44mWpFcUvSWAwFEScKeLWiaWrPJqeuRzUXbZ2bj",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: LAINE_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+    });
+    await checkRoutesXSol(unstake, routes, TEST_LAINE_SOL_ACC_PUBKEY_HUMAN);
+  });
+
+  it("everSOL", async () => {
+    const TEST_ESOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "JAEKNk5d2GFPnH3U3qkNk1yvq7NRn537KYGC6jNu52PL",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: EVERSOL_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+    });
+    await checkRoutesXSol(unstake, routes, TEST_ESOL_ACC_PUBKEY_HUMAN);
   });
 });
-
-async function checkRoutes(
-  unstake: UnstakeAg,
-  stakeAccount: AccountInfo<StakeAccount>,
-  routes: UnstakeRoute[],
-  feeAccounts?: FeeAccounts,
-) {
-  const user = stakeAccount.data.info.meta.authorized.withdrawer;
-  // console.log(routes);
-  console.log(
-    routes.map(
-      (r) =>
-        `${routeMarketLabels(r).join(" + ")}: ${outLamports(r).toString()}`,
-    ),
-  );
-  console.log("# of routes:", routes.length);
-  const results = await Promise.allSettled(
-    routes.map(async (route) => {
-      const routeLabel = routeMarketLabels(route).join(" + ");
-      try {
-        const { setupTransaction, unstakeTransaction, cleanupTransaction } =
-          await unstake.exchange({
-            route,
-            stakeAccount,
-            stakeAccountPubkey: TEST_STAKE_ACC_PUBKEY,
-            user,
-            feeAccounts,
-          });
-        const { blockhash } = await CONN.getLatestBlockhash();
-        if (setupTransaction) {
-          setupTransaction.recentBlockhash = blockhash;
-          setupTransaction.feePayer = user;
-        }
-        unstakeTransaction.recentBlockhash = blockhash;
-        unstakeTransaction.feePayer = user;
-        // console.log(unstakeTransaction.instructions.map(ix => `${ix.programId.toString()}: ${ix.keys.map(m => m.pubkey.toString())}`));
-        if (cleanupTransaction) {
-          cleanupTransaction.recentBlockhash = blockhash;
-          cleanupTransaction.feePayer = user;
-        }
-        console.log(
-          routeLabel,
-          "setup:",
-          setupTransaction?.serialize(SERIALIZE_CONFIG_MOCK_SIG).length,
-          "unstake:",
-          unstakeTransaction.serialize(SERIALIZE_CONFIG_MOCK_SIG).length,
-          "cleanup:",
-          cleanupTransaction?.serialize(SERIALIZE_CONFIG_MOCK_SIG).length,
-        );
-        // try simulating setupTransaction or unstakeTransaction to
-        // make sure they work
-        const txToSim = setupTransaction || unstakeTransaction;
-        const sim = await CONN.simulateTransaction(txToSim, undefined);
-        expect(
-          sim.value.err,
-          `Error: ${JSON.stringify(
-            sim.value.err,
-          )}\nLogs:\n${sim.value.logs?.join("\n")}`,
-        ).to.be.null;
-      } catch (e) {
-        const err = e as Error;
-        err.message = `${routeLabel}: ${err.message}`;
-        throw err;
-      }
-    }),
-  );
-  expect(
-    results.every((r) => r.status === "fulfilled"),
-    `${results
-      .map((r) => {
-        if (r.status === "fulfilled") {
-          return null;
-        }
-        return r.reason;
-      })
-      .filter((maybeReason) => Boolean(maybeReason))
-      .join("\n\n")}`,
-  ).to.be.true;
-  // newline
-  console.log();
-}

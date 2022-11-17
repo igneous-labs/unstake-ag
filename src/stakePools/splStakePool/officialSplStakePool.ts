@@ -1,8 +1,10 @@
-import { TransactionInstruction } from "@solana/web3.js";
+import { PublicKey, TransactionInstruction } from "@solana/web3.js";
+import { ValidatorStakeInfo } from "@soceanfi/stake-pool-sdk";
 
 import type { CreateSwapInstructionsParams } from "@/unstake-ag/stakePools";
 import { SplStakePool } from "@/unstake-ag/stakePools/splStakePool/splStakePool";
 import { decrementStakePoolIxData } from "@/unstake-ag/stakePools/splStakePool/utils";
+import { CreateWithdrawStakeInstructionsParams } from "@/unstake-ag/withdrawStakePools";
 
 export class OfficialSplStakePool extends SplStakePool {
   override createSwapInstructions(
@@ -11,5 +13,27 @@ export class OfficialSplStakePool extends SplStakePool {
     const ixs = super.createSwapInstructions(args);
     decrementStakePoolIxData(this.programId, ixs);
     return ixs;
+  }
+
+  override createWithdrawStakeInstructions(
+    args: CreateWithdrawStakeInstructionsParams,
+  ): TransactionInstruction[] {
+    const ixs = super.createWithdrawStakeInstructions(args);
+    decrementStakePoolIxData(this.programId, ixs);
+    return ixs;
+  }
+
+  override findTransientStakeAccount(
+    validatorStakeInfo: ValidatorStakeInfo,
+  ): PublicKey {
+    return PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("transient"),
+        validatorStakeInfo.voteAccountAddress.toBuffer(),
+        this.stakePoolAddr.toBuffer(),
+        validatorStakeInfo.transientSeedSuffixStart.toBuffer(),
+      ],
+      this.programId,
+    )[0];
   }
 }

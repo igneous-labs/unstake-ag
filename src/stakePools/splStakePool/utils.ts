@@ -1,4 +1,6 @@
 import { PublicKey, TransactionInstruction } from "@solana/web3.js";
+import { Fee } from "@soceanfi/stake-pool-sdk";
+import JSBI from "jsbi";
 
 const ADD_VALIDATOR_TO_POOL_ENUM = 2;
 
@@ -20,4 +22,26 @@ export function decrementStakePoolIxData(
       }
     }
   }
+}
+
+/**
+ * amount * fee.num / fee.denom
+ * @param fee
+ * @param amount
+ * @returns number of token atomics to subtract from `amount` as fee
+ */
+export function applyStakePoolFeeJSBI(fee: Fee, amount: JSBI): JSBI {
+  if (fee.denominator.isZero()) return JSBI.BigInt(0);
+  return JSBI.divide(
+    JSBI.multiply(amount, JSBI.BigInt(fee.numerator.toString())),
+    JSBI.BigInt(fee.denominator.toString()),
+  );
+}
+
+export function applyStakePoolFeeBigInt(fee: Fee, amount: bigint): bigint {
+  if (fee.denominator.isZero()) return BigInt(0);
+  return (
+    (amount * BigInt(fee.numerator.toString())) /
+    BigInt(fee.denominator.toString())
+  );
 }

@@ -32,6 +32,8 @@ Contents:
     - [Initialize with Reference to Shared Jupiter object](#initialize-with-reference-to-shared-jupiter-object)
     - [Compute Routes](#compute-routes)
     - [Create Transaction(s) from Routes](#create-transactions-from-route)
+    - [Compute Routes for xSOL](#compute-routes-for-xsol)
+    - [Create Transaction(s) from Route for xSOL](#create-transactions-from-route-for-xsol)
   - [Learn More](#learn-more)
 
 ## API
@@ -86,12 +88,14 @@ const myJupParams: JupiterLoadParams = { ... };
 const jupiter = await Jupiter.load(myJupParams);
 
 const stakePools = UnstakeAg.createStakePools(myJupParams.cluster);
+const withdrawStakePools = UnstakeAg.createWithdrawStakePools(myJupParams.cluster);
+const hybridPools = UnstakeAg.createHybridPools(myJupParams.cluster);
 
-const unstake = new UnstakeAg(myJupParams, stakePools, jupiter);
+const unstake = new UnstakeAg(myJupParams, stakePools, withdrawStakePools, hybridPools, jupiter);
 
-// call unstake.updateStakePools()
+// call unstake.updatePools()
 // to perform an initial fetch of all stake pools' accounts
-await unstake.updateStakePools();
+await unstake.updatePools();
 ```
 
 ### Compute Routes
@@ -139,6 +143,65 @@ const { setupTransaction, unstakeTransaction, cleanupTransaction } =
     feeAccounts: {
       "So11111111111111111111111111111111111111112": MY_WRAPPED_SOL_ACCOUNT,
       "5oVNBeEEQvYi1cX3ir8Dx5n1P7pdxydbGF2X4TxVusJm": MY_SCNSOL_ACCOUNT,
+    },
+  });
+```
+
+### Compute Routes for xSOL
+
+The aggregator also handles the unstaking of xSOL (supported liquid staking derivatives).
+
+```ts
+import { PublicKey } from "@solana/web3.js";
+import { getStakeAccount } from "@soceanfi/solana-stake-sdk";
+import JSBI from "jsbi";
+import { isXSolRouteJupDirect } from "@unstake-it/sol-ag"
+
+const scnSOL = new PublicKey("5oVNBeEEQvYi1cX3ir8Dx5n1P7pdxydbGF2X4TxVusJm");
+const routesScnSol = await unstake.computeRoutesXSol({
+  inputMint: scnSOL,
+  amount: JSBI.BigInt(1_000_000_000)
+  slippageBps: 10,
+  // args are the same as jups' computeRoutes(), except
+  // - feeBps -> jupFeeBps
+  // - +shouldIgnoreRouteErrors: boolean
+  // - +stakePoolsToExclude: StakePoolsToExclude
+});
+const bestRouteScnSol = routesScnSol[0];
+if (isXSolRouteJupDirect(bestRouteScnSol)) {
+  const {
+    jup, // jup RouteInfo type
+  } = bestRouteScnSol;
+} else {
+  const {
+    withdrawStake: {
+      withdrawStakePool,
+      inAmount,
+      outAmount,
+      stakeSplitFrom,
+    },
+    intermediateDummyStakeAccountInfo,
+    unstake, // UnstakeRoute type
+  } = bestRouteScnSol;
+}
+```
+
+### Create Transaction(s) From Route for xSOL
+
+If required, stake pool stake withdraw instructions are placed in setupTransaction. This means that if the main unstakeTransaction fails, the user will be left with a stake account.
+
+```ts
+// returned transactions do not have `recentBlockhash` or `feePayer` set
+// and are not signed
+const { setupTransaction, unstakeTransaction, cleanupTransaction } =
+  await unstake.exchangeXSol({
+    route: bestRouteScnSol,
+    user: MY_PUBKEY,
+    srcTokenAccount: MY_SCNSOL_ACCOUNT,
+    // You can optionally provide a mapping of StakePool output tokens / wrapped SOL
+    // to your token account of the same type to collect stake pool referral fees / jup swap fees
+    feeAccounts: {
+      "So11111111111111111111111111111111111111112": MY_WRAPPED_SOL_ACCOUNT,
     },
   });
 ```

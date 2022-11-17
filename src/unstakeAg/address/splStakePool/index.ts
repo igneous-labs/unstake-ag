@@ -16,5 +16,6 @@ export * from "./daopool";
 export * from "./eversol";
 export * from "./jito";
 export * from "./jpool";
+export * from "./laine";
 export * from "./socean";
 export * from "./solblaze";
