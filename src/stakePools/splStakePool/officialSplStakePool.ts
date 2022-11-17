@@ -31,7 +31,9 @@ export class OfficialSplStakePool extends SplStakePool {
         Buffer.from("transient"),
         validatorStakeInfo.voteAccountAddress.toBuffer(),
         this.stakePoolAddr.toBuffer(),
-        validatorStakeInfo.transientSeedSuffixStart.toBuffer(),
+        Buffer.from(
+          validatorStakeInfo.transientSeedSuffixStart.toArray("le", 8),
+        ),
       ],
       this.programId,
     )[0];

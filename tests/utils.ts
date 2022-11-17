@@ -11,6 +11,9 @@ import {
   FeeAccounts,
   outLamports,
   outLamportsXSol,
+  prepareCleanupTx,
+  prepareSetupTx,
+  prepareUnstakeTx,
   routeMarketLabels,
   routeMarketLabelsXSol,
   UnstakeAg,
@@ -25,22 +28,14 @@ const SERIALIZE_CONFIG_MOCK_SIG = {
 
 async function trySimulateExchangeReturnFirstTx(
   unstake: UnstakeAg,
-  { setupTransaction, unstakeTransaction, cleanupTransaction }: ExchangeReturn,
+  exchangeReturn: ExchangeReturn,
   user: PublicKey,
   routeLabel: string,
 ) {
   const { blockhash } = await unstake.connection.getLatestBlockhash();
-  if (setupTransaction) {
-    setupTransaction.recentBlockhash = blockhash;
-    setupTransaction.feePayer = user;
-  }
-  unstakeTransaction.recentBlockhash = blockhash;
-  unstakeTransaction.feePayer = user;
-  // console.log(unstakeTransaction.instructions.map(ix => `${ix.programId.toString()}: ${ix.keys.map(m => m.pubkey.toString())}`));
-  if (cleanupTransaction) {
-    cleanupTransaction.recentBlockhash = blockhash;
-    cleanupTransaction.feePayer = user;
-  }
+  const setupTransaction = prepareSetupTx(exchangeReturn, blockhash, user);
+  const unstakeTransaction = prepareUnstakeTx(exchangeReturn, blockhash, user);
+  const cleanupTransaction = prepareCleanupTx(exchangeReturn, blockhash, user);
   console.log(
     routeLabel,
     "setup:",

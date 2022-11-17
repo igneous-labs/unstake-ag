@@ -1,4 +1,9 @@
-import type { AccountInfo, PublicKey, Transaction } from "@solana/web3.js";
+import type {
+  AccountInfo,
+  PublicKey,
+  Signer,
+  Transaction,
+} from "@solana/web3.js";
 import type { Jupiter } from "@jup-ag/core";
 import type { StakeAccount } from "@soceanfi/solana-stake-sdk";
 
@@ -134,10 +139,15 @@ export type FeeAccounts = {
   [token in string]?: PublicKey;
 };
 
+export type TransactionWithSigners = {
+  tx: Transaction;
+  signers: Signer[];
+};
+
 export interface ExchangeReturn {
-  setupTransaction?: Transaction;
-  unstakeTransaction: Transaction;
-  cleanupTransaction?: Transaction;
+  setupTransaction?: TransactionWithSigners;
+  unstakeTransaction: TransactionWithSigners;
+  cleanupTransaction?: TransactionWithSigners;
 }
 
 export type ComputeRoutesXSolParams = Omit<

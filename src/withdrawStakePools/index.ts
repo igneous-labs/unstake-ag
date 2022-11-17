@@ -1,9 +1,10 @@
 import type {
   AccountInfo,
+  Keypair,
   PublicKey,
   TransactionInstruction,
 } from "@solana/web3.js";
-import { AccountInfoMap } from "@jup-ag/core/dist/lib/amm";
+import type { AccountInfoMap } from "@jup-ag/core/dist/lib/amm";
 import type { StakeAccount } from "@soceanfi/solana-stake-sdk";
 
 import type {
@@ -23,6 +24,8 @@ export interface WithdrawStakePool {
   withdrawStakeToken: PublicKey;
 
   label: string;
+
+  mustUseKeypairForSplitStake: boolean;
 
   createWithdrawStakeInstructions(
     params: CreateWithdrawStakeInstructionsParams,
@@ -46,13 +49,13 @@ export interface CreateWithdrawStakeInstructionsParams
   /**
    * The new stake account that is split off and withdrawn
    */
-  newStakeAccount: PubkeyFromSeed;
+  newStakeAccount: PubkeyFromSeed | Keypair;
   tokenAmount: bigint;
   srcTokenAccount: PublicKey;
   srcTokenAccountAuth: PublicKey;
 
   /**
-   * Should be from WithdrawStakeQuote
+   * Should be from WithdrawStakeQuote.result
    */
   stakeSplitFrom: PublicKey;
 }
@@ -72,4 +75,5 @@ export interface WithdrawStakeQuote {
   };
 }
 
-export const WITHDRAW_STAKE_QUOTE_FAILED: WithdrawStakeQuote = {};
+export * from "./lido";
+export * from "./utils";

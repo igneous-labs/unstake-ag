@@ -130,14 +130,16 @@ const {
 ### Create Transaction(s) From Route
 
 ```ts
+import { prepareSetupTx, prepareUnstakeTx, prepareCleanupTx } from "@unstake-it/sol-ag";
+
 // returned transactions do not have `recentBlockhash` or `feePayer` set
 // and are not signed
-const { setupTransaction, unstakeTransaction, cleanupTransaction } =
+const exchangeReturn =
   await unstake.exchange({
     route: bestRoute,
     stakeAccount,
     stakeAccountPubkey,
-    user: stakeAccount.data.info.meta.authorized.withdrawer,
+    user: MY_WALLET_KEYPAIR.publicKey,
     // You can optionally provide a mapping of StakePool output tokens / wrapped SOL
     // to your token account of the same type to collect stake pool referral fees / jup swap fees
     feeAccounts: {
@@ -145,6 +147,58 @@ const { setupTransaction, unstakeTransaction, cleanupTransaction } =
       "5oVNBeEEQvYi1cX3ir8Dx5n1P7pdxydbGF2X4TxVusJm": MY_SCNSOL_ACCOUNT,
     },
   });
+
+const {
+  setupTransaction,
+  unstakeTransaction: { tx, signers },
+  cleanupTransaction,
+} = exchangeReturn;
+
+const { blockhash, lastValidBlockHeight } = await unstake.connection.getLatestBlockhash();
+const feePayer = MY_WALLET_KEYPAIR.publicKey;
+
+const setupTx = prepareSetupTx(exchangeReturn, blockhash, feePayer);
+if (setupTx) {
+  setupTx.partialSign(MY_WALLET_KEYPAIR);
+  const signature = await unstake.connection.sendRawTransaction(
+    setupTx.serialize(),
+  );
+  await unstake.connection.confirmTransaction(
+    {
+      signature,
+      blockhash,
+      lastValidBlockHeight,
+    }
+  );
+}
+
+const unstakeTx = prepareUnstakeTx(exchangeReturn, blockhash, feePayer);
+unstakeTx.partialSign(MY_WALLET_KEYPAIR);
+const signature = await unstake.connection.sendRawTransaction(
+  unstakeTx.serialize(),
+);
+await unstake.connection.confirmTransaction(
+  {
+    signature,
+    blockhash,
+    lastValidBlockHeight,
+  }
+);
+
+const cleanupTx = prepareCleanupTx(exchangeReturn, blockhash, feePayer);
+if (cleanupTx) {
+  cleanupTx.partialSign(MY_WALLET_KEYPAIR);
+  const signature = await unstake.connection.sendRawTransaction(
+    cleanupTx.serialize(),
+  );
+  await unstake.connection.confirmTransaction(
+    {
+      signature,
+      blockhash,
+      lastValidBlockHeight,
+    }
+  );
+}
 ```
 
 ### Compute Routes for xSOL
@@ -191,12 +245,14 @@ if (isXSolRouteJupDirect(bestRouteScnSol)) {
 If required, stake pool stake withdraw instructions are placed in setupTransaction. This means that if the main unstakeTransaction fails, the user will be left with a stake account.
 
 ```ts
+import { prepareSetupTx, prepareUnstakeTx, prepareCleanupTx } from "@unstake-it/sol-ag";
+
 // returned transactions do not have `recentBlockhash` or `feePayer` set
 // and are not signed
-const { setupTransaction, unstakeTransaction, cleanupTransaction } =
+const exchangeReturn =
   await unstake.exchangeXSol({
     route: bestRouteScnSol,
-    user: MY_PUBKEY,
+    user: MY_WALLET_KEYPAIR.publicKey,
     srcTokenAccount: MY_SCNSOL_ACCOUNT,
     // You can optionally provide a mapping of StakePool output tokens / wrapped SOL
     // to your token account of the same type to collect stake pool referral fees / jup swap fees
@@ -204,6 +260,58 @@ const { setupTransaction, unstakeTransaction, cleanupTransaction } =
       "So11111111111111111111111111111111111111112": MY_WRAPPED_SOL_ACCOUNT,
     },
   });
+
+const {
+  setupTransaction,
+  unstakeTransaction: { tx, signers },
+  cleanupTransaction,
+} = exchangeReturn;
+
+const { blockhash, lastValidBlockHeight } = await unstake.connection.getLatestBlockhash();
+const feePayer = MY_WALLET_KEYPAIR.publicKey;
+
+const setupTx = prepareSetupTx(exchangeReturn, blockhash, feePayer);
+if (setupTx) {
+  setupTx.partialSign(MY_WALLET_KEYPAIR);
+  const signature = await unstake.connection.sendRawTransaction(
+    setupTx.serialize(),
+  );
+  await unstake.connection.confirmTransaction(
+    {
+      signature,
+      blockhash,
+      lastValidBlockHeight,
+    }
+  );
+}
+
+const unstakeTx = prepareUnstakeTx(exchangeReturn, blockhash, feePayer);
+unstakeTx.partialSign(MY_WALLET_KEYPAIR);
+const signature = await unstake.connection.sendRawTransaction(
+  unstakeTx.serialize(),
+);
+await unstake.connection.confirmTransaction(
+  {
+    signature,
+    blockhash,
+    lastValidBlockHeight,
+  }
+);
+
+const cleanupTx = prepareCleanupTx(exchangeReturn, blockhash, feePayer);
+if (cleanupTx) {
+  cleanupTx.partialSign(MY_WALLET_KEYPAIR);
+  const signature = await unstake.connection.sendRawTransaction(
+    cleanupTx.serialize(),
+  );
+  await unstake.connection.confirmTransaction(
+    {
+      signature,
+      blockhash,
+      lastValidBlockHeight,
+    }
+  );
+}
 ```
 
 ## Learn More
