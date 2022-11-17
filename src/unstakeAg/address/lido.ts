@@ -12,7 +12,8 @@ export type LidoAccounts = {
   stakePoolToken: PublicKey;
 };
 
-// TODO: confirm that lido is neither on devnet nor testnet
+// lido has no official devnet/testnet deployment:
+// https://docs.solana.lido.fi/deployments/#testnet
 
 const LIDO_PROGRAM = new PublicKey(
   "CrX7kMhLC3cSsXJdT7JDgqrRVWGnUpX3gfEfxxU2NVLi",
