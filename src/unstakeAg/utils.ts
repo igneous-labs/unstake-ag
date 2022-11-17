@@ -412,7 +412,7 @@ export function dedupPubkeys(arr: PublicKey[]): string[] {
 }
 
 /**
- * TODO: Check that additional signatures required are accounted for
+ * Additional signatures required are accounted for,
  * i.e. actual tx size is `tx.serialize().length`
  * and not `tx.serialize().length + 64 * additional required signatures`
  * @param feePayer
@@ -472,22 +472,35 @@ export function tryMergeExchangeReturn(
   let newCleanupTransaction = cleanupTransaction;
 
   if (setupTransaction) {
-    const mergeSetup = tryMerge2Txs(user, setupTransaction, unstakeTransaction);
+    const mergeSetup = tryMerge2Txs(
+      user,
+      setupTransaction.tx,
+      unstakeTransaction.tx,
+    );
     if (mergeSetup) {
       newSetupTransaction = undefined;
-      newUnstakeTransaction = mergeSetup;
+      newUnstakeTransaction = {
+        tx: mergeSetup,
+        signers: [...setupTransaction.signers, ...unstakeTransaction.signers],
+      };
     }
   }
 
   if (cleanupTransaction) {
     const mergeCleanup = tryMerge2Txs(
       user,
-      newUnstakeTransaction,
-      cleanupTransaction,
+      newUnstakeTransaction.tx,
+      cleanupTransaction.tx,
     );
     if (mergeCleanup) {
       newCleanupTransaction = undefined;
-      newUnstakeTransaction = mergeCleanup;
+      newUnstakeTransaction = {
+        tx: mergeCleanup,
+        signers: [
+          ...newUnstakeTransaction.signers,
+          ...cleanupTransaction.signers,
+        ],
+      };
     }
   }
   return {
@@ -512,4 +525,74 @@ export function outLamportsXSol(route: UnstakeXSolRoute): bigint {
     return BigInt(route.jup.outAmount.toString());
   }
   return outLamports(route.unstake);
+}
+
+export function prepareSetupTx(
+  exchangeReturn: ExchangeReturn,
+  recentBlockhash: string,
+  feePayer: PublicKey,
+): Transaction | undefined {
+  return prepareTxInternal(
+    exchangeReturn,
+    recentBlockhash,
+    feePayer,
+    "setupTransaction",
+  );
+}
+
+export function prepareUnstakeTx(
+  exchangeReturn: ExchangeReturn,
+  recentBlockhash: string,
+  feePayer: PublicKey,
+): Transaction {
+  return prepareTxInternal(
+    exchangeReturn,
+    recentBlockhash,
+    feePayer,
+    "unstakeTransaction",
+  )!;
+}
+
+export function prepareCleanupTx(
+  exchangeReturn: ExchangeReturn,
+  recentBlockhash: string,
+  feePayer: PublicKey,
+): Transaction | undefined {
+  return prepareTxInternal(
+    exchangeReturn,
+    recentBlockhash,
+    feePayer,
+    "cleanupTransaction",
+  );
+}
+
+/**
+ * Sets `recentBlockhash` and `feePayer` and partialSigns
+ * with additionalSigners for the given transaction in an
+ * `ExchangeReturn`
+ *
+ * Modifies in-place
+ *
+ * @param exchangeReturn
+ * @param recentBlockhash
+ * @param feePayer
+ * @param whichTx
+ */
+function prepareTxInternal(
+  exchangeReturn: ExchangeReturn,
+  recentBlockhash: string,
+  feePayer: PublicKey,
+  whichTx: "setupTransaction" | "unstakeTransaction" | "cleanupTransaction",
+): Transaction | undefined {
+  const txWithSigners = exchangeReturn[whichTx];
+  if (txWithSigners === undefined) {
+    return txWithSigners;
+  }
+  txWithSigners.tx.recentBlockhash = recentBlockhash;
+  txWithSigners.tx.feePayer = feePayer;
+  // NOTE: @solana/web3.js throws empty signers error without this check
+  if (txWithSigners.signers.length > 0) {
+    txWithSigners.tx.partialSign(...txWithSigners.signers);
+  }
+  return txWithSigners.tx;
 }

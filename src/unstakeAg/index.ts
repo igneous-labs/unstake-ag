@@ -7,6 +7,7 @@ import {
 import {
   Cluster,
   Connection,
+  Keypair,
   StakeProgram,
   Transaction,
 } from "@solana/web3.js";
@@ -60,7 +61,11 @@ import {
   tryMergeExchangeReturn,
   UNUSABLE_JUP_MARKETS_LABELS,
 } from "@/unstake-ag/unstakeAg/utils";
-import { WithdrawStakePool } from "@/unstake-ag/withdrawStakePools";
+import {
+  isNewStakeAccountKeypair,
+  newStakeAccountPubkey,
+  WithdrawStakePool,
+} from "@/unstake-ag/withdrawStakePools";
 
 /**
  * Main exported class
@@ -516,17 +521,23 @@ export class UnstakeAg {
 
     let setupTransaction;
     if (setupIxs.length > 0) {
-      setupTransaction = new Transaction();
-      setupTransaction.add(...setupIxs);
+      setupTransaction = {
+        tx: new Transaction().add(...setupIxs),
+        signers: [],
+      };
     }
 
-    const unstakeTransaction = new Transaction();
-    unstakeTransaction.add(...unstakeIxs);
+    const unstakeTransaction = {
+      tx: new Transaction().add(...unstakeIxs),
+      signers: [],
+    };
 
     let cleanupTransaction;
     if (cleanupIxs.length > 0) {
-      cleanupTransaction = new Transaction();
-      cleanupTransaction.add(...cleanupIxs);
+      cleanupTransaction = {
+        tx: new Transaction().add(...cleanupIxs),
+        signers: [],
+      };
     }
 
     return tryMergeExchangeReturn(user, {
@@ -657,25 +668,44 @@ export class UnstakeAg {
   }: ExchangeXSolParams): Promise<ExchangeReturn> {
     if (isXSolRouteJupDirect(route)) {
       const {
-        transactions: { swapTransaction, ...rest },
+        transactions: { setupTransaction, swapTransaction, cleanupTransaction },
       } = await this.jupiter.exchange({
         routeInfo: route.jup,
         userPublicKey: user,
         wrapUnwrapSOL: true,
         feeAccount: feeAccounts[WRAPPED_SOL_MINT.toString()],
       });
-      return { ...rest, unstakeTransaction: swapTransaction };
+      return {
+        setupTransaction: setupTransaction
+          ? {
+              tx: setupTransaction,
+              signers: [],
+            }
+          : undefined,
+        unstakeTransaction: {
+          tx: swapTransaction,
+          signers: [],
+        },
+        cleanupTransaction: cleanupTransaction
+          ? {
+              tx: cleanupTransaction,
+              signers: [],
+            }
+          : undefined,
+      };
     }
     const {
       withdrawStake: { withdrawStakePool, inAmount, stakeSplitFrom },
       intermediateDummyStakeAccountInfo,
       unstake,
     } = route;
-    const newStakeAccount = await genShortestUnusedSeed(
-      this.connection,
-      user,
-      StakeProgram.programId,
-    );
+    const newStakeAccount = withdrawStakePool.mustUseKeypairForSplitStake
+      ? Keypair.generate()
+      : await genShortestUnusedSeed(
+          this.connection,
+          user,
+          StakeProgram.programId,
+        );
     const withdrawStakeInstructions =
       withdrawStakePool.createWithdrawStakeInstructions({
         payer: user,
@@ -695,16 +725,22 @@ export class UnstakeAg {
     const exchangeReturn = await this.exchange({
       route: unstake,
       stakeAccount: intermediateDummyStakeAccountInfo,
-      stakeAccountPubkey: newStakeAccount.derived,
+      stakeAccountPubkey: newStakeAccountPubkey(newStakeAccount),
       user,
       feeAccounts,
     });
     if (!exchangeReturn.setupTransaction) {
-      exchangeReturn.setupTransaction = new Transaction();
+      exchangeReturn.setupTransaction = {
+        tx: new Transaction(),
+        signers: [],
+      };
     }
-    exchangeReturn.setupTransaction.instructions.unshift(
+    exchangeReturn.setupTransaction.tx.instructions.unshift(
       ...withdrawStakeInstructions,
     );
+    if (isNewStakeAccountKeypair(newStakeAccount)) {
+      exchangeReturn.setupTransaction.signers.push(newStakeAccount);
+    }
     return tryMergeExchangeReturn(user, exchangeReturn);
   }
 }

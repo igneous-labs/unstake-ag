@@ -1,5 +1,6 @@
 import type {
   AccountInfo,
+  Keypair,
   PublicKey,
   TransactionInstruction,
 } from "@solana/web3.js";
@@ -24,6 +25,8 @@ export interface WithdrawStakePool {
 
   label: string;
 
+  mustUseKeypairForSplitStake: boolean;
+
   createWithdrawStakeInstructions(
     params: CreateWithdrawStakeInstructionsParams,
   ): TransactionInstruction[];
@@ -46,7 +49,7 @@ export interface CreateWithdrawStakeInstructionsParams
   /**
    * The new stake account that is split off and withdrawn
    */
-  newStakeAccount: PubkeyFromSeed;
+  newStakeAccount: PubkeyFromSeed | Keypair;
   tokenAmount: bigint;
   srcTokenAccount: PublicKey;
   srcTokenAccountAuth: PublicKey;
@@ -73,3 +76,13 @@ export interface WithdrawStakeQuote {
 }
 
 export const WITHDRAW_STAKE_QUOTE_FAILED: WithdrawStakeQuote = {};
+
+export function isNewStakeAccountKeypair(
+  k: PubkeyFromSeed | Keypair,
+): k is Keypair {
+  return "secretKey" in k;
+}
+
+export function newStakeAccountPubkey(k: PubkeyFromSeed | Keypair): PublicKey {
+  return isNewStakeAccountKeypair(k) ? k.publicKey : k.derived;
+}

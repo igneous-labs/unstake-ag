@@ -46,6 +46,8 @@ import {
 } from "@/unstake-ag/unstakeAg/utils";
 import {
   CreateWithdrawStakeInstructionsParams,
+  isNewStakeAccountKeypair,
+  newStakeAccountPubkey,
   WITHDRAW_STAKE_QUOTE_FAILED,
   WithdrawStakePool,
   WithdrawStakeQuote,
@@ -59,6 +61,8 @@ export interface SplStakePoolCtorParams {
 }
 
 export abstract class SplStakePool implements StakePool, WithdrawStakePool {
+  mustUseKeypairForSplitStake: boolean = false;
+
   outputToken: PublicKey;
 
   withdrawStakeToken: PublicKey;
@@ -256,7 +260,7 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
   createWithdrawStakeInstructions({
     payer,
     withdrawerAuth,
-    newStakeAccount: { base, derived, seed },
+    newStakeAccount,
     tokenAmount,
     srcTokenAccount,
     srcTokenAccountAuth,
@@ -265,23 +269,32 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
     if (!this.stakePool) {
       throw new StakePoolNotFetchedError();
     }
+    const createAccountInstruction = isNewStakeAccountKeypair(newStakeAccount)
+      ? SystemProgram.createAccount({
+          fromPubkey: payer,
+          newAccountPubkey: newStakeAccount.publicKey,
+          lamports: STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toNumber(),
+          space: STAKE_STATE_LEN,
+          programId: StakeProgram.programId,
+        })
+      : SystemProgram.createAccountWithSeed({
+          fromPubkey: payer,
+          newAccountPubkey: newStakeAccount.derived,
+          basePubkey: newStakeAccount.base,
+          seed: newStakeAccount.seed,
+          lamports: STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toNumber(),
+          space: STAKE_STATE_LEN,
+          programId: StakeProgram.programId,
+        });
     return [
-      SystemProgram.createAccountWithSeed({
-        fromPubkey: payer,
-        newAccountPubkey: derived,
-        basePubkey: base,
-        seed,
-        lamports: STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toNumber(),
-        space: STAKE_STATE_LEN,
-        programId: StakeProgram.programId,
-      }),
+      createAccountInstruction,
       withdrawStakeInstruction(
         this.programId,
         this.stakePoolAddr,
         this.validatorListAddr,
         this.findStakePoolWithdrawAuth(),
         stakeSplitFrom,
-        derived,
+        newStakeAccountPubkey(newStakeAccount),
         withdrawerAuth,
         srcTokenAccountAuth,
         srcTokenAccount,
