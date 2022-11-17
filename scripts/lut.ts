@@ -24,10 +24,17 @@ import {
 } from "@solana/web3.js";
 import { closeSync, openSync, writeFileSync } from "fs";
 
-import { dedupPubkeys } from "@/unstake-ag";
+import {
+  dedupPubkeys,
+  LidoWithdrawStakePool,
+  MarinadeStakePool,
+  SplStakePool,
+  UnstakeAg,
+  UnstakeIt,
+} from "@/unstake-ag";
 
 const OUTPUT_FILE = "addrs.txt";
-// const CLUSTER = "mainnet-beta" as const;
+const CLUSTER = "mainnet-beta";
 
 const COMMON_ACCOUNTS = [
   SYSVAR_CLOCK_PUBKEY,
@@ -49,13 +56,74 @@ const COMMON_ACCOUNTS = [
 function main() {
   let fd: number | undefined;
   try {
-    fd = openSync(OUTPUT_FILE, "w");
-    const allAccounts = dedupPubkeys(COMMON_ACCOUNTS);
+    const stakePoolPubkeys = UnstakeAg.createStakePools(CLUSTER).flatMap(
+      (sp) => {
+        if (sp instanceof UnstakeIt) {
+          return [
+            sp.feeAddr,
+            sp.outputToken,
+            sp.poolAddr,
+            sp.poolSolReservesAddr,
+            sp.program.programId,
+            sp.protocolFeeAddr,
+          ];
+        }
+        if (sp instanceof MarinadeStakePool) {
+          return [
+            sp.mSolMintAuthority,
+            sp.outputToken,
+            sp.program.programAddress,
+            sp.stakeDepositAuthority,
+            sp.stakeWithdrawAuthority,
+            sp.stateAddr,
+            sp.validatorRecordsAddr,
+          ];
+        }
+        throw new Error("unreachable");
+      },
+    );
+    const withdrawStakePoolPubkeys = UnstakeAg.createWithdrawStakePools(
+      CLUSTER,
+    ).flatMap((wsp) => {
+      if (wsp instanceof LidoWithdrawStakePool) {
+        return [
+          wsp.programId,
+          wsp.solidoAddr,
+          wsp.stakeAuthorityAddress,
+          wsp.withdrawStakeToken,
+        ];
+      }
+      throw new Error("unreachable");
+    });
+    const hybridPoolPubkeys = UnstakeAg.createHybridPools(CLUSTER).flatMap(
+      (hp) => {
+        if (hp instanceof SplStakePool) {
+          return [
+            hp.outputToken,
+            hp.programId,
+            hp.stakePoolAddr,
+            hp.validatorListAddr,
+            hp.withdrawStakeToken,
+          ];
+        }
+        throw new Error("unreachable");
+      },
+    );
+    const allAccounts = dedupPubkeys([
+      ...COMMON_ACCOUNTS,
+      ...stakePoolPubkeys,
+      ...withdrawStakePoolPubkeys,
+      ...hybridPoolPubkeys,
+    ]);
     console.log("# Accounts:", allAccounts.length);
-    for (const account of allAccounts) {
-      writeFileSync(fd, account);
+
+    fd = openSync(OUTPUT_FILE, "w");
+
+    for (let i = 0; i < allAccounts.length - 1; i++) {
+      writeFileSync(fd, allAccounts[i]);
       writeFileSync(fd, "\n");
     }
+    writeFileSync(fd, allAccounts[allAccounts.length - 1]);
   } catch (e) {
     console.error(e);
   } finally {

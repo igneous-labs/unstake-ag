@@ -9,3 +9,6 @@
 .DS_Store
 coverage
 *.log
+
+# default scripts/lut.ts output
+addrs.txt
