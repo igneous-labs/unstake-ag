@@ -252,7 +252,7 @@ import { prepareSetupTx, prepareUnstakeTx, prepareCleanupTx } from "@unstake-it/
 const exchangeReturn =
   await unstake.exchangeXSol({
     route: bestRouteScnSol,
-    user: MY_PUBKEY,
+    user: MY_WALLET_KEYPAIR.publicKey,
     srcTokenAccount: MY_SCNSOL_ACCOUNT,
     // You can optionally provide a mapping of StakePool output tokens / wrapped SOL
     // to your token account of the same type to collect stake pool referral fees / jup swap fees

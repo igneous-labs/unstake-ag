@@ -123,6 +123,15 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
     if (!this.validatorList) {
       throw new ValidatorListNotFetchedError();
     }
+    if (!this.stakePool) {
+      throw new StakePoolNotFetchedError();
+    }
+    // TODO: handle permissionless update in setup.
+    // not doing this for now because there's potentially
+    // a lot of validator stake accounts to update
+    if (!this.isUpdated(currentEpoch)) {
+      return false;
+    }
     if (isLockupInForce(stakeAccount.data, currentEpoch)) {
       return false;
     }
@@ -323,6 +332,14 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
     if (validators.length === 0) {
       return WITHDRAW_STAKE_QUOTE_FAILED;
     }
+
+    // TODO: handle permissionless update in setup.
+    // not doing this for now because there's potentially
+    // a lot of validator stake accounts to update
+    if (!this.isUpdated(currentEpoch)) {
+      return WITHDRAW_STAKE_QUOTE_FAILED;
+    }
+
     const poolHasNoActive = validators.every((v) =>
       v.activeStakeLamports.isZero(),
     );
@@ -465,6 +482,15 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
       ],
       this.programId,
     )[0];
+  }
+
+  /**
+   * Assumes this.stakePool is fetched
+   * @param currentEpoch
+   * @returns
+   */
+  protected isUpdated(currentEpoch: number): boolean {
+    return this.stakePool!.lastUpdateEpoch.gte(new BN(currentEpoch));
   }
 }
 

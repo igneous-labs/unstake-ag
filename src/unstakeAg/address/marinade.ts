@@ -16,30 +16,27 @@ export type MarinadeAccounts = {
   validatorRecords: PublicKey;
 };
 
-/**
- * TODO: verify devnet and testnet addresses are same as mainnet
- */
+// marinade uses same pubkeys for everything across all clusters
+
+const MARINADE_PROGRAM = new PublicKey(
+  "MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD",
+);
+const MARINADE_STATE = new PublicKey(
+  "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
+);
+// PublicKey.createWithSeed(state, "validator_list", program)
+const MARINADE_VALIDATOR_RECORDS = new PublicKey(
+  "DwFYJNnhLmw19FBTrVaLWZ8SZJpxdPoSYVSJaio9tjbY",
+);
+
+const MARINADE_ADDRESS_MAP_ENTRY = {
+  program: MARINADE_PROGRAM,
+  state: MARINADE_STATE,
+  validatorRecords: MARINADE_VALIDATOR_RECORDS,
+};
+
 export const MARINADE_ADDRESS_MAP: AddressMap<MarinadeAccounts> = {
-  devnet: {
-    program: new PublicKey("MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD"),
-    state: new PublicKey("8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC"),
-    validatorRecords: new PublicKey(
-      "DwFYJNnhLmw19FBTrVaLWZ8SZJpxdPoSYVSJaio9tjbY",
-    ),
-  },
-  testnet: {
-    program: new PublicKey("MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD"),
-    state: new PublicKey("8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC"),
-    validatorRecords: new PublicKey(
-      "DwFYJNnhLmw19FBTrVaLWZ8SZJpxdPoSYVSJaio9tjbY",
-    ),
-  },
-  "mainnet-beta": {
-    program: new PublicKey("MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD"),
-    state: new PublicKey("8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC"),
-    // PublicKey.createWithSeed(state, "validator_list", program)
-    validatorRecords: new PublicKey(
-      "DwFYJNnhLmw19FBTrVaLWZ8SZJpxdPoSYVSJaio9tjbY",
-    ),
-  },
+  devnet: MARINADE_ADDRESS_MAP_ENTRY,
+  testnet: MARINADE_ADDRESS_MAP_ENTRY,
+  "mainnet-beta": MARINADE_ADDRESS_MAP_ENTRY,
 };

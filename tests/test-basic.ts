@@ -9,6 +9,7 @@ import { checkRoutes, checkRoutesXSol } from "@/tests/utils";
 import {
   EVERSOL_ADDRESS_MAP,
   LAINE_ADDRESS_MAP,
+  LIDO_ADDRESS_MAP,
   SOCEAN_ADDRESS_MAP,
   UnstakeAg,
 } from "@/unstake-ag";
@@ -156,5 +157,19 @@ describe("test basic functionality", () => {
       slippageBps: 10,
     });
     await checkRoutesXSol(unstake, routes, TEST_ESOL_ACC_PUBKEY_HUMAN);
+  });
+
+  it("stSOL", async () => {
+    // for non-jup, lido can pretty much only work with unstake.it
+    // since no other stake pools contain their validators
+    const TEST_STSOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "4DX3z7QvnCeQGk6bsqCZALTnFRTvB4XXiZMktVBxVnog",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: LIDO_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+    });
+    await checkRoutesXSol(unstake, routes, TEST_STSOL_ACC_PUBKEY_HUMAN);
   });
 });

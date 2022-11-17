@@ -13,12 +13,12 @@ import {
 } from "@solana/web3.js";
 import { Jupiter, JupiterLoadParams, WRAPPED_SOL_MINT } from "@jup-ag/core";
 import { STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS } from "@soceanfi/stake-pool-sdk";
-import { UnstakeXSolRouteWithdrawStake } from "index";
 
 import type {
   UnstakeRoute,
   UnstakeXSolRoute,
   UnstakeXSolRouteJupDirect,
+  UnstakeXSolRouteWithdrawStake,
 } from "@/unstake-ag/route";
 import {
   EverstakeSplStakePool,
@@ -34,6 +34,7 @@ import {
   JITO_ADDRESS_MAP,
   JPOOL_ADDRESS_MAP,
   LAINE_ADDRESS_MAP,
+  LIDO_ADDRESS_MAP,
   MARINADE_ADDRESS_MAP,
   SOCEAN_ADDRESS_MAP,
   SOLBLAZE_ADDRESS_MAP,
@@ -63,6 +64,7 @@ import {
 } from "@/unstake-ag/unstakeAg/utils";
 import {
   isNewStakeAccountKeypair,
+  LidoWithdrawStakePool,
   newStakeAccountPubkey,
   WithdrawStakePool,
 } from "@/unstake-ag/withdrawStakePools";
@@ -152,10 +154,16 @@ export class UnstakeAg {
     ];
   }
 
-  // TODO: lido
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  static createWithdrawStakePools(_cluster: Cluster): WithdrawStakePool[] {
-    return [];
+  static createWithdrawStakePools(cluster: Cluster): WithdrawStakePool[] {
+    return [
+      new LidoWithdrawStakePool(
+        LIDO_ADDRESS_MAP[cluster].solido,
+        dummyAccountInfoForProgramOwner(LIDO_ADDRESS_MAP[cluster].program),
+        {
+          stSolAddr: LIDO_ADDRESS_MAP[cluster].stakePoolToken,
+        },
+      ),
+    ];
   }
 
   static createHybridPools(cluster: Cluster): HybridPool[] {
