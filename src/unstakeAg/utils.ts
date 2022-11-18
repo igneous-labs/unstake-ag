@@ -27,7 +27,7 @@ import type { ExchangeReturn, HybridPool } from "@/unstake-ag/unstakeAg/types";
 import type { WithdrawStakePool } from "@/unstake-ag/withdrawStakePools";
 
 // Copied from jup core.cjs.development.js
-function chunks<T>(array: Array<T>, size: number) {
+export function chunks<T>(array: T[], size: number): T[][] {
   return Array.apply(0, new Array(Math.ceil(array.length / size))).map(
     (_, index) => array.slice(index * size, (index + 1) * size),
   );
