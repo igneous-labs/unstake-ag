@@ -10,6 +10,7 @@ import {
   EVERSOL_ADDRESS_MAP,
   LAINE_ADDRESS_MAP,
   LIDO_ADDRESS_MAP,
+  MARINADE_ADDRESS_MAP,
   SOCEAN_ADDRESS_MAP,
   UnstakeAg,
 } from "@/unstake-ag";
@@ -173,5 +174,18 @@ describe("test basic functionality", () => {
       slippageBps: 10,
     });
     await checkRoutesXSol(unstake, routes, TEST_STSOL_ACC_PUBKEY_HUMAN);
+  });
+
+  it("mSOL", async () => {
+    // just jup since marinade doesnt implement WithdrawStakePool
+    const TEST_MSOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "CrR7DS7A8ABSsHwx92K3b6bD1moBzn5SpWf2ske8bqML",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: MARINADE_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+    });
+    await checkRoutesXSol(unstake, routes, TEST_MSOL_ACC_PUBKEY_HUMAN);
   });
 });

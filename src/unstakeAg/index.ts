@@ -149,6 +149,7 @@ export class UnstakeAg {
         dummyAccountInfoForProgramOwner(MARINADE_ADDRESS_MAP[cluster].program),
         {
           validatorRecordsAddr: MARINADE_ADDRESS_MAP[cluster].validatorRecords,
+          stakePoolToken: MARINADE_ADDRESS_MAP[cluster].stakePoolToken,
         },
       ),
     ];
@@ -396,6 +397,7 @@ export class UnstakeAg {
     user,
     feeAccounts = {},
     assumeAtasExist = false,
+    splitStakeAccount: splitStakeAccountOption,
   }: ExchangeParams): Promise<ExchangeReturn> {
     if (!stakeAccount.data.info.stake) {
       throw new Error("stake account not delegated");
@@ -410,12 +412,19 @@ export class UnstakeAg {
     // Pubkey of the actual stake account to be unstaked:
     // either inputStakeAccount or an ephemeral one split from it
     let stakeAccountPubkey = inputStakeAccount;
+    // partial unstake of stake account
+    // Note: this branch will not be taken for
+    // exchangeXSol since its always full unstake, therefore
+    // no worries about genShortedUnusedSeed() conflicts
     if (inAmount < stakeAccount.lamports) {
-      const { derived: splitStakePubkey, seed } = await genShortestUnusedSeed(
-        this.connection,
-        user,
-        StakeProgram.programId,
-      );
+      const splitStakeAccount =
+        splitStakeAccountOption ??
+        (await genShortestUnusedSeed(
+          this.connection,
+          user,
+          StakeProgram.programId,
+        ));
+      const { derived: splitStakePubkey, seed } = splitStakeAccount;
       stakeAccountPubkey = splitStakePubkey;
       setupIxs.push(
         ...StakeProgram.splitWithSeed({
@@ -684,6 +693,7 @@ export class UnstakeAg {
     srcTokenAccount,
     feeAccounts = {},
     assumeAtasExist = false,
+    newStakeAccount: newStakeAccountOption,
   }: ExchangeXSolParams): Promise<ExchangeReturn> {
     if (isXSolRouteJupDirect(route)) {
       const {
@@ -718,13 +728,15 @@ export class UnstakeAg {
       intermediateDummyStakeAccountInfo,
       unstake,
     } = route;
-    const newStakeAccount = withdrawStakePool.mustUseKeypairForSplitStake
-      ? Keypair.generate()
-      : await genShortestUnusedSeed(
-          this.connection,
-          user,
-          StakeProgram.programId,
-        );
+    const newStakeAccount =
+      newStakeAccountOption ??
+      (withdrawStakePool.mustUseKeypairForSplitStake
+        ? Keypair.generate()
+        : await genShortestUnusedSeed(
+            this.connection,
+            user,
+            StakeProgram.programId,
+          ));
     const withdrawStakeInstructions =
       withdrawStakePool.createWithdrawStakeInstructions({
         payer: user,
