@@ -622,16 +622,14 @@ export class UnstakeAg {
           }
           const { outputDummyStakeAccountInfo, stakeSplitFrom } = result;
           const outAmount = BigInt(outputDummyStakeAccountInfo.lamports);
-          let stakePoolsToExclude = stakePoolsToExcludeOption;
+          const stakePoolsToExclude = stakePoolsToExcludeOption ?? {};
           // withdrawing the stake, then depositing the stake
           // again = back to xSOL
           if (
             isHybridPool(pool) &&
             pool.outputToken.equals(pool.withdrawStakeToken)
           ) {
-            stakePoolsToExclude = {
-              [pool.label]: true,
-            };
+            stakePoolsToExclude[pool.label] = true;
           }
           const unstakeRoutes = await this.computeRoutes({
             stakeAccount: outputDummyStakeAccountInfo,
