@@ -12,7 +12,7 @@ Note: Version 0 of Semantic Versioning is handled differently from version 1 and
 ### Added
 
 - Utility script for creating lookup tables of all pools used and some common accounts in `scripts/lut.ts` (call with `yarn lut`)
-- Optional `currentEpoch` argument in `ComputeRoutesXSolParams` to enable `computeRoutes()` to be ran with fewer RPC calls.
+- Optional `currentEpoch` argument in `ComputeRoutesXSolParams` to enable `computeRoutesXSol()` to be ran with fewer RPC calls (was previously added to `ComputeRoutesParams` as well).
 - Optional `assumeAtasExist` argument in `ExchangeParams` and `ExchangeXSolParams` to exclude checking against on-chain data to determine whether the user has the required associated token accounts for an unstake.
 - Optional `splitStakeAccount` arg in `ExchangeParams` and `newStakeAccount` in `ExchangeXSolParams` to pass in precomputed `PubkeyFromSeed` or `Keypair` to avoid computing one live for split stake accounts.
 
