@@ -566,10 +566,9 @@ export class UnstakeAg {
       jupFeeBps,
       forceFetch = false,
       shouldIgnoreRouteErrors = true,
+      currentEpoch: currentEpochOption,
       stakePoolsToExclude: stakePoolsToExcludeOption,
     } = args;
-
-    await this.refreshPoolsIfExpired(forceFetch);
 
     const jupRoutesPromise: Promise<UnstakeXSolRouteJupDirect[]> = this.jupiter
       .computeRoutes({ ...args, outputMint })
@@ -591,9 +590,16 @@ export class UnstakeAg {
     if (!pool) {
       unstakeRoutesPromise = Promise.resolve([]);
     } else {
-      unstakeRoutesPromise = this.connection
-        .getEpochInfo()
-        .then(async ({ epoch: currentEpoch }) => {
+      unstakeRoutesPromise = Promise.all([
+        this.refreshPoolsIfExpired(forceFetch),
+        (async () => {
+          if (currentEpochOption !== undefined) {
+            return currentEpochOption;
+          }
+          return (await this.connection.getEpochInfo()).epoch;
+        })(),
+      ])
+        .then(async ([, currentEpoch]) => {
           const { result } = pool.getWithdrawStakeQuote({
             currentEpoch,
             tokenAmount: BigInt(amount.toString()),

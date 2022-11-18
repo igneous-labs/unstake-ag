@@ -171,5 +171,11 @@ export type ComputeRoutesXSolParams = Omit<
    */
   jupFeeBps?: number;
 
+  /**
+   * Current epoch. If not provided, computeRoutes()
+   * will call getEpochInfo() to fetch it
+   */
+  currentEpoch?: number;
+
   stakePoolsToExclude?: StakePoolsToExclude;
 };
