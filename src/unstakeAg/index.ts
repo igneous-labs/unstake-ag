@@ -395,6 +395,7 @@ export class UnstakeAg {
     stakeAccountPubkey: inputStakeAccount,
     user,
     feeAccounts = {},
+    assumeAtasExist = false,
   }: ExchangeParams): Promise<ExchangeReturn> {
     if (!stakeAccount.data.info.stake) {
       throw new Error("stake account not delegated");
@@ -436,42 +437,45 @@ export class UnstakeAg {
       }),
     );
 
-    const isDirectToSol = stakePool.outputToken.equals(WRAPPED_SOL_MINT);
-    const destinationTokenAccount = isDirectToSol
+    const isDirectToUnwrappedSol =
+      stakePool.outputToken.equals(WRAPPED_SOL_MINT);
+    const destinationTokenAccount = isDirectToUnwrappedSol
       ? user
       : await getAssociatedTokenAddress(stakePool.outputToken, user);
-    // Create ATAs for intermediate xSOL and wSOL if not exist
-    if (!isDirectToSol) {
+    // We handle creating wSOL ATA and unwrapping SOL in setup-cleanup txs
+    // in order to reserve max space for the unstake tx
+    if (!isDirectToUnwrappedSol) {
       const wSolTokenAcc = await getAssociatedTokenAddress(
         WRAPPED_SOL_MINT,
         user,
       );
-      const [intermediateAtaExists, wSolAtaExists] =
-        await doTokenProgramAccsExist(this.connection, [
-          destinationTokenAccount,
-          wSolTokenAcc,
-        ]);
-      if (!intermediateAtaExists) {
-        setupIxs.push(
-          createAssociatedTokenAccountInstruction(
-            user,
+      // Create ATAs for intermediate xSOL and wSOL if not exist.
+      if (!assumeAtasExist) {
+        const [intermediateAtaExists, wSolAtaExists] =
+          await doTokenProgramAccsExist(this.connection, [
             destinationTokenAccount,
-            user,
-            stakePool.outputToken,
-          ),
-        );
-      }
-      // we handle wrap-unwrap SOL in setup-cleanup txs in order
-      // to reserve max space for the unstake tx
-      if (!wSolAtaExists) {
-        setupIxs.push(
-          createAssociatedTokenAccountInstruction(
-            user,
             wSolTokenAcc,
-            user,
-            WRAPPED_SOL_MINT,
-          ),
-        );
+          ]);
+        if (!intermediateAtaExists) {
+          setupIxs.push(
+            createAssociatedTokenAccountInstruction(
+              user,
+              destinationTokenAccount,
+              user,
+              stakePool.outputToken,
+            ),
+          );
+        }
+        if (!wSolAtaExists) {
+          setupIxs.push(
+            createAssociatedTokenAccountInstruction(
+              user,
+              wSolTokenAcc,
+              user,
+              WRAPPED_SOL_MINT,
+            ),
+          );
+        }
       }
       cleanupIxs.push(createCloseAccountInstruction(wSolTokenAcc, user, user));
     }
@@ -679,6 +683,7 @@ export class UnstakeAg {
     user,
     srcTokenAccount,
     feeAccounts = {},
+    assumeAtasExist = false,
   }: ExchangeXSolParams): Promise<ExchangeReturn> {
     if (isXSolRouteJupDirect(route)) {
       const {
@@ -742,6 +747,7 @@ export class UnstakeAg {
       stakeAccountPubkey: newStakeAccountPubkey(newStakeAccount),
       user,
       feeAccounts,
+      assumeAtasExist,
     });
     if (!exchangeReturn.setupTransaction) {
       exchangeReturn.setupTransaction = {

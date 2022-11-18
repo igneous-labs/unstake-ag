@@ -103,6 +103,16 @@ export interface ExchangeParams {
    * and referral fees on StakePools
    */
   feeAccounts?: FeeAccounts;
+
+  /**
+   * Set to true to exclude checking against on-chain data
+   * to determine whether the user has the required
+   * associated token accounts for an unstake,
+   * including wrapped SOL.
+   *
+   * Defaults to false
+   */
+  assumeAtasExist?: boolean;
 }
 
 export interface ExchangeXSolParams {
@@ -127,6 +137,16 @@ export interface ExchangeXSolParams {
    * and referral fees on StakePools
    */
   feeAccounts?: FeeAccounts;
+
+  /**
+   * Set to true to exclude checking against on-chain data
+   * to determine whether the user has the required
+   * associated token accounts for an unstake,
+   * including wrapped SOL.
+   *
+   * Defaults to false
+   */
+  assumeAtasExist?: boolean;
 }
 
 /**

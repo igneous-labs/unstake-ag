@@ -54,6 +54,8 @@ const ROUTE_CACHE_DURATION_MS = 30_000;
 // - jup program 0x1771: slippage tolerance exceeded
 // - jup program 0x1786: slippage tolerance exceeded for orca whirlpools
 // - BlockhashNotFound: rpc desynced
+//
+// Sometimes spl-stake-pools and lido will not show up in routes if they haven't been updated for the epoch
 
 describe("test basic functionality", () => {
   let unstake: UnstakeAg;
