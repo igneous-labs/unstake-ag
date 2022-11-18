@@ -10,6 +10,7 @@ import {
   EVERSOL_ADDRESS_MAP,
   LAINE_ADDRESS_MAP,
   LIDO_ADDRESS_MAP,
+  MARINADE_ADDRESS_MAP,
   SOCEAN_ADDRESS_MAP,
   UnstakeAg,
 } from "@/unstake-ag";
@@ -54,6 +55,8 @@ const ROUTE_CACHE_DURATION_MS = 30_000;
 // - jup program 0x1771: slippage tolerance exceeded
 // - jup program 0x1786: slippage tolerance exceeded for orca whirlpools
 // - BlockhashNotFound: rpc desynced
+//
+// Sometimes spl-stake-pools and lido will not show up in routes if they haven't been updated for the epoch
 
 describe("test basic functionality", () => {
   let unstake: UnstakeAg;
@@ -171,5 +174,18 @@ describe("test basic functionality", () => {
       slippageBps: 10,
     });
     await checkRoutesXSol(unstake, routes, TEST_STSOL_ACC_PUBKEY_HUMAN);
+  });
+
+  it("mSOL", async () => {
+    // just jup since marinade doesnt implement WithdrawStakePool
+    const TEST_MSOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "CrR7DS7A8ABSsHwx92K3b6bD1moBzn5SpWf2ske8bqML",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: MARINADE_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+    });
+    await checkRoutesXSol(unstake, routes, TEST_MSOL_ACC_PUBKEY_HUMAN);
   });
 });
