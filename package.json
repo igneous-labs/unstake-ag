@@ -51,9 +51,11 @@
     "esbuild-node:dev": "esbuild src/cli.ts --bundle --platform=node --sourcemap=external --outfile=dist/esbuild/cli.js",
     "esbuild-node:watch": "esbuild src/cli.ts --bundle --platform=node --watch --sourcemap=external --outfile=dist/esbuild/cli.js",
     "prepack": "yarn build",
-    "postbuild": "echo '{\"type\":\"commonjs\"}' | npx json > dist/cjs/package.json && echo '{\"type\":\"module\"} ' | npx json > dist/esm/package.json"
+    "postbuild": "echo '{\"type\":\"commonjs\"}' | npx json > dist/cjs/package.json && echo '{\"type\":\"module\"} ' | npx json > dist/esm/package.json",
+    "lut": "node --experimental-specifier-resolution=node --loader ./loader.js ./scripts/lut.ts"
   },
   "devDependencies": {
+    "@soceanfi/solana-cli-config": "^0.2.0",
     "@types/chai": "^4.3.3",
     "@types/mocha": "^9.1.0",
     "@types/node": "^17.0.18",
