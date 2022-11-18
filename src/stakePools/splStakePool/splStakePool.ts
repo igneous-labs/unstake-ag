@@ -39,6 +39,7 @@ import {
   KNOWN_SPL_STAKE_POOL_PROGRAM_IDS_STR,
   KnownSplStakePoolProgramIdStr,
 } from "@/unstake-ag/unstakeAg/address";
+import type { HybridPoolLabel } from "@/unstake-ag/unstakeAg/labels";
 import {
   dummyStakeAccountInfo,
   isLockupInForce,
@@ -57,7 +58,7 @@ import {
 export interface SplStakePoolCtorParams {
   validatorListAddr: PublicKey;
   outputToken: PublicKey;
-  label: string;
+  label: HybridPoolLabel;
 }
 
 export abstract class SplStakePool implements StakePool, WithdrawStakePool {
@@ -67,7 +68,7 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
 
   withdrawStakeToken: PublicKey;
 
-  label: string;
+  label: HybridPoolLabel;
 
   // accounts cache
   stakePool: SplStakePoolStruct | null;

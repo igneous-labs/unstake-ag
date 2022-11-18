@@ -14,6 +14,7 @@ import { getSolido, Solido } from "@chorusone/solido.js";
 import { AccountInfoMap } from "@jup-ag/core/dist/lib/amm";
 import BN from "bn.js";
 
+import type { WithdrawStakePoolLabel } from "@/unstake-ag/unstakeAg/labels";
 import { dummyStakeAccountInfo } from "@/unstake-ag/unstakeAg/utils";
 import type {
   CreateWithdrawStakeInstructionsParams,
@@ -41,7 +42,7 @@ export class LidoWithdrawStakePool implements WithdrawStakePool {
 
   static MINIMUM_STAKE_ACCOUNT_BALANCE_LAMPORTS: BN = new BN(1_000_000_000);
 
-  label: string = "Lido";
+  label: WithdrawStakePoolLabel = "Lido";
 
   mustUseKeypairForSplitStake: boolean = true;
 

@@ -32,6 +32,7 @@ import type {
   StakePool,
   StakePoolQuoteParams,
 } from "@/unstake-ag/stakePools";
+import type { StakePoolLabel } from "@/unstake-ag/unstakeAg/labels";
 import {
   calcStakeUnstakedAmount,
   isLockupInForce,
@@ -70,7 +71,7 @@ export class MarinadeStakePool implements StakePool {
   // https://github.com/marinade-finance/liquid-staking-program/blob/447f9607a8c755cac7ad63223febf047142c6c8f/programs/marinade-finance/src/stake_system/deposit_stake_account.rs#L20
   public static readonly DEPOSIT_WAIT_EPOCHS: number = 2;
 
-  label: string = "Marinade";
+  label: StakePoolLabel = "Marinade";
 
   // marinade uses same keys across all clusters
   outputToken: PublicKey;
