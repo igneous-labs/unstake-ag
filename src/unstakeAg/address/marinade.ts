@@ -14,6 +14,7 @@ export type MarinadeAccounts = {
    * we are updating accounts in one-shot so we need to know this beforehand
    */
   validatorRecords: PublicKey;
+  stakePoolToken: PublicKey;
 };
 
 // marinade uses same pubkeys for everything across all clusters
@@ -29,10 +30,13 @@ const MARINADE_VALIDATOR_RECORDS = new PublicKey(
   "DwFYJNnhLmw19FBTrVaLWZ8SZJpxdPoSYVSJaio9tjbY",
 );
 
+const MSOL = new PublicKey("mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So");
+
 const MARINADE_ADDRESS_MAP_ENTRY = {
   program: MARINADE_PROGRAM,
   state: MARINADE_STATE,
   validatorRecords: MARINADE_VALIDATOR_RECORDS,
+  stakePoolToken: MSOL,
 };
 
 export const MARINADE_ADDRESS_MAP: AddressMap<MarinadeAccounts> = {

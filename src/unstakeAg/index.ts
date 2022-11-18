@@ -149,6 +149,7 @@ export class UnstakeAg {
         dummyAccountInfoForProgramOwner(MARINADE_ADDRESS_MAP[cluster].program),
         {
           validatorRecordsAddr: MARINADE_ADDRESS_MAP[cluster].validatorRecords,
+          stakePoolToken: MARINADE_ADDRESS_MAP[cluster].stakePoolToken,
         },
       ),
     ];
@@ -395,6 +396,8 @@ export class UnstakeAg {
     stakeAccountPubkey: inputStakeAccount,
     user,
     feeAccounts = {},
+    assumeAtasExist = false,
+    splitStakeAccount: splitStakeAccountOption,
   }: ExchangeParams): Promise<ExchangeReturn> {
     if (!stakeAccount.data.info.stake) {
       throw new Error("stake account not delegated");
@@ -409,12 +412,19 @@ export class UnstakeAg {
     // Pubkey of the actual stake account to be unstaked:
     // either inputStakeAccount or an ephemeral one split from it
     let stakeAccountPubkey = inputStakeAccount;
+    // partial unstake of stake account
+    // Note: this branch will not be taken for
+    // exchangeXSol since its always full unstake, therefore
+    // no worries about genShortedUnusedSeed() conflicts
     if (inAmount < stakeAccount.lamports) {
-      const { derived: splitStakePubkey, seed } = await genShortestUnusedSeed(
-        this.connection,
-        user,
-        StakeProgram.programId,
-      );
+      const splitStakeAccount =
+        splitStakeAccountOption ??
+        (await genShortestUnusedSeed(
+          this.connection,
+          user,
+          StakeProgram.programId,
+        ));
+      const { derived: splitStakePubkey, seed } = splitStakeAccount;
       stakeAccountPubkey = splitStakePubkey;
       setupIxs.push(
         ...StakeProgram.splitWithSeed({
@@ -436,42 +446,45 @@ export class UnstakeAg {
       }),
     );
 
-    const isDirectToSol = stakePool.outputToken.equals(WRAPPED_SOL_MINT);
-    const destinationTokenAccount = isDirectToSol
+    const isDirectToUnwrappedSol =
+      stakePool.outputToken.equals(WRAPPED_SOL_MINT);
+    const destinationTokenAccount = isDirectToUnwrappedSol
       ? user
       : await getAssociatedTokenAddress(stakePool.outputToken, user);
-    // Create ATAs for intermediate xSOL and wSOL if not exist
-    if (!isDirectToSol) {
+    // We handle creating wSOL ATA and unwrapping SOL in setup-cleanup txs
+    // in order to reserve max space for the unstake tx
+    if (!isDirectToUnwrappedSol) {
       const wSolTokenAcc = await getAssociatedTokenAddress(
         WRAPPED_SOL_MINT,
         user,
       );
-      const [intermediateAtaExists, wSolAtaExists] =
-        await doTokenProgramAccsExist(this.connection, [
-          destinationTokenAccount,
-          wSolTokenAcc,
-        ]);
-      if (!intermediateAtaExists) {
-        setupIxs.push(
-          createAssociatedTokenAccountInstruction(
-            user,
+      // Create ATAs for intermediate xSOL and wSOL if not exist.
+      if (!assumeAtasExist) {
+        const [intermediateAtaExists, wSolAtaExists] =
+          await doTokenProgramAccsExist(this.connection, [
             destinationTokenAccount,
-            user,
-            stakePool.outputToken,
-          ),
-        );
-      }
-      // we handle wrap-unwrap SOL in setup-cleanup txs in order
-      // to reserve max space for the unstake tx
-      if (!wSolAtaExists) {
-        setupIxs.push(
-          createAssociatedTokenAccountInstruction(
-            user,
             wSolTokenAcc,
-            user,
-            WRAPPED_SOL_MINT,
-          ),
-        );
+          ]);
+        if (!intermediateAtaExists) {
+          setupIxs.push(
+            createAssociatedTokenAccountInstruction(
+              user,
+              destinationTokenAccount,
+              user,
+              stakePool.outputToken,
+            ),
+          );
+        }
+        if (!wSolAtaExists) {
+          setupIxs.push(
+            createAssociatedTokenAccountInstruction(
+              user,
+              wSolTokenAcc,
+              user,
+              WRAPPED_SOL_MINT,
+            ),
+          );
+        }
       }
       cleanupIxs.push(createCloseAccountInstruction(wSolTokenAcc, user, user));
     }
@@ -566,10 +579,9 @@ export class UnstakeAg {
       jupFeeBps,
       forceFetch = false,
       shouldIgnoreRouteErrors = true,
+      currentEpoch: currentEpochOption,
       stakePoolsToExclude: stakePoolsToExcludeOption,
     } = args;
-
-    await this.refreshPoolsIfExpired(forceFetch);
 
     const jupRoutesPromise: Promise<UnstakeXSolRouteJupDirect[]> = this.jupiter
       .computeRoutes({ ...args, outputMint })
@@ -591,9 +603,16 @@ export class UnstakeAg {
     if (!pool) {
       unstakeRoutesPromise = Promise.resolve([]);
     } else {
-      unstakeRoutesPromise = this.connection
-        .getEpochInfo()
-        .then(async ({ epoch: currentEpoch }) => {
+      unstakeRoutesPromise = Promise.all([
+        this.refreshPoolsIfExpired(forceFetch),
+        (async () => {
+          if (currentEpochOption !== undefined) {
+            return currentEpochOption;
+          }
+          return (await this.connection.getEpochInfo()).epoch;
+        })(),
+      ])
+        .then(async ([, currentEpoch]) => {
           const { result } = pool.getWithdrawStakeQuote({
             currentEpoch,
             tokenAmount: BigInt(amount.toString()),
@@ -673,6 +692,8 @@ export class UnstakeAg {
     user,
     srcTokenAccount,
     feeAccounts = {},
+    assumeAtasExist = false,
+    newStakeAccount: newStakeAccountOption,
   }: ExchangeXSolParams): Promise<ExchangeReturn> {
     if (isXSolRouteJupDirect(route)) {
       const {
@@ -707,13 +728,15 @@ export class UnstakeAg {
       intermediateDummyStakeAccountInfo,
       unstake,
     } = route;
-    const newStakeAccount = withdrawStakePool.mustUseKeypairForSplitStake
-      ? Keypair.generate()
-      : await genShortestUnusedSeed(
-          this.connection,
-          user,
-          StakeProgram.programId,
-        );
+    const newStakeAccount =
+      newStakeAccountOption ??
+      (withdrawStakePool.mustUseKeypairForSplitStake
+        ? Keypair.generate()
+        : await genShortestUnusedSeed(
+            this.connection,
+            user,
+            StakeProgram.programId,
+          ));
     const withdrawStakeInstructions =
       withdrawStakePool.createWithdrawStakeInstructions({
         payer: user,
@@ -736,6 +759,7 @@ export class UnstakeAg {
       stakeAccountPubkey: newStakeAccountPubkey(newStakeAccount),
       user,
       feeAccounts,
+      assumeAtasExist,
     });
     if (!exchangeReturn.setupTransaction) {
       exchangeReturn.setupTransaction = {

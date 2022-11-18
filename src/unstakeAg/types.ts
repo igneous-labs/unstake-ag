@@ -1,5 +1,6 @@
 import type {
   AccountInfo,
+  Keypair,
   PublicKey,
   Signer,
   Transaction,
@@ -7,6 +8,7 @@ import type {
 import type { Jupiter } from "@jup-ag/core";
 import type { StakeAccount } from "@soceanfi/solana-stake-sdk";
 
+import type { PubkeyFromSeed } from "@/unstake-ag/common";
 import type { UnstakeRoute, UnstakeXSolRoute } from "@/unstake-ag/route";
 import type { StakePool } from "@/unstake-ag/stakePools";
 import type { WithdrawStakePool } from "@/unstake-ag/withdrawStakePools";
@@ -75,6 +77,36 @@ export interface ComputeRoutesParams {
   stakePoolsToExclude?: StakePoolsToExclude;
 }
 
+export type ComputeRoutesXSolParams = Omit<
+  Parameters<Jupiter["computeRoutes"]>[0],
+  "outputMint" | "feeBps"
+> & {
+  /**
+   * Silently ignore routes where errors were thrown
+   * during computation such as failing to fetch
+   * required accounts.
+   *
+   * Defaults to true
+   */
+  shouldIgnoreRouteErrors?: boolean;
+
+  /**
+   * Optional additional fee to charge on jup swaps,
+   * passed as `feeBps` to `jupiter.computeRoutes()`
+   *
+   * Defaults to undefined
+   */
+  jupFeeBps?: number;
+
+  /**
+   * Current epoch. If not provided, computeRoutes()
+   * will call getEpochInfo() to fetch it
+   */
+  currentEpoch?: number;
+
+  stakePoolsToExclude?: StakePoolsToExclude;
+};
+
 export interface ExchangeParams {
   /**
    * A route returned by `computeRoutes()`
@@ -103,6 +135,23 @@ export interface ExchangeParams {
    * and referral fees on StakePools
    */
   feeAccounts?: FeeAccounts;
+
+  /**
+   * Set to true to exclude checking against on-chain data
+   * to determine whether the user has the required
+   * associated token accounts for an unstake,
+   * including wrapped SOL.
+   *
+   * Defaults to false
+   */
+  assumeAtasExist?: boolean;
+
+  /**
+   * Optionally pass in a precomputed PubkeyFromSeed to serve
+   * as the split stake account for partial unstakes to avoid
+   * computing one live by checking against on-chain data
+   */
+  splitStakeAccount?: PubkeyFromSeed;
 }
 
 export interface ExchangeXSolParams {
@@ -127,6 +176,23 @@ export interface ExchangeXSolParams {
    * and referral fees on StakePools
    */
   feeAccounts?: FeeAccounts;
+
+  /**
+   * Set to true to exclude checking against on-chain data
+   * to determine whether the user has the required
+   * associated token accounts for an unstake,
+   * including wrapped SOL.
+   *
+   * Defaults to false
+   */
+  assumeAtasExist?: boolean;
+
+  /**
+   * Optionally pass in a precomputed PubkeyFromSeed or Keypair to serve
+   * as the split stake account for withdrawn stake to avoid
+   * computing one live
+   */
+  newStakeAccount?: PubkeyFromSeed | Keypair;
 }
 
 /**
@@ -149,27 +215,3 @@ export interface ExchangeReturn {
   unstakeTransaction: TransactionWithSigners;
   cleanupTransaction?: TransactionWithSigners;
 }
-
-export type ComputeRoutesXSolParams = Omit<
-  Parameters<Jupiter["computeRoutes"]>[0],
-  "outputMint" | "feeBps"
-> & {
-  /**
-   * Silently ignore routes where errors were thrown
-   * during computation such as failing to fetch
-   * required accounts.
-   *
-   * Defaults to true
-   */
-  shouldIgnoreRouteErrors?: boolean;
-
-  /**
-   * Optional additional fee to charge on jup swaps,
-   * passed as `feeBps` to `jupiter.computeRoutes()`
-   *
-   * Defaults to undefined
-   */
-  jupFeeBps?: number;
-
-  stakePoolsToExclude?: StakePoolsToExclude;
-};
