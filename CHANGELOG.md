@@ -9,6 +9,10 @@ Note: Version 0 of Semantic Versioning is handled differently from version 1 and
 
 ## [UNRELEASED]
 
+### Fixed
+
+- Clobbering `stakePoolsToExclude` in `computeRoutesXSol()`
+
 ### Added
 
 - Explicit union types for labels. Typescript will now check validity of keys in `stakePoolsToExclude` 
