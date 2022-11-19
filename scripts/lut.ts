@@ -105,6 +105,8 @@ async function main() {
           hp.stakePoolAddr,
           hp.validatorListAddr,
           hp.withdrawStakeToken,
+          hp.withdrawAuth,
+          hp.depositAuth,
         ];
       }
       throw new Error("unreachable");

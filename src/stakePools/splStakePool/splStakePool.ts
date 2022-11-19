@@ -1,4 +1,4 @@
-/* eslint-disable max-classes-per-file */
+/* eslint-disable max-classes-per-file, no-underscore-dangle */
 
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import {
@@ -82,6 +82,16 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
 
   validatorListAddr: PublicKey;
 
+  withdrawAuth: PublicKey;
+
+  _depositAuth: PublicKey;
+
+  // default to default PDA if stake pool not yet fetched
+  // this should be the case for all public stake pools anw
+  get depositAuth(): PublicKey {
+    return this.stakePool ? this.stakePool.depositAuthority : this._depositAuth;
+  }
+
   constructor(
     stakePoolAddr: PublicKey,
     // just pass in an AccountInfo with the right owner
@@ -108,6 +118,14 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
     this.programId = programId;
     this.stakePoolAddr = stakePoolAddr;
     this.validatorListAddr = validatorListAddr;
+    [this.withdrawAuth] = PublicKey.findProgramAddressSync(
+      [this.stakePoolAddr.toBuffer(), Buffer.from("withdraw")],
+      this.programId,
+    );
+    [this._depositAuth] = PublicKey.findProgramAddressSync(
+      [this.stakePoolAddr.toBuffer(), Buffer.from("deposit")],
+      this.programId,
+    );
   }
 
   /**
@@ -185,8 +203,6 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
       throw new StakePoolNotFetchedError();
     }
 
-    const stakePoolWithdrawAuth = this.findStakePoolWithdrawAuth();
-
     const validatorStakeAccount = this.findValidatorStakeAccount(
       stakeAccountVotePubkey,
     );
@@ -195,21 +211,21 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
       ...StakeProgram.authorize({
         stakePubkey: stakeAccountPubkey,
         authorizedPubkey: stakerAuth,
-        newAuthorizedPubkey: this.stakePool.depositAuthority,
+        newAuthorizedPubkey: this.depositAuth,
         stakeAuthorizationType: StakeAuthorizationLayout.Staker,
       }).instructions,
       ...StakeProgram.authorize({
         stakePubkey: stakeAccountPubkey,
         authorizedPubkey: withdrawerAuth,
-        newAuthorizedPubkey: this.stakePool.depositAuthority,
+        newAuthorizedPubkey: this.depositAuth,
         stakeAuthorizationType: StakeAuthorizationLayout.Withdrawer,
       }).instructions,
       depositStakeInstruction(
         this.programId,
         this.stakePoolAddr,
         this.validatorListAddr,
-        this.stakePool.depositAuthority,
-        stakePoolWithdrawAuth,
+        this.depositAuth,
+        this.withdrawAuth,
         stakeAccountPubkey,
         validatorStakeAccount,
         this.stakePool.reserveStake,
@@ -302,7 +318,7 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
         this.programId,
         this.stakePoolAddr,
         this.validatorListAddr,
-        this.findStakePoolWithdrawAuth(),
+        this.withdrawAuth,
         stakeSplitFrom,
         newStakeAccountPubkey(newStakeAccount),
         withdrawerAuth,
@@ -455,13 +471,6 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
 
   // TODO: export sync versions of these PDA util functions
   // from stake-pool-sdk
-
-  protected findStakePoolWithdrawAuth(): PublicKey {
-    return PublicKey.findProgramAddressSync(
-      [this.stakePoolAddr.toBuffer(), Buffer.from("withdraw")],
-      this.programId,
-    )[0];
-  }
 
   protected findValidatorStakeAccount(
     stakeAccountVotePubkey: PublicKey,
