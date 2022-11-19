@@ -8,6 +8,7 @@ import type { StakeAccount } from "@soceanfi/solana-stake-sdk";
 import JSBI from "jsbi";
 
 import type { WithPayer, WithStakeAuths } from "@/unstake-ag/common";
+import type { StakePoolLabel } from "@/unstake-ag/unstakeAg/labels";
 
 /**
  * StakePools can only handle ExactIn swapMode and only ever outputs their own outputToken.
@@ -43,7 +44,7 @@ export interface StakePoolQuoteParams {
 export interface StakePool {
   outputToken: PublicKey;
 
-  label: string;
+  label: StakePoolLabel;
 
   /**
    * Check if a stake pool can accept the given stake account
