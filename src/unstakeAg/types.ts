@@ -19,7 +19,7 @@ export type HybridPool = StakePool & WithdrawStakePool;
 /**
  * Exclude certain StakePools from the route search
  *
- * e.g. { "Marinade": true, "Lido": true }
+ * e.g. { "Marinade": true, "Socean": true }
  */
 export type StakePoolsToExclude = {
   [label in StakePoolLabel]?: boolean;
