@@ -12,6 +12,7 @@ import type {
   WithPayer,
   WithStakeAuths,
 } from "@/unstake-ag/common";
+import type { WithdrawStakePoolLabel } from "@/unstake-ag/unstakeAg/labels";
 
 /**
  * A WithdrawStakePool in this context is any on-chain entity
@@ -23,7 +24,7 @@ import type {
 export interface WithdrawStakePool {
   withdrawStakeToken: PublicKey;
 
-  label: string;
+  label: WithdrawStakePoolLabel;
 
   mustUseKeypairForSplitStake: boolean;
 

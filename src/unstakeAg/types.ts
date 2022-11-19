@@ -11,17 +11,18 @@ import type { StakeAccount } from "@soceanfi/solana-stake-sdk";
 import type { PubkeyFromSeed } from "@/unstake-ag/common";
 import type { UnstakeRoute, UnstakeXSolRoute } from "@/unstake-ag/route";
 import type { StakePool } from "@/unstake-ag/stakePools";
+import type { StakePoolLabel } from "@/unstake-ag/unstakeAg/labels";
 import type { WithdrawStakePool } from "@/unstake-ag/withdrawStakePools";
 
 export type HybridPool = StakePool & WithdrawStakePool;
 
 /**
- * Exclude certain stake pools from the route search
+ * Exclude certain StakePools from the route search
  *
- * e.g. { "Marinade": true }
+ * e.g. { "Marinade": true, "Socean": true }
  */
 export type StakePoolsToExclude = {
-  [label in string]?: boolean;
+  [label in StakePoolLabel]?: boolean;
 };
 
 export interface ComputeRoutesParams {

@@ -30,6 +30,7 @@ import type {
   StakePool,
   StakePoolQuoteParams,
 } from "@/unstake-ag/stakePools";
+import type { StakePoolLabel } from "@/unstake-ag/unstakeAg/labels";
 import { isLockupInForce } from "@/unstake-ag/unstakeAg/utils";
 // commonJS workaround
 // TODO: change this back into a normal import once @unstake-it/sol supports esm
@@ -38,7 +39,7 @@ const { applyFee, IDL_JSON: UNSTAKE_IDL_JSON, Program } = unstakeit;
 export class UnstakeIt implements StakePool {
   outputToken: PublicKey = WRAPPED_SOL_MINT;
 
-  label: string = "unstake.it";
+  label: StakePoolLabel = "unstake.it";
 
   // TODO: revert to Program once @unstake-it/sol supports esm
   program: ProgramType<Unstake>;
