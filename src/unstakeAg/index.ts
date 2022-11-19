@@ -188,11 +188,11 @@ export class UnstakeAg {
         },
       ),
       ...[
-        { splAddrMap: JPOOL_ADDRESS_MAP, label: "JPool" },
-        { splAddrMap: SOLBLAZE_ADDRESS_MAP, label: "SolBlaze" },
-        { splAddrMap: DAOPOOL_ADDRESS_MAP, label: "DAOPool" },
-        { splAddrMap: JITO_ADDRESS_MAP, label: "Jito" },
-        { splAddrMap: LAINE_ADDRESS_MAP, label: "Laine" },
+        { splAddrMap: JPOOL_ADDRESS_MAP, label: "JPool" as const },
+        { splAddrMap: SOLBLAZE_ADDRESS_MAP, label: "SolBlaze" as const },
+        { splAddrMap: DAOPOOL_ADDRESS_MAP, label: "DAOPool" as const },
+        { splAddrMap: JITO_ADDRESS_MAP, label: "Jito" as const },
+        { splAddrMap: LAINE_ADDRESS_MAP, label: "Laine" as const },
       ].map(
         ({ splAddrMap, label }) =>
           new OfficialSplStakePool(
@@ -622,16 +622,14 @@ export class UnstakeAg {
           }
           const { outputDummyStakeAccountInfo, stakeSplitFrom } = result;
           const outAmount = BigInt(outputDummyStakeAccountInfo.lamports);
-          let stakePoolsToExclude = stakePoolsToExcludeOption;
+          const stakePoolsToExclude = stakePoolsToExcludeOption ?? {};
           // withdrawing the stake, then depositing the stake
           // again = back to xSOL
           if (
             isHybridPool(pool) &&
             pool.outputToken.equals(pool.withdrawStakeToken)
           ) {
-            stakePoolsToExclude = {
-              [pool.label]: true,
-            };
+            stakePoolsToExclude[pool.label] = true;
           }
           const unstakeRoutes = await this.computeRoutes({
             stakeAccount: outputDummyStakeAccountInfo,
@@ -778,5 +776,6 @@ export class UnstakeAg {
 }
 
 export * from "./address";
+export * from "./labels";
 export * from "./types";
 export * from "./utils";

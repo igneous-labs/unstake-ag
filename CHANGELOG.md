@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Note: Version 0 of Semantic Versioning is handled differently from version 1 and above. The minor version will be incremented upon a breaking change and the patch version will be incremented for features.
 
+## [UNRELEASED]
+
+### Fixed
+
+- Clobbering `stakePoolsToExclude` in `computeRoutesXSol()`
+
+### Added
+
+- Doc for lut feature
+
+### Changed
+
+- Explicit union types for labels. Typescript will now check validity of keys in `stakePoolsToExclude` 
+
 ## [0.3.1] - 2022-11-18
 
 ### Added

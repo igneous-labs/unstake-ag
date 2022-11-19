@@ -256,7 +256,7 @@ export function filterNotSupportedJupRoutes(routes: RouteInfo[]): RouteInfo[] {
 */
 
 export function routeMarketLabels(route: UnstakeRoute): string[] {
-  const res = [route.stakeAccInput.stakePool.label];
+  const res: string[] = [route.stakeAccInput.stakePool.label];
   if (route.jup) {
     res.push(...route.jup.marketInfos.map((m) => m.amm.label));
   }

@@ -34,6 +34,7 @@ Contents:
     - [Create Transaction(s) from Routes](#create-transactions-from-route)
     - [Compute Routes for xSOL](#compute-routes-for-xsol)
     - [Create Transaction(s) from Route for xSOL](#create-transactions-from-route-for-xsol)
+    - [Lookup Table](#lookup-table)
   - [Learn More](#learn-more)
 
 ## API
@@ -313,6 +314,19 @@ if (cleanupTx) {
   );
 }
 ```
+
+### Lookup Table
+
+We provide a utility script for creating a lookup table that contains most of the included stake pools' relevant addresses and some commonly used programs and sysvars.
+
+```sh
+# verify that your solana cli config is correct
+solana config get
+
+yarn lut
+```
+
+A lookup table maintained by the team is available on mainnet-beta at `EhWxBHdmQ3yDmPzhJbKtGMM9oaZD42emt71kSieghy5`
 
 ## Learn More
 
