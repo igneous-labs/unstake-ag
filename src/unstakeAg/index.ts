@@ -60,7 +60,6 @@ import {
   outLamports,
   outLamportsXSol,
   tryMergeExchangeReturn,
-  UNUSABLE_JUP_MARKETS_LABELS,
 } from "@/unstake-ag/unstakeAg/utils";
 import {
   isNewStakeAccountKeypair,
@@ -211,10 +210,6 @@ export class UnstakeAg {
   static async load(params: JupiterLoadParams): Promise<UnstakeAg> {
     // we can't use serum markets anyway
     params.shouldLoadSerumOpenOrders = false;
-    params.ammsToExclude = params.ammsToExclude ?? {};
-    for (const amm of UNUSABLE_JUP_MARKETS_LABELS) {
-      params.ammsToExclude[amm] = true;
-    }
     // TODO: this throws `missing <Account>` sometimes
     // if RPC is slow to return. Not sure how to mitigate
     const jupiter = await Jupiter.load(params);
