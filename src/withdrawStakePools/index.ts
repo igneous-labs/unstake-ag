@@ -73,6 +73,11 @@ export interface WithdrawStakeQuote {
   result?: {
     outputDummyStakeAccountInfo: AccountInfo<StakeAccount>;
     stakeSplitFrom: PublicKey;
+    /**
+     * Any additional SOL that needs to be paid as rent-exempt fees for
+     * new accounts to be created
+     */
+    additionalRentLamports: bigint;
   };
 }
 

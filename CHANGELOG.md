@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Note: Version 0 of Semantic Versioning is handled differently from version 1 and above. The minor version will be incremented upon a breaking change and the patch version will be incremented for features.
 
+## [UNRELEASED]
+
+### Added
+
+- `additionalRentLamports` field to `WithdrawRoute` and `StakeAccInputRoute` to account for additional rent required to be paid for stake accounts and other new accounts to be created, and util functions `totalRentLamports()` and `totalRentLamportsXSol()` for calculating them from `UnstakeRoute` and `UnstakeXSolRoute`
+- Util function `legacyTxAmmsToExclude()` to create an `ammsToExclude` object with all known AMMs that would cause legacy transaction size issues.
+- Util function `minOutLamports()` and `minOutLamportsXSol()` for returning output lamports after max allowed slippage.
+
+### Changed
+
+- `splStakePool.depositAuth` now defaults to the default deposit authority PDA, and is updated to the one stored in the account when the account is fetched.
+- Upgrade `@jup-ag/core` to `3.0.0-beta.8`  
+- No longer initialize jup with a compulsory set of `ammsToExclude`, since all markets should be able to fit into one tx with LUTs. It is now the responsibility of the user to initialize `UnstakeAg` with the desired `ammsToExclude`.
+
 ## [0.3.2] - 2022-11-19
 
 ### Fixed

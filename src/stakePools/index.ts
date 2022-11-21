@@ -11,29 +11,6 @@ import type { WithPayer, WithStakeAuths } from "@/unstake-ag/common";
 import type { StakePoolLabel } from "@/unstake-ag/unstakeAg/labels";
 
 /**
- * StakePools can only handle ExactIn swapMode and only ever outputs their own outputToken.
- * Adapted from Jup's Quote params
- */
-export interface StakePoolQuoteParams {
-  /**
-   * Vote account the stake account is delegated to
-   */
-  sourceMint: PublicKey;
-
-  /**
-   * Amount of staked lamports of the stake account
-   */
-  stakeAmount: JSBI;
-
-  /**
-   * Amount of unstaked lamports of the stake account
-   * This is rent-exempt minimum and any additional lamports
-   * from the account being credited lamports
-   */
-  unstakedAmount: JSBI;
-}
-
-/**
  * A StakePool in this context is any on-chain entity
  * that accepts stake accounts in return for tokens
  *
@@ -94,8 +71,39 @@ export interface StakePool {
    * passed `this.canAcceptStakeAccount()`
    * @param quoteParams
    */
-  getQuote(quoteParams: StakePoolQuoteParams): Quote;
+  getQuote(quoteParams: StakePoolQuoteParams): StakeQuote;
 }
+
+/**
+ * StakePools can only handle ExactIn swapMode and only ever outputs their own outputToken.
+ * Adapted from Jup's Quote params
+ */
+export interface StakePoolQuoteParams {
+  /**
+   * Vote account the stake account is delegated to
+   */
+  sourceMint: PublicKey;
+
+  /**
+   * Amount of staked lamports of the stake account
+   */
+  stakeAmount: JSBI;
+
+  /**
+   * Amount of unstaked lamports of the stake account
+   * This is rent-exempt minimum and any additional lamports
+   * from the account being credited lamports
+   */
+  unstakedAmount: JSBI;
+}
+
+export type StakeQuote = Quote & {
+  /**
+   * Any additional SOL that needs to be paid as rent-exempt fees for
+   * new accounts to be created
+   */
+  additionalRentLamports: bigint;
+};
 
 export interface CanAcceptStakeAccountParams {
   stakeAccount: AccountInfo<StakeAccount>;

@@ -7,7 +7,7 @@ import {
   TransactionInstruction,
 } from "@solana/web3.js";
 import { WRAPPED_SOL_MINT } from "@jup-ag/core";
-import { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
+import { AccountInfoMap } from "@jup-ag/core/dist/lib/amm";
 import { stakeAccountState } from "@soceanfi/solana-stake-sdk";
 import type {
   Fee,
@@ -29,6 +29,7 @@ import type {
   CreateSwapInstructionsParams,
   StakePool,
   StakePoolQuoteParams,
+  StakeQuote,
 } from "@/unstake-ag/stakePools";
 import type { StakePoolLabel } from "@/unstake-ag/unstakeAg/labels";
 import { isLockupInForce } from "@/unstake-ag/unstakeAg/utils";
@@ -224,7 +225,7 @@ export class UnstakeIt implements StakePool {
     }
   }
 
-  getQuote({ stakeAmount, unstakedAmount }: StakePoolQuoteParams): Quote {
+  getQuote({ stakeAmount, unstakedAmount }: StakePoolQuoteParams): StakeQuote {
     if (!this.fee) {
       throw new Error("fee account not fetched");
     }
@@ -256,6 +257,9 @@ export class UnstakeIt implements StakePool {
       feePct:
         estFeeDeductedLamports.toNumber() / stakeAccountLamports.toNumber(),
       priceImpactPct: 0,
+      // solana rent (sizeof(StakeAccountRecord)=16 bytes)
+      // = 0.00100224 SOL
+      additionalRentLamports: BigInt(1002240),
     };
   }
 }

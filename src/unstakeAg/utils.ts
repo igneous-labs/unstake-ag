@@ -8,6 +8,7 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import { Amm } from "@jup-ag/core";
+import type { SingleLevelAmmValidator } from "@jup-ag/core/dist/lib/ammValidator";
 import {
   StakeAccount,
   stakeAccountState,
@@ -200,18 +201,21 @@ export function dummyStakeAccountInfo({
  *
  * TODO: add more as they come up
  */
-export const UNUSABLE_JUP_MARKETS_LABELS: Set<Amm["label"]> = new Set([
-  // 1300+ with spl
-  "Serum",
-  // 1300+ with spl
-  "Raydium",
-  // 1256 with marinade
-  "GooseFX",
+export const LEGACY_TX_UNUSABLE_JUP_MARKETS_LABELS: Set<Amm["label"]> = new Set(
+  [
+    // 1300+ with spl
+    "Serum",
+    // same as Serum
+    "Openbook",
+    // 1300+ with spl
+    "Raydium",
+    // 1256 with marinade
+    "GooseFX",
 
-  // Markets below dont have any xSOL-SOL pairs listed.
-  // Comment them out to discover new markets + listings
-  // EDIT: any DEX with any SOL pairs is good for XSolJupDirect routes
-  /*
+    // Markets below dont have any xSOL-SOL pairs listed.
+    // Comment them out to discover new markets + listings
+    // EDIT: any DEX with any SOL pairs is good for XSolJupDirect routes
+    /*
   "Cropper",
   "Cykura",
   "DeltaFi",
@@ -226,34 +230,17 @@ export const UNUSABLE_JUP_MARKETS_LABELS: Set<Amm["label"]> = new Set([
   "Saber (Decimals)",
   "Unknown",
   */
-]);
+  ],
+);
 
-// Not used for now, implementing this functionality using jup's ammsToExclude functionality
-/**
- * Markets we can use (known so-far, check by seeing if
- * `Error: Transaction too large` is thrown in test-basic):
- * - Orca
- * - Saber
- *
- * @param routes
- * @returns
- */
-/*
-export function filterNotSupportedJupRoutes(routes: RouteInfo[]): RouteInfo[] {
-  return routes.filter((route) => {
-    const marketsInvolved = route.marketInfos
-      .map((m) => m.amm.label.split("+").map((str) => str.trim()))
-      .flat();
-    for (let i = 0; i < marketsInvolved.length; i++) {
-      const market = marketsInvolved[i];
-      if (UNUSABLE_JUP_MARKETS_LABELS.has(market as Amm['label'])) {
-        return false;
-      }
-    }
-    return true;
-  });
+export function legacyTxAmmsToExclude(): SingleLevelAmmValidator {
+  return Object.fromEntries(
+    [...LEGACY_TX_UNUSABLE_JUP_MARKETS_LABELS.values()].map((label) => [
+      label,
+      true,
+    ]),
+  );
 }
-*/
 
 export function routeMarketLabels(route: UnstakeRoute): string[] {
   const res: string[] = [route.stakeAccInput.stakePool.label];
@@ -463,6 +450,24 @@ export function outLamports({ stakeAccInput, jup }: UnstakeRoute): bigint {
   return BigInt(jup.outAmount.toString());
 }
 
+export function totalRentLamports({
+  stakeAccInput: { additionalRentLamports },
+}: UnstakeRoute): bigint {
+  return additionalRentLamports;
+}
+
+/**
+ * Min amount of lamports to be received for a given route, after max allowed slippage
+ * @param param0
+ * @returns
+ */
+export function minOutLamports({ stakeAccInput, jup }: UnstakeRoute): bigint {
+  if (!jup) {
+    return stakeAccInput.outAmount;
+  }
+  return BigInt(jup.otherAmountThreshold.toString());
+}
+
 export function tryMergeExchangeReturn(
   user: PublicKey,
   { setupTransaction, unstakeTransaction, cleanupTransaction }: ExchangeReturn,
@@ -525,6 +530,28 @@ export function outLamportsXSol(route: UnstakeXSolRoute): bigint {
     return BigInt(route.jup.outAmount.toString());
   }
   return outLamports(route.unstake);
+}
+
+export function totalRentLamportsXSol(route: UnstakeXSolRoute): bigint {
+  if (isXSolRouteJupDirect(route)) {
+    return BigInt(0);
+  }
+  return (
+    route.withdrawStake.additionalRentLamports +
+    totalRentLamports(route.unstake)
+  );
+}
+
+/**
+ * Min amount of lamports to be received for a given unstake xSOL route, after max allowed slippage
+ * @param param0
+ * @returns
+ */
+export function minOutLamportsXSol(route: UnstakeXSolRoute): bigint {
+  if (isXSolRouteJupDirect(route)) {
+    return BigInt(route.jup.otherAmountThreshold.toString());
+  }
+  return minOutLamports(route.unstake);
 }
 
 export function prepareSetupTx(

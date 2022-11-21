@@ -15,10 +15,12 @@ import { Jupiter, JupiterLoadParams, WRAPPED_SOL_MINT } from "@jup-ag/core";
 import { STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS } from "@soceanfi/stake-pool-sdk";
 
 import type {
+  StakeAccInputRoute,
   UnstakeRoute,
   UnstakeXSolRoute,
   UnstakeXSolRouteJupDirect,
   UnstakeXSolRouteWithdrawStake,
+  WithdrawStakeRoute,
 } from "@/unstake-ag/route";
 import {
   EverstakeSplStakePool,
@@ -60,7 +62,6 @@ import {
   outLamports,
   outLamportsXSol,
   tryMergeExchangeReturn,
-  UNUSABLE_JUP_MARKETS_LABELS,
 } from "@/unstake-ag/unstakeAg/utils";
 import {
   isNewStakeAccountKeypair,
@@ -211,10 +212,6 @@ export class UnstakeAg {
   static async load(params: JupiterLoadParams): Promise<UnstakeAg> {
     // we can't use serum markets anyway
     params.shouldLoadSerumOpenOrders = false;
-    params.ammsToExclude = params.ammsToExclude ?? {};
-    for (const amm of UNUSABLE_JUP_MARKETS_LABELS) {
-      params.ammsToExclude[amm] = true;
-    }
     // TODO: this throws `missing <Account>` sometimes
     // if RPC is slow to return. Not sure how to mitigate
     const jupiter = await Jupiter.load(params);
@@ -327,22 +324,25 @@ export class UnstakeAg {
             stakeAccount,
             currentEpoch,
           );
-          const { outAmount, notEnoughLiquidity } = sp.getQuote({
-            sourceMint:
-              stakeAccount.data.info.stake?.delegation.voter ??
-              StakeProgram.programId,
-            stakeAmount,
-            unstakedAmount,
-          });
+          const { outAmount, notEnoughLiquidity, additionalRentLamports } =
+            sp.getQuote({
+              sourceMint:
+                stakeAccount.data.info.stake?.delegation.voter ??
+                StakeProgram.programId,
+              stakeAmount,
+              unstakedAmount,
+            });
           if (notEnoughLiquidity) {
             return null;
           }
-          const stakePoolRoute = {
-            stakeAccInput: {
-              stakePool: sp,
-              inAmount: amountLamports,
-              outAmount: BigInt(outAmount.toString()),
-            },
+          const stakeAccInput: StakeAccInputRoute = {
+            stakePool: sp,
+            inAmount: amountLamports,
+            outAmount: BigInt(outAmount.toString()),
+            additionalRentLamports,
+          };
+          const stakePoolRoute: UnstakeRoute = {
+            stakeAccInput,
           };
           if (sp.outputToken.equals(WRAPPED_SOL_MINT)) {
             return [stakePoolRoute];
@@ -620,7 +620,11 @@ export class UnstakeAg {
           if (!result) {
             return [];
           }
-          const { outputDummyStakeAccountInfo, stakeSplitFrom } = result;
+          const {
+            outputDummyStakeAccountInfo,
+            stakeSplitFrom,
+            additionalRentLamports: additionalRentForWithdrawStake,
+          } = result;
           const outAmount = BigInt(outputDummyStakeAccountInfo.lamports);
           const stakePoolsToExclude = stakePoolsToExcludeOption ?? {};
           // withdrawing the stake, then depositing the stake
@@ -642,13 +646,15 @@ export class UnstakeAg {
             // already refreshed pools above
             forceFetch: false,
           });
+          const withdrawStake: WithdrawStakeRoute = {
+            withdrawStakePool: pool,
+            inAmount: BigInt(amount.toString()),
+            outAmount,
+            stakeSplitFrom,
+            additionalRentLamports: additionalRentForWithdrawStake,
+          };
           return unstakeRoutes.map((unstake) => ({
-            withdrawStake: {
-              withdrawStakePool: pool,
-              inAmount: BigInt(amount.toString()),
-              outAmount,
-              stakeSplitFrom,
-            },
+            withdrawStake,
             intermediateDummyStakeAccountInfo: outputDummyStakeAccountInfo,
             unstake,
           }));
