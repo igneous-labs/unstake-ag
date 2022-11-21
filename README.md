@@ -108,7 +108,7 @@ await unstake.updatePools();
 ```ts
 import { PublicKey } from "@solana/web3.js";
 import { getStakeAccount } from "@soceanfi/solana-stake-sdk";
-import { outLamports } from "@unstake-it/sol-ag";
+import { outLamports, minOutLamports } from "@unstake-it/sol-ag";
 
 const stakeAccountPubkey = new PublicKey(...);
 const stakeAccount = await getStakeAccount(connection, stakeAccountPubkey);
@@ -132,7 +132,13 @@ const {
   jup,
 } = bestRoute;
 
-console.log("Route will give me", outLamports(bestRoute), "lamports");
+console.log(
+  "Route will give me",
+  outLamports(bestRoute),
+  "lamports, and at least",
+  minOutLamports(bestRoute),
+  "lamports at max slippage",
+);
 ```
 
 ### Create Transaction(s) From Route
@@ -217,7 +223,7 @@ The aggregator also handles the unstaking of xSOL (supported liquid staking deri
 import { PublicKey } from "@solana/web3.js";
 import { getStakeAccount } from "@soceanfi/solana-stake-sdk";
 import JSBI from "jsbi";
-import { isXSolRouteJupDirect, outLamportsXSol } from "@unstake-it/sol-ag"
+import { isXSolRouteJupDirect, outLamportsXSol, minOutLamportsXSol } from "@unstake-it/sol-ag"
 
 const scnSOL = new PublicKey("5oVNBeEEQvYi1cX3ir8Dx5n1P7pdxydbGF2X4TxVusJm");
 const routesScnSol = await unstake.computeRoutesXSol({
@@ -247,7 +253,13 @@ if (isXSolRouteJupDirect(bestRouteScnSol)) {
   } = bestRouteScnSol;
 }
 
-console.log("Route will give me", outLamportsXSol(bestRouteScnSol), "lamports");
+console.log(
+  "Route will give me",
+  outLamportsXSol(bestRouteScnSol),
+  "lamports, and at least",
+  minOutLamportsXSol(bestRouteScnSol),
+  "lamports at max slippage",
+);
 ```
 
 ### Create Transaction(s) From Route for xSOL

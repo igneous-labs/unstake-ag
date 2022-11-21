@@ -11,13 +11,14 @@ Note: Version 0 of Semantic Versioning is handled differently from version 1 and
 
 ### Added
 
-- Util function `legacyTxAmmsToExclude()` to create an `ammsToExclude` objet with all known AMMs that would cause legacy transaction size issues.
+- Util function `legacyTxAmmsToExclude()` to create an `ammsToExclude` object with all known AMMs that would cause legacy transaction size issues.
+- Util function `minOutLamports()` and `minOutLamportsXSol()` for returning output lamports after max allowed slippage.
 
 ### Changed
 
-- `splStakePool.depositAuth` now defaults to the default deposit authority PDA and is updated to the one stored in the account when the account is fetched.
+- `splStakePool.depositAuth` now defaults to the default deposit authority PDA, and is updated to the one stored in the account when the account is fetched.
 - Upgrade `@jup-ag/core` to `3.0.0-beta.8`  
-- No longer initialize jup with a compulsory set of `ammsToexclude`, since all markets should be able to fit into one tx with LUTs. It is now the responsibility of the user to initialize `UnstakeAg` with the desired `ammsToExclude`.
+- No longer initialize jup with a compulsory set of `ammsToExclude`, since all markets should be able to fit into one tx with LUTs. It is now the responsibility of the user to initialize `UnstakeAg` with the desired `ammsToExclude`.
 
 ## [0.3.2] - 2022-11-19
 
