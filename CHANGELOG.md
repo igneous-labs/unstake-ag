@@ -11,6 +11,7 @@ Note: Version 0 of Semantic Versioning is handled differently from version 1 and
 
 ### Added
 
+- `additionalRentLamports` field to `WithdrawRoute` and `StakeAccInputRoute` to account for additional rent required to be paid for stake accounts and other new accounts to be created, and util functions `totalRentLamports()` and `totalRentLamportsXSol()` for calculating them from `UnstakeRoute` and `UnstakeXSolRoute`
 - Util function `legacyTxAmmsToExclude()` to create an `ammsToExclude` object with all known AMMs that would cause legacy transaction size issues.
 - Util function `minOutLamports()` and `minOutLamportsXSol()` for returning output lamports after max allowed slippage.
 

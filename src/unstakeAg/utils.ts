@@ -450,6 +450,12 @@ export function outLamports({ stakeAccInput, jup }: UnstakeRoute): bigint {
   return BigInt(jup.outAmount.toString());
 }
 
+export function totalRentLamports({
+  stakeAccInput: { additionalRentLamports },
+}: UnstakeRoute): bigint {
+  return additionalRentLamports;
+}
+
 /**
  * Min amount of lamports to be received for a given route, after max allowed slippage
  * @param param0
@@ -524,6 +530,16 @@ export function outLamportsXSol(route: UnstakeXSolRoute): bigint {
     return BigInt(route.jup.outAmount.toString());
   }
   return outLamports(route.unstake);
+}
+
+export function totalRentLamportsXSol(route: UnstakeXSolRoute): bigint {
+  if (isXSolRouteJupDirect(route)) {
+    return BigInt(0);
+  }
+  return (
+    route.withdrawStake.additionalRentLamports +
+    totalRentLamports(route.unstake)
+  );
 }
 
 /**

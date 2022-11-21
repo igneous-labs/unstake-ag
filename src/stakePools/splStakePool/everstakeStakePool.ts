@@ -6,7 +6,7 @@ import {
   Struct,
   TransactionInstruction,
 } from "@solana/web3.js";
-import type { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
+import type { AccountInfoMap } from "@jup-ag/core/dist/lib/amm";
 import {
   option,
   publicKey,
@@ -30,6 +30,7 @@ import type {
   CanAcceptStakeAccountParams,
   CreateSwapInstructionsParams,
   StakePoolQuoteParams,
+  StakeQuote,
 } from "@/unstake-ag/stakePools";
 import {
   SplStakePool,
@@ -296,7 +297,7 @@ export class EverstakeSplStakePool extends SplStakePool {
   override getQuote({
     stakeAmount,
     unstakedAmount,
-  }: StakePoolQuoteParams): Quote {
+  }: StakePoolQuoteParams): StakeQuote {
     if (!this.stakePool) {
       throw new StakePoolNotFetchedError();
     }
@@ -335,6 +336,7 @@ export class EverstakeSplStakePool extends SplStakePool {
       feeMint: this.outputToken.toString(),
       feePct: JSBI.toNumber(feeAmount) / JSBI.toNumber(poolTokensMinted),
       priceImpactPct: 0,
+      additionalRentLamports: BigInt(0),
     };
   }
 
