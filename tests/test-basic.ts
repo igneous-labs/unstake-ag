@@ -9,6 +9,7 @@ import { checkRoutes, checkRoutesXSol } from "@/tests/utils";
 import {
   EVERSOL_ADDRESS_MAP,
   LAINE_ADDRESS_MAP,
+  legacyTxAmmsToExclude,
   LIDO_ADDRESS_MAP,
   MARINADE_ADDRESS_MAP,
   SOCEAN_ADDRESS_MAP,
@@ -67,6 +68,7 @@ describe("test basic functionality", () => {
       cluster: "mainnet-beta",
       connection: CONN,
       routeCacheDuration: ROUTE_CACHE_DURATION_MS,
+      ammsToExclude: legacyTxAmmsToExclude(),
     });
     stakeAccount = await getStakeAccount(CONN, TEST_STAKE_ACC_PUBKEY);
   });
