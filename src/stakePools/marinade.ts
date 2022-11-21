@@ -11,7 +11,7 @@ import {
   SYSVAR_RENT_PUBKEY,
   TransactionInstruction,
 } from "@solana/web3.js";
-import { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
+import { AccountInfoMap } from "@jup-ag/core/dist/lib/amm";
 // Yes, the one from jup, not marinade, because we just need to deserialize the account, which is
 // MarinadeState.state and marinade sdk doesnt export just the account fields
 import type { MarinadeStateResponse } from "@jup-ag/core/dist/lib/amms/marinade/marinade-state.types";
@@ -31,6 +31,7 @@ import type {
   CreateSwapInstructionsParams,
   StakePool,
   StakePoolQuoteParams,
+  StakeQuote,
 } from "@/unstake-ag/stakePools";
 import type { StakePoolLabel } from "@/unstake-ag/unstakeAg/labels";
 import {
@@ -323,7 +324,7 @@ export class MarinadeStakePool implements StakePool {
     }
   }
 
-  getQuote({ stakeAmount, unstakedAmount }: StakePoolQuoteParams): Quote {
+  getQuote({ stakeAmount, unstakedAmount }: StakePoolQuoteParams): StakeQuote {
     if (!this.state) {
       throw new Error("marinade state not fetched");
     }
@@ -348,6 +349,7 @@ export class MarinadeStakePool implements StakePool {
       // Note: name is pct, but actually rate (0.0 - 1.0)
       feePct: 0,
       priceImpactPct: 0,
+      additionalRentLamports: BigInt(0),
     };
   }
 

@@ -21,6 +21,12 @@ export interface StakeAccInputRoute {
    * will output.
    */
   outAmount: bigint;
+
+  /**
+   * Any additional SOL that needs to be paid as rent-exempt fees for
+   * new accounts to be created
+   */
+  additionalRentLamports: bigint;
 }
 
 export interface UnstakeRoute {
@@ -51,6 +57,12 @@ export interface WithdrawStakeRoute {
    * The stake account of the withdrawStakePool to split stake from
    */
   stakeSplitFrom: PublicKey;
+
+  /**
+   * Any additional SOL that needs to be paid as rent-exempt fees for
+   * new accounts to be created
+   */
+  additionalRentLamports: bigint;
 }
 
 export type UnstakeXSolRouteJupDirect = {

@@ -463,6 +463,12 @@ export function outLamports({ stakeAccInput, jup }: UnstakeRoute): bigint {
   return BigInt(jup.outAmount.toString());
 }
 
+export function totalRentLamports({
+  stakeAccInput: { additionalRentLamports },
+}: UnstakeRoute): bigint {
+  return additionalRentLamports;
+}
+
 export function tryMergeExchangeReturn(
   user: PublicKey,
   { setupTransaction, unstakeTransaction, cleanupTransaction }: ExchangeReturn,
@@ -525,6 +531,16 @@ export function outLamportsXSol(route: UnstakeXSolRoute): bigint {
     return BigInt(route.jup.outAmount.toString());
   }
   return outLamports(route.unstake);
+}
+
+export function totalRentLamportsXSol(route: UnstakeXSolRoute): bigint {
+  if (isXSolRouteJupDirect(route)) {
+    return BigInt(0);
+  }
+  return (
+    route.withdrawStake.additionalRentLamports +
+    totalRentLamports(route.unstake)
+  );
 }
 
 export function prepareSetupTx(

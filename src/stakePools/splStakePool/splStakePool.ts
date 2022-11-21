@@ -9,7 +9,7 @@ import {
   SystemProgram,
   TransactionInstruction,
 } from "@solana/web3.js";
-import type { AccountInfoMap, Quote } from "@jup-ag/core/dist/lib/amm";
+import type { AccountInfoMap } from "@jup-ag/core/dist/lib/amm";
 import { stakeAccountState } from "@soceanfi/solana-stake-sdk";
 // TODO: verify that @soceanfi/stake-pool-sdk deserialization is still compatible with SPL stake pool 0.7.0
 import {
@@ -33,6 +33,7 @@ import type {
   CreateSwapInstructionsParams,
   StakePool,
   StakePoolQuoteParams,
+  StakeQuote,
 } from "@/unstake-ag/stakePools";
 import { applyStakePoolFeeBigInt } from "@/unstake-ag/stakePools/splStakePool/utils";
 import {
@@ -242,7 +243,7 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
     }
   }
 
-  getQuote({ stakeAmount, unstakedAmount }: StakePoolQuoteParams): Quote {
+  getQuote({ stakeAmount, unstakedAmount }: StakePoolQuoteParams): StakeQuote {
     if (!this.stakePool) {
       throw new StakePoolNotFetchedError();
     }
@@ -264,6 +265,7 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
         dropletsFeePaid.toNumber() /
         dropletsFeePaid.add(dropletsReceived).toNumber(),
       priceImpactPct: 0,
+      additionalRentLamports: BigInt(0),
     };
   }
 
@@ -405,6 +407,9 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
         );
     return {
       result: {
+        additionalRentLamports: BigInt(
+          STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString(),
+        ),
         stakeSplitFrom,
         outputDummyStakeAccountInfo: dummyStakeAccountInfo({
           currentEpoch: new BN(currentEpoch),

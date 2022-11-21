@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Note: Version 0 of Semantic Versioning is handled differently from version 1 and above. The minor version will be incremented upon a breaking change and the patch version will be incremented for features.
 
+## [UNRELEASED]
+
+### Added
+
+- `additionalRentLamports` field to `WithdrawRoute` and `StakeAccInputRoute` to account for additional rent required to be paid for stake accounts and other new accounts to be created, and util functions `totalRentLamports()` and `totalRentLamportsXSol()` for calculating them from `UnstakeRoute` and `UnstakeXSolRoute`
+
 ## [0.3.2] - 2022-11-19
 
 ### Fixed

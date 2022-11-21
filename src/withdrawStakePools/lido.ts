@@ -12,6 +12,7 @@ import {
 } from "@solana/web3.js";
 import { getSolido, Solido } from "@chorusone/solido.js";
 import { AccountInfoMap } from "@jup-ag/core/dist/lib/amm";
+import { STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS } from "@soceanfi/stake-pool-sdk";
 import BN from "bn.js";
 
 import type { WithdrawStakePoolLabel } from "@/unstake-ag/unstakeAg/labels";
@@ -225,6 +226,9 @@ export class LidoWithdrawStakePool implements WithdrawStakePool {
     );
     return {
       result: {
+        additionalRentLamports: BigInt(
+          STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString(),
+        ),
         stakeSplitFrom,
         outputDummyStakeAccountInfo: dummyStakeAccountInfo({
           currentEpoch: currentEpochBN,
