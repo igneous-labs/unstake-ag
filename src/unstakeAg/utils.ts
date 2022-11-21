@@ -463,6 +463,18 @@ export function outLamports({ stakeAccInput, jup }: UnstakeRoute): bigint {
   return BigInt(jup.outAmount.toString());
 }
 
+/**
+ * Min amount of lamports to be received for a given route, after max specified slippage
+ * @param param0
+ * @returns
+ */
+export function minOutLamports({ stakeAccInput, jup }: UnstakeRoute): bigint {
+  if (!jup) {
+    return stakeAccInput.outAmount;
+  }
+  return BigInt(jup.otherAmountThreshold.toString());
+}
+
 export function tryMergeExchangeReturn(
   user: PublicKey,
   { setupTransaction, unstakeTransaction, cleanupTransaction }: ExchangeReturn,
@@ -525,6 +537,18 @@ export function outLamportsXSol(route: UnstakeXSolRoute): bigint {
     return BigInt(route.jup.outAmount.toString());
   }
   return outLamports(route.unstake);
+}
+
+/**
+ * Min amount of lamports to be received for a given unstake xSOLs route, after max specified slippage
+ * @param param0
+ * @returns
+ */
+export function minOutLamportsXSol(route: UnstakeXSolRoute): bigint {
+  if (isXSolRouteJupDirect(route)) {
+    return BigInt(route.jup.otherAmountThreshold.toString());
+  }
+  return minOutLamports(route.unstake);
 }
 
 export function prepareSetupTx(
