@@ -451,7 +451,7 @@ export function outLamports({ stakeAccInput, jup }: UnstakeRoute): bigint {
 }
 
 /**
- * Min amount of lamports to be received for a given route, after max specified slippage
+ * Min amount of lamports to be received for a given route, after max allowed slippage
  * @param param0
  * @returns
  */
@@ -527,7 +527,7 @@ export function outLamportsXSol(route: UnstakeXSolRoute): bigint {
 }
 
 /**
- * Min amount of lamports to be received for a given unstake xSOLs route, after max specified slippage
+ * Min amount of lamports to be received for a given unstake xSOL route, after max allowed slippage
  * @param param0
  * @returns
  */

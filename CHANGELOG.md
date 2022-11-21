@@ -11,7 +11,8 @@ Note: Version 0 of Semantic Versioning is handled differently from version 1 and
 
 ### Added
 
-- Util function `legacyTxAmmsToExclude()` to create an `ammsToExclude` objet with all known AMMs that would cause legacy transaction size issues.
+- Util function `legacyTxAmmsToExclude()` to create an `ammsToExclude` object with all known AMMs that would cause legacy transaction size issues.
+- Util function `minOutLamports()` and `minOutLamportsXSol()` for returning output lamports after max allowed slippage.
 
 ### Changed
 
