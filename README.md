@@ -63,7 +63,7 @@ $ yarn add @unstake-it/sol-ag
 
 ```ts
 import { Connection } from "@solana/web3.js";
-import { UnstakeAg } from "@unstake-it/sol-ag";
+import { UnstakeAg, legacyTxAmmsToExclude } from "@unstake-it/sol-ag";
 
 const connection = new Connection("https://api.mainnet-beta.solana.com");
 
@@ -73,6 +73,10 @@ const connection = new Connection("https://api.mainnet-beta.solana.com");
 const unstake = await UnstakeAg.load({
   cluster: "mainnet-beta",
   connection,
+  // if you're using only legacy transactions (no lookup tables),
+  // you should set ammsToExclude to legacyTxAmmsToExclude() to
+  // avoid running into transaction size limits
+  ammsToExclude: legacyTxAmmsToExclude(),
 });
 ```
 
@@ -104,6 +108,7 @@ await unstake.updatePools();
 ```ts
 import { PublicKey } from "@solana/web3.js";
 import { getStakeAccount } from "@soceanfi/solana-stake-sdk";
+import { outLamports } from "@unstake-it/sol-ag";
 
 const stakeAccountPubkey = new PublicKey(...);
 const stakeAccount = await getStakeAccount(connection, stakeAccountPubkey);
@@ -126,6 +131,8 @@ const {
   // via jup required to convert stake pool tokens into SOL
   jup,
 } = bestRoute;
+
+console.log("Route will give me", outLamports(bestRoute), "lamports");
 ```
 
 ### Create Transaction(s) From Route
@@ -210,7 +217,7 @@ The aggregator also handles the unstaking of xSOL (supported liquid staking deri
 import { PublicKey } from "@solana/web3.js";
 import { getStakeAccount } from "@soceanfi/solana-stake-sdk";
 import JSBI from "jsbi";
-import { isXSolRouteJupDirect } from "@unstake-it/sol-ag"
+import { isXSolRouteJupDirect, outLamportsXSol } from "@unstake-it/sol-ag"
 
 const scnSOL = new PublicKey("5oVNBeEEQvYi1cX3ir8Dx5n1P7pdxydbGF2X4TxVusJm");
 const routesScnSol = await unstake.computeRoutesXSol({
@@ -239,6 +246,8 @@ if (isXSolRouteJupDirect(bestRouteScnSol)) {
     unstake, // UnstakeRoute type
   } = bestRouteScnSol;
 }
+
+console.log("Route will give me", outLamportsXSol(bestRouteScnSol), "lamports");
 ```
 
 ### Create Transaction(s) From Route for xSOL

@@ -190,10 +190,10 @@
     "@jridgewell/resolve-uri" "^3.0.3"
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
-"@jup-ag/core@^3.0.0-beta.6":
-  version "3.0.0-beta.6"
-  resolved "https://registry.yarnpkg.com/@jup-ag/core/-/core-3.0.0-beta.6.tgz#8cec001e0b30db78ecb84ea89f3adb5677d68cee"
-  integrity sha512-FF2Xc6bRrKHKdgkaw5qFXVnZCbMaBT0FyRblDdoFIoZf5UudyPGVoMLN88H1kl/70HDZudLmXupA8+VorsEb6A==
+"@jup-ag/core@3.0.0-beta.8":
+  version "3.0.0-beta.8"
+  resolved "https://registry.yarnpkg.com/@jup-ag/core/-/core-3.0.0-beta.8.tgz#8036aafab342844dcde5240fdfc79c237a560995"
+  integrity sha512-VfwHrTul4thSKXuAazWKLo1kiyDNBx6a+xiF7Th4lRwmFUqyE+GkjrAR4BS6syxXHptDLUgGybIMXVtr/jPqgQ==
   dependencies:
     "@jup-ag/crema-sdk" "2.0.7"
     "@jup-ag/cykura-sdk" "0.1.25"
@@ -205,7 +205,8 @@
     "@jup-ag/invariant" "0.9.35"
     "@jup-ag/lifinity-sdk" "0.1.72"
     "@jup-ag/lifinity-sdk-v2" "1.0.5"
-    "@jup-ag/math" "3.0.0-beta.6"
+    "@jup-ag/math" "3.0.0-beta.8"
+    "@jup-ag/raydium-clmm-sdk" "1.0.2"
     "@jup-ag/whirlpool-sdk" "0.1.1"
     "@mercurial-finance/dynamic-amm-sdk" "0.1.4"
     "@mercurial-finance/optimist" "0.1.9"
@@ -318,13 +319,24 @@
     "@solana/web3.js" "1.31.0"
     decimal.js "^10.3.1"
 
-"@jup-ag/math@3.0.0-beta.6":
-  version "3.0.0-beta.6"
-  resolved "https://registry.yarnpkg.com/@jup-ag/math/-/math-3.0.0-beta.6.tgz#9beecc3261b53c038c78618be469eaa477e1bb94"
-  integrity sha512-gpxn7QkXvdoSQfgoBPzy+8+s4GEiUxwMhr7/K0yPpLdVJJdISqPsv3MDtsnmXjzdpXhKh8rha26SRwksuerVrQ==
+"@jup-ag/math@3.0.0-beta.8":
+  version "3.0.0-beta.8"
+  resolved "https://registry.yarnpkg.com/@jup-ag/math/-/math-3.0.0-beta.8.tgz#f7236e3aa10d8e8682af57b9f1442a15b71ecacb"
+  integrity sha512-mS6mKUWA+xALggTklVQfJmZQseNN4KDKYjjMBl3H2Hz2KP7ha9TdRZzRXiYcmEITOpTnTMazcXGngjXMZXFVRw==
   dependencies:
     decimal.js "10.3.1"
     jsbi "4.3.0"
+
+"@jup-ag/raydium-clmm-sdk@1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@jup-ag/raydium-clmm-sdk/-/raydium-clmm-sdk-1.0.2.tgz#22e822c1fd3975af58a6e8c6fdc2deb2373dcf76"
+  integrity sha512-cFTmIqnKpoJeEgvjMTc3ylFO2mhfEDWDJVqP2t5rmxTy18MT6g7qXSTT3c8HVB3pM3TJAms1CA0MBC/0RS9YwQ==
+  dependencies:
+    "@project-serum/anchor" "0.24.2"
+    "@project-serum/borsh" "^0.2.5"
+    "@solana/spl-token" "0.1.8"
+    "@solana/web3.js" "^1.66.2"
+    decimal.js "^10.3.1"
 
 "@jup-ag/whirlpool-sdk@0.1.1":
   version "0.1.1"
