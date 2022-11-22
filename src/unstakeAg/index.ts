@@ -263,6 +263,7 @@ export class UnstakeAg {
     [this.stakePools, this.withdrawStakePools, this.hybridPools].forEach(
       (pools) => pools.forEach((p) => p.update(accountInfosMap)),
     );
+    this.lastUpdatePoolsTimestamp = Date.now();
   }
 
   async refreshPoolsIfExpired(forceFetch: boolean): Promise<void> {
@@ -273,7 +274,6 @@ export class UnstakeAg {
       forceFetch
     ) {
       await this.updatePools();
-      this.lastUpdatePoolsTimestamp = Date.now();
     }
   }
 
