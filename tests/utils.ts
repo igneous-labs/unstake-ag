@@ -2,13 +2,14 @@
 // allow `expect().to.be.true`
 
 import { getAccount } from "@solana/spl-token-v2";
-import { AccountInfo, PublicKey } from "@solana/web3.js";
+import { AccountInfo, Keypair, PublicKey } from "@solana/web3.js";
 import { StakeAccount } from "@soceanfi/solana-stake-sdk";
 import { expect } from "chai";
 
 import {
   ExchangeReturn,
   FeeAccounts,
+  isXSolRouteJupDirect,
   outLamports,
   outLamportsXSol,
   prepareCleanupTx,
@@ -142,6 +143,8 @@ export async function checkRoutesXSol(
   console.log("# of routes:", routes.length);
   const results = await Promise.allSettled(
     routes.map(async (route) => {
+      // add some random jitter to avoid 429
+      const MAX_RANDOM_JITTER_MS = 1000;
       const routeLabel = routeMarketLabelsXSol(route).join(" + ");
       try {
         const exchangeReturn = await unstake.exchangeXSol({
@@ -150,12 +153,33 @@ export async function checkRoutesXSol(
           user,
           feeAccounts,
         });
+        await sleep(Math.random() * MAX_RANDOM_JITTER_MS);
         await trySimulateExchangeReturnFirstTx(
           unstake,
           exchangeReturn,
           user,
           routeLabel,
         );
+        // try with a generated keypair too if default is by seed, to make sure that works
+        if (
+          !isXSolRouteJupDirect(route) &&
+          !route.withdrawStake.withdrawStakePool.mustUseKeypairForSplitStake
+        ) {
+          const exchangeReturnKp = await unstake.exchangeXSol({
+            route,
+            srcTokenAccount: xSolTokenAcc,
+            user,
+            feeAccounts,
+            newStakeAccount: Keypair.generate(),
+          });
+          await sleep(Math.random() * MAX_RANDOM_JITTER_MS);
+          await trySimulateExchangeReturnFirstTx(
+            unstake,
+            exchangeReturnKp,
+            user,
+            routeLabel,
+          );
+        }
       } catch (e) {
         const err = e as Error;
         err.message = `${routeLabel}: ${err.message}`;
@@ -166,4 +190,10 @@ export async function checkRoutesXSol(
   checkPromiseSettledArrayVerbose(results);
   // newline
   console.log();
+}
+
+export function sleep(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
