@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Note: Version 0 of Semantic Versioning is handled differently from version 1 and above. The minor version will be incremented upon a breaking change and the patch version will be incremented for features.
 
+## [UNRELEASED]
+
+### Fixed
+
+- double counting of withdrawn stake's `additionalRentLamports` for SPL stake pools
+
 ## [0.3.4] - 2022-11-22
 
 ### Fixed

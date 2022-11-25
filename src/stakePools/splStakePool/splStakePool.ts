@@ -286,7 +286,6 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
   }
 
   createWithdrawStakeInstructions({
-    payer,
     withdrawerAuth,
     newStakeAccount,
     tokenAmount,
@@ -297,25 +296,28 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
     if (!this.stakePool) {
       throw new StakePoolNotFetchedError();
     }
-    const createAccountInstruction = isNewStakeAccountKeypair(newStakeAccount)
-      ? SystemProgram.createAccount({
-          fromPubkey: payer,
-          newAccountPubkey: newStakeAccount.publicKey,
-          lamports: STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toNumber(),
-          space: STAKE_STATE_LEN,
-          programId: StakeProgram.programId,
-        })
-      : SystemProgram.createAccountWithSeed({
-          fromPubkey: payer,
-          newAccountPubkey: newStakeAccount.derived,
-          basePubkey: newStakeAccount.base,
-          seed: newStakeAccount.seed,
-          lamports: STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toNumber(),
-          space: STAKE_STATE_LEN,
-          programId: StakeProgram.programId,
-        });
+    const allocateInstructions = isNewStakeAccountKeypair(newStakeAccount)
+      ? [
+          SystemProgram.allocate({
+            accountPubkey: newStakeAccount.publicKey,
+            space: STAKE_STATE_LEN,
+          }),
+          SystemProgram.assign({
+            accountPubkey: newStakeAccount.publicKey,
+            programId: StakeProgram.programId,
+          }),
+        ]
+      : [
+          SystemProgram.allocate({
+            accountPubkey: newStakeAccount.derived,
+            basePubkey: newStakeAccount.base,
+            seed: newStakeAccount.seed,
+            space: STAKE_STATE_LEN,
+            programId: StakeProgram.programId,
+          }),
+        ];
     return [
-      createAccountInstruction,
+      ...allocateInstructions,
       withdrawStakeInstruction(
         this.programId,
         this.stakePoolAddr,
@@ -421,11 +423,12 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
       : this.findValidatorStakeAccount(
           validatorToWithdrawFrom.voteAccountAddress,
         );
+    // Since we use allocate() instead of createAccount() in createWithdrawStakeInstructions,
+    // lamports = lamportsReceived, delegation.stake = lamportsReceived - RENT_EXEMPT.
+    // See: https://github.com/solana-labs/solana/blob/3608801a54600431720b37b53d7dbf88de4ead24/programs/stake/src/stake_state.rs#L692-L696
     return {
       result: {
-        additionalRentLamports: BigInt(
-          STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString(),
-        ),
+        additionalRentLamports: BigInt(0),
         stakeSplitFrom,
         outputDummyStakeAccountInfo: dummyStakeAccountInfo({
           currentEpoch: new BN(currentEpoch),

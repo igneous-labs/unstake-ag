@@ -12,7 +12,6 @@ import {
 } from "@solana/web3.js";
 import { getSolido, Solido } from "@chorusone/solido.js";
 import { AccountInfoMap } from "@jup-ag/core/dist/lib/amm";
-import { STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS } from "@soceanfi/stake-pool-sdk";
 import BN from "bn.js";
 
 import type { WithdrawStakePoolLabel } from "@/unstake-ag/unstakeAg/labels";
@@ -224,11 +223,14 @@ export class LidoWithdrawStakePool implements WithdrawStakePool {
     const stakeSplitFrom = this.findStakeAccountAddressStake(
       validatorPubkeyAndEntry,
     );
+    // lido calls allocate() without transferring rent-exempt:
+    // (solana_program::stake::instruction::split):
+    // https://github.com/solana-labs/solana/blob/3608801a54600431720b37b53d7dbf88de4ead24/sdk/program/src/stake/instruction.rs#L412
+    // This means lamports = solToWithdraw, delegation.stake = solToWithdraw - RENT_EXEMPT.
+    // See: https://github.com/solana-labs/solana/blob/3608801a54600431720b37b53d7dbf88de4ead24/programs/stake/src/stake_state.rs#L692-L696
     return {
       result: {
-        additionalRentLamports: BigInt(
-          STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString(),
-        ),
+        additionalRentLamports: BigInt(0),
         stakeSplitFrom,
         outputDummyStakeAccountInfo: dummyStakeAccountInfo({
           currentEpoch: currentEpochBN,
