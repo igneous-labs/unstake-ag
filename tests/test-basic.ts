@@ -128,6 +128,8 @@ describe("test basic functionality", () => {
     );
   });
 
+  // SPL + unstake.it unstake tx = 929 bytes
+
   it("scnSOL", async () => {
     const TEST_SCN_SOL_ACC_PUBKEY_HUMAN = new PublicKey(
       "8qxk2T8UmNpTZoxTiMMv4N6sKHh7VxTHdAF9SvHy34LJ",
