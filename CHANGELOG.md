@@ -7,11 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Note: Version 0 of Semantic Versioning is handled differently from version 1 and above. The minor version will be incremented upon a breaking change and the patch version will be incremented for features.
 
-## [UNRELEASED]
+## [0.3.5] - 2022-11-25
 
 ### Fixed
 
 - double counting of withdrawn stake's `additionalRentLamports` for SPL stake pools
+
+### Changed
+
+- Withdrawal from SPL stake pools now use `SystemProgram.allocate()` instead of `SystemProgram.createAccount()`, saving users the rent for stake accounts.
 
 ## [0.3.4] - 2022-11-22
 
