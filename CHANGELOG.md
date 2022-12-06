@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Note: Version 0 of Semantic Versioning is handled differently from version 1 and above. The minor version will be incremented upon a breaking change and the patch version will be incremented for features.
 
+## [UNRELEASED]
+
+### Fixed
+
+- Withdrawal from SPL stake pools now use `SystemProgram.allocate()` if the withdrawn stake amount is above rent-exempt minimum for a stake account and `SystemProgram.createAccount()` if it is below to enable withdrawals of small amounts.
+
 ## [0.3.5] - 2022-11-25
 
 ### Fixed
