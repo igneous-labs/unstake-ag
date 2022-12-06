@@ -728,7 +728,12 @@ export class UnstakeAg {
       };
     }
     const {
-      withdrawStake: { withdrawStakePool, inAmount, stakeSplitFrom },
+      withdrawStake: {
+        withdrawStakePool,
+        inAmount,
+        stakeSplitFrom,
+        additionalRentLamports,
+      },
       intermediateDummyStakeAccountInfo,
       unstake,
     } = route;
@@ -751,6 +756,7 @@ export class UnstakeAg {
         srcTokenAccount,
         srcTokenAccountAuth: user,
         stakeSplitFrom,
+        isUserPayingForStakeAccountRent: additionalRentLamports > BigInt(0),
       });
     // replace dummy values with real values
     intermediateDummyStakeAccountInfo.data.info.meta.authorized = {

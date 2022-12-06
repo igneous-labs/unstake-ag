@@ -156,7 +156,7 @@ describe("test basic functionality", () => {
 
   it("everSOL", async () => {
     const TEST_ESOL_ACC_PUBKEY_HUMAN = new PublicKey(
-      "JAEKNk5d2GFPnH3U3qkNk1yvq7NRn537KYGC6jNu52PL",
+      "393N3sSeiA6wCjdQmxgEvZC2REgwEKAjKpbjKrEtr36a",
     );
     const routes = await unstake.computeRoutesXSol({
       inputMint: EVERSOL_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
