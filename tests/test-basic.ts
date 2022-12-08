@@ -46,11 +46,11 @@ const CONN = new Connection("https://try-rpc.mainnet.solana.blockdaemon.tech", {
 // TODO: investigate
 // `panicked at 'called `Option::unwrap()` on a `None` value', /home/ubuntu/projects/gfx-ssl/gfx-solana-common/src/safe_math.rs:241:37`
 // in jup
-const SHOULD_IGNORE_ROUTE_ERRORS = true;
+const SHOULD_IGNORE_ROUTE_ERRORS = false;
 
 // just load accounts once and use same accounts cache
 // for all tests
-const ROUTE_CACHE_DURATION_MS = 30_000;
+const ROUTE_CACHE_DURATION_MS = 120_000;
 
 // transient errors that can be ignored:
 // - jup program 0x1771: slippage tolerance exceeded
@@ -138,6 +138,7 @@ describe("test basic functionality", () => {
       inputMint: SOCEAN_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
       amount: JSBI.BigInt(1_000_000_000),
       slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
     });
     await checkRoutesXSol(unstake, routes, TEST_SCN_SOL_ACC_PUBKEY_HUMAN);
   });
@@ -150,6 +151,7 @@ describe("test basic functionality", () => {
       inputMint: LAINE_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
       amount: JSBI.BigInt(1_000_000_000),
       slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
     });
     await checkRoutesXSol(unstake, routes, TEST_LAINE_SOL_ACC_PUBKEY_HUMAN);
   });
@@ -162,6 +164,7 @@ describe("test basic functionality", () => {
       inputMint: EVERSOL_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
       amount: JSBI.BigInt(1_000_000_000),
       slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
     });
     await checkRoutesXSol(unstake, routes, TEST_ESOL_ACC_PUBKEY_HUMAN);
   });
@@ -176,6 +179,7 @@ describe("test basic functionality", () => {
       inputMint: LIDO_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
       amount: JSBI.BigInt(1_000_000_000),
       slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
     });
     await checkRoutesXSol(unstake, routes, TEST_STSOL_ACC_PUBKEY_HUMAN);
   });
@@ -189,6 +193,7 @@ describe("test basic functionality", () => {
       inputMint: MARINADE_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
       amount: JSBI.BigInt(1_000_000_000),
       slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
     });
     await checkRoutesXSol(unstake, routes, TEST_MSOL_ACC_PUBKEY_HUMAN);
   });
