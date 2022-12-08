@@ -237,7 +237,8 @@ export class LidoWithdrawStakePool implements WithdrawStakePool {
     if (!validatorV2) {
       return WITHDRAW_STAKE_QUOTE_FAILED;
     }
-    const { stake_accounts_balance, vote_account_address: voter } = validatorV2;
+    const { stake_accounts_balance, vote_account_address: voterBytes } =
+      validatorV2;
     // lido allows max 10% + 10 SOL withdrawal
     const maxWithdrawAmount = stake_accounts_balance
       .div(new BN(10))
@@ -268,7 +269,7 @@ export class LidoWithdrawStakePool implements WithdrawStakePool {
           currentEpoch: currentEpochBN,
           lamports: Number(solToWithdraw),
           stakeState: "active",
-          voter,
+          voter: new PublicKey(voterBytes),
         }),
       },
     };
@@ -320,12 +321,12 @@ export class LidoWithdrawStakePool implements WithdrawStakePool {
    */
   private findStakeAccountAddressStake({
     stake_seeds: { begin },
-    vote_account_address: vote,
+    vote_account_address: voterBytes,
   }: ValidatorV2): PublicKey {
     return PublicKey.findProgramAddressSync(
       [
         this.solidoAddr.toBuffer(),
-        new PublicKey(vote).toBuffer(),
+        new PublicKey(voterBytes).toBuffer(),
         Buffer.from("validator_stake_account"),
         Buffer.from(begin.toArray("le", 8)),
       ],
