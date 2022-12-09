@@ -131,7 +131,7 @@ export class LidoWithdrawStakePool implements WithdrawStakePool {
     if (!validator) {
       throw new ValidatorNotFoundError();
     }
-    const voter = validator.vote_account_address;
+    const voter = new PublicKey(validator.vote_account_address);
     const keys = [
       {
         pubkey: this.solidoAddr,
