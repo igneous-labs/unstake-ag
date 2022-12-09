@@ -266,6 +266,12 @@ export class LidoWithdrawStakePool implements WithdrawStakePool {
         additionalRentLamports: BigInt(0),
         stakeSplitFrom,
         outputDummyStakeAccountInfo: dummyStakeAccountInfo({
+          // TODO: less hacky way to fix this without getting stake
+          // account info over network
+          // (TO CONFIRM) Lido seems to rotate their validator stake accs
+          // every epoch, which means marinade will not accept
+          // stake withdrawn from lido
+          activationEpoch: currentEpochBN.sub(new BN(1)),
           currentEpoch: currentEpochBN,
           lamports: Number(solToWithdraw),
           stakeState: "active",
