@@ -82,8 +82,8 @@
     "typescript": "^4.5.5"
   },
   "dependencies": {
-    "@chorusone/solido.js": "https://github.com/igneous-labs/solido#js",
     "@jup-ag/core": "3.0.0-beta.8",
+    "@lidofinance/solido-sdk": "^0.7.0",
     "@marinade.finance/marinade-ts-sdk": "^3.1.3",
     "@project-serum/borsh": "^0.2.5",
     "@soceanfi/solana-stake-sdk": "^0.1.0",
@@ -93,6 +93,7 @@
     "@solana/web3.js": "^1.61.1",
     "@unstake-it/sol": "^0.1.2",
     "bn.js": "^5",
+    "borsh": "^0.7.0",
     "buffer-layout": "^1.2.2",
     "jsbi": "^4.3.0"
   },

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Note: Version 0 of Semantic Versioning is handled differently from version 1 and above. The minor version will be incremented upon a breaking change and the patch version will be incremented for features.
 
+## [UNRELEASED]
+
+### Fixed
+
+- Upgraded lido to v2 following their onchain upgrade
+
 ## [0.3.7] - 2022-12-08
 
 ### Fixed

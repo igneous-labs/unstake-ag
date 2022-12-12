@@ -181,6 +181,7 @@ export class UnstakeAg {
         dummyAccountInfoForProgramOwner(LIDO_ADDRESS_MAP[cluster].program),
         {
           stSolAddr: LIDO_ADDRESS_MAP[cluster].stakePoolToken,
+          validatorsListAddr: LIDO_ADDRESS_MAP[cluster].validatorList,
         },
       ),
     ];

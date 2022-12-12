@@ -57,17 +57,6 @@
     toformat "^2.0.0"
     yargs "^17.0.1"
 
-"@chorusone/solido.js@https://github.com/igneous-labs/solido#js":
-  version "1.0.0"
-  resolved "https://github.com/igneous-labs/solido#5996a3092fdf7acbc7bada585ea93499f7f2e6d0"
-  dependencies:
-    "@solana/buffer-layout" "^3.0.0"
-    "@solana/spl-token" "^0.1.8"
-    "@solana/web3.js" "^1.32.0"
-    bn.js "^5.2.0"
-    borsh "^0.7.0"
-    prettier "^2.5.1"
-
 "@cspotcode/source-map-support@^0.8.0":
   version "0.8.1"
   resolved "https://registry.yarnpkg.com/@cspotcode/source-map-support/-/source-map-support-0.8.1.tgz#00629c35a688e05a88b1cda684fb9d5e73f000a1"
@@ -350,6 +339,13 @@
     bn.js "~5.2.0"
     decimal.js "~10.3.1"
     tiny-invariant "~1.2.0"
+
+"@lidofinance/solido-sdk@^0.7.0":
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/@lidofinance/solido-sdk/-/solido-sdk-0.7.0.tgz#52ba5b8450f5003a8c0d09eb1675b55bc0a85cbf"
+  integrity sha512-BKoD+Yt7RtTY/yxO2s/x3nLRmsQcL/lS+ltcnhE6StBVQnd0rgLZBOcRhjTF3YHrEnq4g5595XlWTPVoXgOfcg==
+  dependencies:
+    borsh "^0.7.0"
 
 "@marinade.finance/marinade-ts-sdk@^3.1.3":
   version "3.1.3"
