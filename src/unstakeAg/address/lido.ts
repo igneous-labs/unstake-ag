@@ -5,6 +5,7 @@ import type { AddressMap } from "@/unstake-ag/unstakeAg/address";
 export type LidoAccounts = {
   program: PublicKey;
   solido: PublicKey;
+  validatorList: PublicKey;
   stakePoolToken: PublicKey;
 };
 
@@ -16,11 +17,15 @@ const LIDO_PROGRAM = new PublicKey(
 );
 const SOLIDO = new PublicKey("49Yi1TKkNyYjPAFdR9LBvoHcUjuPX4Df5T5yv39w2XTn");
 const STSOL = new PublicKey("7dHbWXmci3dT8UFYWYZweBLXgycu7Y3iL6trKn1Y7ARj");
+const LIDO_VALIDATOR_LIST = new PublicKey(
+  "GL9kqRNUTUosW3RsDoXHCuXUZn73SgQQmBvtp1ng2co4",
+);
 
 const LIDO_ADDRESS_MAP_ENTRY = {
   program: LIDO_PROGRAM,
   solido: SOLIDO,
   stakePoolToken: STSOL,
+  validatorList: LIDO_VALIDATOR_LIST,
 };
 
 export const LIDO_ADDRESS_MAP: AddressMap<LidoAccounts> = {
