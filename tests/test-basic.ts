@@ -170,8 +170,6 @@ describe("test basic functionality", () => {
   });
 
   it("stSOL", async () => {
-    // for non-jup, lido can pretty much only work with unstake.it
-    // since no other stake pools contain their validators
     const TEST_STSOL_ACC_PUBKEY_HUMAN = new PublicKey(
       "4DX3z7QvnCeQGk6bsqCZALTnFRTvB4XXiZMktVBxVnog",
     );
