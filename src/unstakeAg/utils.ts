@@ -564,6 +564,76 @@ export function minOutLamportsXSol(route: UnstakeXSolRoute): bigint {
   return minOutLamports(route.unstake);
 }
 
+export function prepareSetupTx(
+  exchangeReturn: ExchangeReturn,
+  recentBlockhash: string,
+  feePayer: PublicKey,
+): Transaction | undefined {
+  return prepareTxInternal(
+    exchangeReturn,
+    recentBlockhash,
+    feePayer,
+    "setupTransaction",
+  );
+}
+
+export function prepareUnstakeTx(
+  exchangeReturn: ExchangeReturn,
+  recentBlockhash: string,
+  feePayer: PublicKey,
+): Transaction {
+  return prepareTxInternal(
+    exchangeReturn,
+    recentBlockhash,
+    feePayer,
+    "unstakeTransaction",
+  )!;
+}
+
+export function prepareCleanupTx(
+  exchangeReturn: ExchangeReturn,
+  recentBlockhash: string,
+  feePayer: PublicKey,
+): Transaction | undefined {
+  return prepareTxInternal(
+    exchangeReturn,
+    recentBlockhash,
+    feePayer,
+    "cleanupTransaction",
+  );
+}
+
+/**
+ * Sets `recentBlockhash` and `feePayer` and partialSigns
+ * with additionalSigners for the given transaction in an
+ * `ExchangeReturn`
+ *
+ * Modifies in-place
+ *
+ * @param exchangeReturn
+ * @param recentBlockhash
+ * @param feePayer
+ * @param whichTx
+ */
+function prepareTxInternal(
+  exchangeReturn: ExchangeReturn,
+  recentBlockhash: string,
+  feePayer: PublicKey,
+  whichTx: "setupTransaction" | "unstakeTransaction" | "cleanupTransaction",
+): Transaction | undefined {
+  const txWithSigners = exchangeReturn[whichTx];
+  if (txWithSigners === undefined) {
+    return txWithSigners;
+  }
+  txWithSigners.tx.recentBlockhash = recentBlockhash;
+  txWithSigners.tx.feePayer = feePayer;
+  // NOTE: @solana/web3.js throws empty signers error without this check
+  if (txWithSigners.signers.length > 0) {
+    txWithSigners.tx.partialSign(...txWithSigners.signers);
+  }
+  return txWithSigners.tx;
+}
+
 export function addIxsToTxV0(
   versionedTx: VersionedTransaction,
   addressLookupTableAccounts: AddressLookupTableAccount[],
