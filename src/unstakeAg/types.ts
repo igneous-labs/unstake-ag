@@ -154,6 +154,12 @@ export interface ExchangeParams {
    * computing one live by checking against on-chain data
    */
   splitStakeAccount?: PubkeyFromSeed;
+
+  /**
+   * Produces a legacy transaction
+   * (Ledger currently doesn't support Versioned Transaction)
+   */
+  asLegacyTransaction?: boolean;
 }
 
 export interface ExchangeXSolParams {
@@ -195,6 +201,12 @@ export interface ExchangeXSolParams {
    * computing one live
    */
   newStakeAccount?: PubkeyFromSeed | Keypair;
+
+  /**
+   * Produces a legacy transaction
+   * (Ledger currently doesn't support Versioned Transaction)
+   */
+  asLegacyTransaction?: boolean;
 }
 
 /**
