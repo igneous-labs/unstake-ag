@@ -286,38 +286,67 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
   }
 
   createWithdrawStakeInstructions({
+    payer,
     withdrawerAuth,
     newStakeAccount,
     tokenAmount,
     srcTokenAccount,
     srcTokenAccountAuth,
     stakeSplitFrom,
+    isUserPayingForStakeAccountRent,
   }: CreateWithdrawStakeInstructionsParams): TransactionInstruction[] {
     if (!this.stakePool) {
       throw new StakePoolNotFetchedError();
     }
-    const allocateInstructions = isNewStakeAccountKeypair(newStakeAccount)
-      ? [
-          SystemProgram.allocate({
-            accountPubkey: newStakeAccount.publicKey,
-            space: STAKE_STATE_LEN,
-          }),
-          SystemProgram.assign({
-            accountPubkey: newStakeAccount.publicKey,
-            programId: StakeProgram.programId,
-          }),
-        ]
-      : [
-          SystemProgram.allocate({
-            accountPubkey: newStakeAccount.derived,
-            basePubkey: newStakeAccount.base,
-            seed: newStakeAccount.seed,
-            space: STAKE_STATE_LEN,
-            programId: StakeProgram.programId,
-          }),
-        ];
+    const stakeAccRentExemptLamportsNum =
+      STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toNumber();
+    let initStakeAccInstructions: TransactionInstruction[];
+    if (isUserPayingForStakeAccountRent) {
+      initStakeAccInstructions = isNewStakeAccountKeypair(newStakeAccount)
+        ? [
+            SystemProgram.createAccount({
+              fromPubkey: payer,
+              newAccountPubkey: newStakeAccount.publicKey,
+              space: STAKE_STATE_LEN,
+              programId: StakeProgram.programId,
+              lamports: stakeAccRentExemptLamportsNum,
+            }),
+          ]
+        : [
+            SystemProgram.createAccountWithSeed({
+              fromPubkey: payer,
+              newAccountPubkey: newStakeAccount.derived,
+              basePubkey: newStakeAccount.base,
+              seed: newStakeAccount.seed,
+              lamports: stakeAccRentExemptLamportsNum,
+              space: STAKE_STATE_LEN,
+              programId: StakeProgram.programId,
+            }),
+          ];
+    } else {
+      initStakeAccInstructions = isNewStakeAccountKeypair(newStakeAccount)
+        ? [
+            SystemProgram.allocate({
+              accountPubkey: newStakeAccount.publicKey,
+              space: STAKE_STATE_LEN,
+            }),
+            SystemProgram.assign({
+              accountPubkey: newStakeAccount.publicKey,
+              programId: StakeProgram.programId,
+            }),
+          ]
+        : [
+            SystemProgram.allocate({
+              accountPubkey: newStakeAccount.derived,
+              basePubkey: newStakeAccount.base,
+              seed: newStakeAccount.seed,
+              space: STAKE_STATE_LEN,
+              programId: StakeProgram.programId,
+            }),
+          ];
+    }
     return [
-      ...allocateInstructions,
+      ...initStakeAccInstructions,
       withdrawStakeInstruction(
         this.programId,
         this.stakePoolAddr,
@@ -365,7 +394,7 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
       v.activeStakeLamports.isZero(),
     );
 
-    // TODO: change to import once exported in stake-pool-sdk
+    // TODO: change to import MIN_ACTIVE_STAKE_LAMPORTS once exported in stake-pool-sdk
     const minActiveStakeLamports = new BN(1_000_000);
     const transientUnwithdrawableLamports =
       STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.add(minActiveStakeLamports);
@@ -412,27 +441,32 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
     if (lamportsReceived === BigInt(0)) {
       return WITHDRAW_STAKE_QUOTE_FAILED;
     }
-    if (
-      lamportsReceived < BigInt(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString())
-    ) {
-      return WITHDRAW_STAKE_QUOTE_FAILED;
-    }
+    const stakeAccRent = BigInt(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toNumber());
+    const isRentExempt = lamportsReceived >= stakeAccRent;
 
     const stakeSplitFrom = poolHasNoActive
       ? this.findTransientStakeAccount(validatorToWithdrawFrom)
       : this.findValidatorStakeAccount(
           validatorToWithdrawFrom.voteAccountAddress,
         );
-    // Since we use allocate() instead of createAccount() in createWithdrawStakeInstructions,
+    // If allocate() instead of createAccount():
     // lamports = lamportsReceived, delegation.stake = lamportsReceived - RENT_EXEMPT.
+    //
+    // otherwise if createAccount():
+    // lamports = lamportsReceived + RENT_EXEMPT, delegation.stake = lamportsReceived
+    //
     // See: https://github.com/solana-labs/solana/blob/3608801a54600431720b37b53d7dbf88de4ead24/programs/stake/src/stake_state.rs#L692-L696
+    const additionalRentLamports = isRentExempt ? BigInt(0) : stakeAccRent;
+    const lamports = isRentExempt
+      ? Number(lamportsReceived)
+      : Number(lamportsReceived + additionalRentLamports);
     return {
       result: {
-        additionalRentLamports: BigInt(0),
+        additionalRentLamports,
         stakeSplitFrom,
         outputDummyStakeAccountInfo: dummyStakeAccountInfo({
           currentEpoch: new BN(currentEpoch),
-          lamports: Number(lamportsReceived),
+          lamports,
           stakeState: poolHasNoActive ? "activating" : "active",
           voter: validatorToWithdrawFrom.voteAccountAddress,
         }),

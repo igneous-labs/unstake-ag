@@ -24,7 +24,8 @@ export interface StakeAccInputRoute {
 
   /**
    * Any additional SOL that needs to be paid as rent-exempt fees for
-   * new accounts to be created
+   * new accounts to be created.
+   * E.g. unstake.it has a record account
    */
   additionalRentLamports: bigint;
 }
@@ -60,7 +61,9 @@ export interface WithdrawStakeRoute {
 
   /**
    * Any additional SOL that needs to be paid as rent-exempt fees for
-   * new accounts to be created
+   * the stake account to be created.
+   * TECH DEBT: in the future, withdrawStake might pay rent for other accounts too
+   * not just the stake account.
    */
   additionalRentLamports: bigint;
 }

@@ -72,6 +72,10 @@ import {
   WithdrawStakePool,
 } from "@/unstake-ag/withdrawStakePools";
 
+export type LoadParams = JupiterLoadParams & {
+  shouldIgnoreLoadErrors?: boolean;
+};
+
 /**
  * Main exported class
  */
@@ -114,6 +118,14 @@ export class UnstakeAg {
   lastUpdatePoolsTimestamp: number;
 
   /**
+   * Simply console.errors account load errors
+   * instead of throwing.
+   *
+   * Defaults to false
+   */
+  shouldIgnoreLoadErrors: boolean;
+
+  /**
    * PublicKeys of all accounts of all pools, deduped
    */
   // initialized in this.setPoolsAccountsToUpdate() but ts cant detect that
@@ -121,7 +133,12 @@ export class UnstakeAg {
   poolsAccountsToUpdate: string[];
 
   constructor(
-    { cluster, connection, routeCacheDuration }: JupiterLoadParams,
+    {
+      cluster,
+      connection,
+      routeCacheDuration,
+      shouldIgnoreLoadErrors,
+    }: LoadParams,
     stakePools: StakePool[],
     withdrawStakePools: WithdrawStakePool[],
     hybridPools: HybridPool[],
@@ -135,6 +152,7 @@ export class UnstakeAg {
     this.hybridPools = hybridPools;
     this.jupiter = jupiter;
     this.lastUpdatePoolsTimestamp = 0;
+    this.shouldIgnoreLoadErrors = shouldIgnoreLoadErrors ?? false;
     this.setPoolsAccountsToUpdate();
   }
 
@@ -165,6 +183,7 @@ export class UnstakeAg {
         dummyAccountInfoForProgramOwner(LIDO_ADDRESS_MAP[cluster].program),
         {
           stSolAddr: LIDO_ADDRESS_MAP[cluster].stakePoolToken,
+          validatorsListAddr: LIDO_ADDRESS_MAP[cluster].validatorList,
         },
       ),
     ];
@@ -211,7 +230,7 @@ export class UnstakeAg {
     ];
   }
 
-  static async load(params: JupiterLoadParams): Promise<UnstakeAg> {
+  static async load(params: LoadParams): Promise<UnstakeAg> {
     // we can't use serum markets anyway
     params.shouldLoadSerumOpenOrders = false;
     // TODO: this throws `missing <Account>` sometimes
@@ -263,7 +282,17 @@ export class UnstakeAg {
       }
     });
     [this.stakePools, this.withdrawStakePools, this.hybridPools].forEach(
-      (pools) => pools.forEach((p) => p.update(accountInfosMap)),
+      (pools) =>
+        pools.forEach((p) => {
+          try {
+            p.update(accountInfosMap);
+          } catch (e) {
+            if (this.shouldIgnoreLoadErrors) {
+              console.error("IGNORING LOAD ERROR FOR", p.label, ":");
+              console.error(e);
+            }
+          }
+        }),
     );
     this.lastUpdatePoolsTimestamp = Date.now();
   }
@@ -695,7 +724,12 @@ export class UnstakeAg {
       };
     }
     const {
-      withdrawStake: { withdrawStakePool, inAmount, stakeSplitFrom },
+      withdrawStake: {
+        withdrawStakePool,
+        inAmount,
+        stakeSplitFrom,
+        additionalRentLamports,
+      },
       intermediateDummyStakeAccountInfo,
       unstake,
     } = route;
@@ -718,6 +752,7 @@ export class UnstakeAg {
         srcTokenAccount,
         srcTokenAccountAuth: user,
         stakeSplitFrom,
+        isUserPayingForStakeAccountRent: additionalRentLamports > BigInt(0),
       });
     // replace dummy values with real values
     intermediateDummyStakeAccountInfo.data.info.meta.authorized = {

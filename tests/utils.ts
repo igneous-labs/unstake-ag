@@ -121,7 +121,7 @@ export async function checkRoutesXSol(
   const results = await Promise.allSettled(
     routes.map(async (route) => {
       // add some random jitter to avoid 429
-      const MAX_RANDOM_JITTER_MS = 1000;
+      const MAX_RANDOM_JITTER_MS = 3000;
       const routeLabel = routeMarketLabelsXSol(route).join(" + ");
       try {
         const exchangeReturn = await unstake.exchangeXSol({

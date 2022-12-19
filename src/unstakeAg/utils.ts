@@ -116,6 +116,10 @@ interface DummyStakeAccountParams {
   lamports: number;
   stakeState: StakeState;
   voter: PublicKey;
+  /**
+   * Defaults to 0 if not provided
+   */
+  activationEpoch?: BN;
 }
 
 /**
@@ -141,6 +145,7 @@ export function dummyStakeAccountInfo({
   lamports,
   stakeState,
   voter,
+  activationEpoch: activationEpochOpt,
 }: DummyStakeAccountParams): AccountInfo<StakeAccount> {
   const data: StakeAccount = {
     type: "initialized" as const,
@@ -171,11 +176,11 @@ export function dummyStakeAccountInfo({
         deactivationEpoch = U64_MAX;
         break;
       case "active":
-        activationEpoch = new BN(0);
+        activationEpoch = activationEpochOpt ?? new BN(0);
         deactivationEpoch = U64_MAX;
         break;
       case "deactivating":
-        activationEpoch = new BN(0);
+        activationEpoch = activationEpochOpt ?? new BN(0);
         deactivationEpoch = currentEpoch;
         break;
       default:

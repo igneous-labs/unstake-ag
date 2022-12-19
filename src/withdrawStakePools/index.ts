@@ -59,6 +59,11 @@ export interface CreateWithdrawStakeInstructionsParams
    * Should be from WithdrawStakeQuote.result
    */
   stakeSplitFrom: PublicKey;
+
+  /**
+   * Only spl stake pools use this parameter currently
+   */
+  isUserPayingForStakeAccountRent: boolean;
 }
 
 export interface WithdrawStakeQuoteParams {
@@ -75,7 +80,10 @@ export interface WithdrawStakeQuote {
     stakeSplitFrom: PublicKey;
     /**
      * Any additional SOL that needs to be paid as rent-exempt fees for
-     * new accounts to be created
+     * the stake account to be created.
+     * TECH DEBT: in the future, withdrawStake might pay rent for other accounts too
+     * not just the stake account - idk some exotic stake pool program that records
+     * withdrawals in on-chain accounts.
      */
     additionalRentLamports: bigint;
   };
