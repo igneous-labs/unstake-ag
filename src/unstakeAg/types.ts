@@ -1,5 +1,6 @@
 import type {
   AccountInfo,
+  AddressLookupTableAccount,
   Keypair,
   PublicKey,
   Signer,
@@ -238,4 +239,5 @@ export interface ExchangeReturn {
 
 export interface ExchangeReturnV0 {
   unstakeTransaction: VersionedTransaction;
+  luts: AddressLookupTableAccount[];
 }

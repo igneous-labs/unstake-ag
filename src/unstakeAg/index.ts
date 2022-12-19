@@ -138,6 +138,8 @@ export class UnstakeAg {
   // @ts-ignore
   poolsAccountsToUpdate: string[];
 
+  lut: AddressLookupTableAccount | null;
+
   constructor(
     {
       cluster,
@@ -149,6 +151,7 @@ export class UnstakeAg {
     withdrawStakePools: WithdrawStakePool[],
     hybridPools: HybridPool[],
     jupiter: Jupiter,
+    lut: AddressLookupTableAccount | null,
   ) {
     this.cluster = cluster;
     this.connection = connection;
@@ -159,6 +162,7 @@ export class UnstakeAg {
     this.jupiter = jupiter;
     this.lastUpdatePoolsTimestamp = 0;
     this.shouldIgnoreLoadErrors = shouldIgnoreLoadErrors ?? false;
+    this.lut = lut;
     this.setPoolsAccountsToUpdate();
   }
 
@@ -236,22 +240,30 @@ export class UnstakeAg {
     ];
   }
 
+  static async fetchLoot(
+    connection: Connection,
+  ): Promise<AddressLookupTableAccount | null> {
+    return connection.getAddressLookupTable(LUT_PK).then((res) => res.value);
+  }
+
   static async load(params: LoadParams): Promise<UnstakeAg> {
     // we can't use serum markets anyway
     params.shouldLoadSerumOpenOrders = false;
     // TODO: this throws `missing <Account>` sometimes
     // if RPC is slow to return. Not sure how to mitigate
     const jupiter = await Jupiter.load(params);
-    const { cluster } = params;
+    const { cluster, connection } = params;
     const stakePools = UnstakeAg.createStakePools(cluster);
     const withdrawStakePools = UnstakeAg.createWithdrawStakePools(cluster);
     const hybridPools = UnstakeAg.createHybridPools(cluster);
+    const lut = await UnstakeAg.fetchLoot(connection);
     const res = new UnstakeAg(
       params,
       stakePools,
       withdrawStakePools,
       hybridPools,
       jupiter,
+      lut,
     );
     await res.updatePools();
     return res;
@@ -606,11 +618,7 @@ export class UnstakeAg {
     }
 
     // Versioned Transaction
-    const lut = await this.connection
-      .getAddressLookupTable(LUT_PK)
-      .then((res) => res.value);
-
-    const luts = lut ? [lut] : [];
+    const luts = this.lut ? [this.lut] : [];
 
     let unstakeTransaction = makeTransactionV0({
       payerKey: user,
@@ -638,7 +646,7 @@ export class UnstakeAg {
       );
     }
 
-    return { unstakeTransaction };
+    return { unstakeTransaction, luts };
   }
 
   async computeRoutesXSol(
@@ -776,13 +784,14 @@ export class UnstakeAg {
     asLegacyTransaction = false,
   }: ExchangeXSolParams): Promise<ExchangeReturn | ExchangeReturnV0> {
     if (isXSolRouteJupDirect(route)) {
-      const { swapTransaction } = await this.jupiter.exchange({
-        routeInfo: route.jup,
-        userPublicKey: user,
-        wrapUnwrapSOL: true,
-        feeAccount: feeAccounts[WRAPPED_SOL_MINT.toString()],
-        asLegacyTransaction,
-      });
+      const { swapTransaction, addressLookupTableAccounts } =
+        await this.jupiter.exchange({
+          routeInfo: route.jup,
+          userPublicKey: user,
+          wrapUnwrapSOL: true,
+          feeAccount: feeAccounts[WRAPPED_SOL_MINT.toString()],
+          asLegacyTransaction,
+        });
 
       if (asLegacyTransaction) {
         return {
@@ -795,6 +804,7 @@ export class UnstakeAg {
 
       return {
         unstakeTransaction: swapTransaction as VersionedTransaction,
+        luts: [...addressLookupTableAccounts, ...(this.lut ? [this.lut] : [])],
       };
     }
     const {
@@ -859,38 +869,16 @@ export class UnstakeAg {
     }
 
     const v0ExchangeReturn = exchangeReturn as ExchangeReturnV0;
-    const pks = [
-      LUT_PK.toString(),
-      ...v0ExchangeReturn.unstakeTransaction.message.addressTableLookups.map(
-        (lookup) => lookup.accountKey.toString(),
-      ),
-    ];
-    const accountInfos = await chunkedGetMultipleAccountInfos(
-      this.connection,
-      pks,
-    );
-    const luts = accountInfos
-      .map((acc, index) => {
-        if (acc) {
-          return new AddressLookupTableAccount({
-            key: new PublicKey(pks[index]),
-            state: AddressLookupTableAccount.deserialize(acc.data),
-          });
-        }
-
-        return null;
-      })
-      .filter(Boolean) as AddressLookupTableAccount[];
 
     const unstakeTransaction = addIxsToTxV0(
       v0ExchangeReturn.unstakeTransaction,
-      luts,
+      v0ExchangeReturn.luts,
       [...withdrawStakeInstructions],
     );
     if (isNewStakeAccountKeypair(newStakeAccount)) {
       unstakeTransaction.sign([newStakeAccount]);
     }
-    return { unstakeTransaction };
+    return { unstakeTransaction, luts: v0ExchangeReturn.luts };
   }
 }
 
