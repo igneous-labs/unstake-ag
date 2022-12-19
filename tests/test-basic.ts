@@ -79,6 +79,7 @@ describe("test basic functionality", () => {
       amountLamports: BigInt(stakeAccount.lamports),
       slippageBps: 10, // 10 BPS === 0.1%
       shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+      asLegacyTransaction: true,
     });
     await checkRoutes(unstake, stakeAccount, TEST_STAKE_ACC_PUBKEY, routes);
   });
@@ -90,6 +91,7 @@ describe("test basic functionality", () => {
       amountLamports: BigInt(lamportsLessThanMarinadeMin),
       slippageBps: 10,
       shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+      asLegacyTransaction: true,
     });
     await checkRoutes(unstake, stakeAccount, TEST_STAKE_ACC_PUBKEY, routes);
     for (const route of routes) {
@@ -107,6 +109,7 @@ describe("test basic functionality", () => {
         BigInt(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString()) - BigInt(1),
       slippageBps: 10,
       shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+      asLegacyTransaction: true,
     });
     expect(routes.length).to.eq(0);
   });
@@ -118,6 +121,7 @@ describe("test basic functionality", () => {
       slippageBps: 10,
       jupFeeBps: 3,
       shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+      asLegacyTransaction: true,
     });
     await checkRoutes(
       unstake,

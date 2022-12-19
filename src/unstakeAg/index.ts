@@ -323,6 +323,7 @@ export class UnstakeAg {
     forceFetch = false,
     shouldIgnoreRouteErrors = true,
     stakePoolsToExclude,
+    asLegacyTransaction,
   }: ComputeRoutesParams): Promise<UnstakeRoute[]> {
     if (
       amountLamportsArgs < BigInt(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString())
@@ -393,6 +394,7 @@ export class UnstakeAg {
             onlyDirectRoutes: true,
             feeBps: jupFeeBps,
             forceFetch,
+            asLegacyTransaction,
           });
           return routesInfos.map((jupRoute) => ({
             ...stakePoolRoute,
@@ -652,6 +654,7 @@ export class UnstakeAg {
       shouldIgnoreRouteErrors = true,
       currentEpoch: currentEpochOption,
       stakePoolsToExclude: stakePoolsToExcludeOption,
+      asLegacyTransaction,
     } = args;
 
     const jupRoutesPromise: Promise<UnstakeXSolRouteJupDirect[]> = this.jupiter
@@ -716,6 +719,7 @@ export class UnstakeAg {
             stakePoolsToExclude,
             // already refreshed pools above
             forceFetch: false,
+            asLegacyTransaction,
           });
           const withdrawStake: WithdrawStakeRoute = {
             withdrawStakePool: pool,
@@ -855,25 +859,29 @@ export class UnstakeAg {
     }
 
     const v0ExchangeReturn = exchangeReturn as ExchangeReturnV0;
-    const addressLookupTableAccounts = await Promise.all(
-      v0ExchangeReturn.unstakeTransaction.message.addressTableLookups.map(
-        async (lookup) =>
-          new AddressLookupTableAccount({
-            key: lookup.accountKey,
-            state: AddressLookupTableAccount.deserialize(
-              await this.connection
-                .getAccountInfo(lookup.accountKey)
-                .then((res) => res!.data),
-            ),
-          }),
+    const pks = [
+      LUT_PK.toString(),
+      ...v0ExchangeReturn.unstakeTransaction.message.addressTableLookups.map(
+        (lookup) => lookup.accountKey.toString(),
       ),
+    ];
+    const accountInfos = await chunkedGetMultipleAccountInfos(
+      this.connection,
+      pks,
     );
-    const lut = await this.connection
-      .getAddressLookupTable(LUT_PK)
-      .then((res) => res.value);
-    const luts = lut
-      ? [lut, ...addressLookupTableAccounts]
-      : addressLookupTableAccounts;
+    const luts = accountInfos
+      .map((acc, index) => {
+        if (acc) {
+          return new AddressLookupTableAccount({
+            key: new PublicKey(pks[index]),
+            state: AddressLookupTableAccount.deserialize(acc.data),
+          });
+        }
+
+        return null;
+      })
+      .filter(Boolean) as AddressLookupTableAccount[];
+
     const unstakeTransaction = addIxsToTxV0(
       v0ExchangeReturn.unstakeTransaction,
       luts,

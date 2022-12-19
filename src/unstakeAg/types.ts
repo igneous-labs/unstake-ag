@@ -77,6 +77,12 @@ export interface ComputeRoutesParams {
   currentEpoch?: number;
 
   stakePoolsToExclude?: StakePoolsToExclude;
+
+  /**
+   * Produces a legacy transaction
+   * (Ledger currently doesn't support Versioned Transaction)
+   */
+  asLegacyTransaction?: boolean;
 }
 
 export type ComputeRoutesXSolParams = Omit<
