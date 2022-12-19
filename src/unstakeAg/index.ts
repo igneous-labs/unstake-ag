@@ -555,7 +555,8 @@ export class UnstakeAg {
         const { swapTransaction } = await this.jupiter.exchange({
           routeInfo: jup,
           userPublicKey: user,
-          wrapUnwrapSOL: true,
+          // since we're putting it in setup and cleanup always
+          wrapUnwrapSOL: false,
           feeAccount: feeAccounts[WRAPPED_SOL_MINT.toString()],
           asLegacyTransaction: true,
         });
