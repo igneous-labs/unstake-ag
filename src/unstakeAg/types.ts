@@ -5,6 +5,7 @@ import type {
   Signer,
   Transaction,
 } from "@solana/web3.js";
+import { VersionedTransaction } from "@solana/web3.js";
 import type { Jupiter } from "@jup-ag/core";
 import type { StakeAccount } from "@soceanfi/solana-stake-sdk";
 
@@ -215,4 +216,8 @@ export interface ExchangeReturn {
   setupTransaction?: TransactionWithSigners;
   unstakeTransaction: TransactionWithSigners;
   cleanupTransaction?: TransactionWithSigners;
+}
+
+export interface ExchangeReturnV0 {
+  unstakeTransaction: VersionedTransaction;
 }

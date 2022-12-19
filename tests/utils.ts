@@ -7,14 +7,11 @@ import { StakeAccount } from "@soceanfi/solana-stake-sdk";
 import { expect } from "chai";
 
 import {
-  ExchangeReturn,
+  ExchangeReturnV0,
   FeeAccounts,
   isXSolRouteJupDirect,
   outLamports,
   outLamportsXSol,
-  prepareCleanupTx,
-  prepareSetupTx,
-  prepareUnstakeTx,
   routeMarketLabels,
   routeMarketLabelsXSol,
   UnstakeAg,
@@ -22,33 +19,14 @@ import {
   UnstakeXSolRoute,
 } from "@/unstake-ag";
 
-const SERIALIZE_CONFIG_MOCK_SIG = {
-  requireAllSignatures: false,
-  verifyAllSignatures: false,
-};
-
 async function trySimulateExchangeReturnFirstTx(
   unstake: UnstakeAg,
-  exchangeReturn: ExchangeReturn,
-  user: PublicKey,
+  { unstakeTransaction }: ExchangeReturnV0,
   routeLabel: string,
 ) {
-  const { blockhash } = await unstake.connection.getLatestBlockhash();
-  const setupTransaction = prepareSetupTx(exchangeReturn, blockhash, user);
-  const unstakeTransaction = prepareUnstakeTx(exchangeReturn, blockhash, user);
-  const cleanupTransaction = prepareCleanupTx(exchangeReturn, blockhash, user);
-  console.log(
-    routeLabel,
-    "setup:",
-    setupTransaction?.serialize(SERIALIZE_CONFIG_MOCK_SIG).length,
-    "unstake:",
-    unstakeTransaction.serialize(SERIALIZE_CONFIG_MOCK_SIG).length,
-    "cleanup:",
-    cleanupTransaction?.serialize(SERIALIZE_CONFIG_MOCK_SIG).length,
-  );
-  // try simulating setupTransaction or unstakeTransaction to
-  // make sure they work
-  const txToSim = setupTransaction || unstakeTransaction;
+  console.log(routeLabel, "unstake:", unstakeTransaction.serialize().length);
+  // try simulating unstakeTransaction to make sure it works
+  const txToSim = unstakeTransaction;
   const sim = await unstake.connection.simulateTransaction(txToSim, undefined);
   expect(
     sim.value.err,
@@ -105,7 +83,6 @@ export async function checkRoutes(
         await trySimulateExchangeReturnFirstTx(
           unstake,
           exchangeReturn,
-          user,
           routeLabel,
         );
       } catch (e) {
@@ -157,7 +134,6 @@ export async function checkRoutesXSol(
         await trySimulateExchangeReturnFirstTx(
           unstake,
           exchangeReturn,
-          user,
           routeLabel,
         );
         // try with a generated keypair too if default is by seed, to make sure that works
@@ -176,7 +152,6 @@ export async function checkRoutesXSol(
           await trySimulateExchangeReturnFirstTx(
             unstake,
             exchangeReturnKp,
-            user,
             routeLabel,
           );
         }

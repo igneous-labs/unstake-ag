@@ -1,11 +1,16 @@
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import {
   AccountInfo,
+  AddressLookupTableAccount,
   Connection,
   PublicKey,
   StakeProgram,
   SystemProgram,
   Transaction,
+  TransactionInstruction,
+  TransactionMessage,
+  TransactionMessageArgs,
+  VersionedTransaction,
 } from "@solana/web3.js";
 import { Amm } from "@jup-ag/core";
 import type { SingleLevelAmmValidator } from "@jup-ag/core/dist/lib/ammValidator";
@@ -554,72 +559,41 @@ export function minOutLamportsXSol(route: UnstakeXSolRoute): bigint {
   return minOutLamports(route.unstake);
 }
 
-export function prepareSetupTx(
-  exchangeReturn: ExchangeReturn,
-  recentBlockhash: string,
-  feePayer: PublicKey,
-): Transaction | undefined {
-  return prepareTxInternal(
-    exchangeReturn,
-    recentBlockhash,
-    feePayer,
-    "setupTransaction",
-  );
-}
-
-export function prepareUnstakeTx(
-  exchangeReturn: ExchangeReturn,
-  recentBlockhash: string,
-  feePayer: PublicKey,
-): Transaction {
-  return prepareTxInternal(
-    exchangeReturn,
-    recentBlockhash,
-    feePayer,
-    "unstakeTransaction",
-  )!;
-}
-
-export function prepareCleanupTx(
-  exchangeReturn: ExchangeReturn,
-  recentBlockhash: string,
-  feePayer: PublicKey,
-): Transaction | undefined {
-  return prepareTxInternal(
-    exchangeReturn,
-    recentBlockhash,
-    feePayer,
-    "cleanupTransaction",
-  );
-}
-
-/**
- * Sets `recentBlockhash` and `feePayer` and partialSigns
- * with additionalSigners for the given transaction in an
- * `ExchangeReturn`
- *
- * Modifies in-place
- *
- * @param exchangeReturn
- * @param recentBlockhash
- * @param feePayer
- * @param whichTx
- */
-function prepareTxInternal(
-  exchangeReturn: ExchangeReturn,
-  recentBlockhash: string,
-  feePayer: PublicKey,
-  whichTx: "setupTransaction" | "unstakeTransaction" | "cleanupTransaction",
-): Transaction | undefined {
-  const txWithSigners = exchangeReturn[whichTx];
-  if (txWithSigners === undefined) {
-    return txWithSigners;
+export function addIxsToTxV0(
+  versionedTx: VersionedTransaction,
+  addressLookupTableAccounts: AddressLookupTableAccount[],
+  prependIxs?: TransactionInstruction[],
+  appendIxs?: TransactionInstruction[],
+): VersionedTransaction {
+  const versionedTxMessage = TransactionMessage.decompile(versionedTx.message, {
+    addressLookupTableAccounts,
+  });
+  if (prependIxs) {
+    versionedTxMessage.instructions.unshift(...prependIxs);
   }
-  txWithSigners.tx.recentBlockhash = recentBlockhash;
-  txWithSigners.tx.feePayer = feePayer;
-  // NOTE: @solana/web3.js throws empty signers error without this check
-  if (txWithSigners.signers.length > 0) {
-    txWithSigners.tx.partialSign(...txWithSigners.signers);
+  if (appendIxs) {
+    versionedTxMessage.instructions.push(...appendIxs);
   }
-  return txWithSigners.tx;
+  versionedTx.message = versionedTxMessage.compileToV0Message(
+    addressLookupTableAccounts,
+  );
+
+  return versionedTx;
+}
+
+export function makeTransactionV0({
+  payerKey,
+  recentBlockhash,
+  instructions,
+  luts,
+}: TransactionMessageArgs & {
+  luts?: AddressLookupTableAccount[];
+}): VersionedTransaction {
+  return new VersionedTransaction(
+    new TransactionMessage({
+      payerKey,
+      recentBlockhash,
+      instructions,
+    }).compileToV0Message(luts),
+  );
 }
