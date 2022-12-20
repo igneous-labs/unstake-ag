@@ -52,8 +52,10 @@ Note: Version 0 of Semantic Versioning is handled differently from version 1 and
 ### Changed
 
 - `splStakePool.depositAuth` now defaults to the default deposit authority PDA, and is updated to the one stored in the account when the account is fetched.
-- Upgrade `@jup-ag/core` to `3.0.0-beta.8`  
+- Upgrade `@jup-ag/core` to `3.0.0-beta.8`
 - No longer initialize jup with a compulsory set of `ammsToExclude`, since all markets should be able to fit into one tx with LUTs. It is now the responsibility of the user to initialize `UnstakeAg` with the desired `ammsToExclude`.
+- Upgrade `@jup-ag/core` to `4.0.0-beta.0`
+- Add `asLegacyTransaction` argument to `computeRoutes()`, `exchange()`, `computeRoutesXSol()` and `exchangeXSol()` which allows using legacy `Transaction` instead of `VersionedTransaction` (default)
 
 ## [0.3.2] - 2022-11-19
 
@@ -67,7 +69,7 @@ Note: Version 0 of Semantic Versioning is handled differently from version 1 and
 
 ### Changed
 
-- Explicit union types for labels. Typescript will now check validity of keys in `stakePoolsToExclude` 
+- Explicit union types for labels. Typescript will now check validity of keys in `stakePoolsToExclude`
 
 ## [0.3.1] - 2022-11-18
 
@@ -80,7 +82,7 @@ Note: Version 0 of Semantic Versioning is handled differently from version 1 and
 
 ### Changed
 
-- Refactor `MarinadeStakePool` so that its constructor and `AddressMap` is more consistent with the other pools. 
+- Refactor `MarinadeStakePool` so that its constructor and `AddressMap` is more consistent with the other pools.
 
 ## [0.3.0] - 2022-11-17
 
