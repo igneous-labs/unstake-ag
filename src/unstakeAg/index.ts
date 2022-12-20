@@ -619,7 +619,6 @@ export class UnstakeAg {
 
     // Versioned Transaction
     const luts = this.lut ? [this.lut] : [];
-
     let unstakeTransaction = makeTransactionV0({
       payerKey: user,
       recentBlockhash: recentBlockhash.blockhash,
@@ -632,17 +631,20 @@ export class UnstakeAg {
         await this.jupiter.exchange({
           routeInfo: jup,
           userPublicKey: user,
-          wrapUnwrapSOL: true,
+          wrapUnwrapSOL: false,
           feeAccount: feeAccounts[WRAPPED_SOL_MINT.toString()],
         });
+
+      const swapTx = swapTransaction as VersionedTransaction;
 
       luts.unshift(...addressLookupTableAccounts);
 
       unstakeTransaction = addIxsToTxV0(
-        swapTransaction as VersionedTransaction,
+        swapTx,
         luts,
         [...setupIxs, ...unstakeIxs],
         cleanupIxs,
+        true,
       );
     }
 
@@ -873,7 +875,7 @@ export class UnstakeAg {
     const unstakeTransaction = addIxsToTxV0(
       v0ExchangeReturn.unstakeTransaction,
       v0ExchangeReturn.luts,
-      [...withdrawStakeInstructions],
+      withdrawStakeInstructions,
     );
     if (isNewStakeAccountKeypair(newStakeAccount)) {
       unstakeTransaction.sign([newStakeAccount]);

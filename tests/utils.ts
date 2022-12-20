@@ -2,7 +2,12 @@
 // allow `expect().to.be.true`
 
 import { getAccount } from "@solana/spl-token-v2";
-import { AccountInfo, Keypair, PublicKey } from "@solana/web3.js";
+import {
+  AccountInfo,
+  Keypair,
+  PublicKey,
+  SimulateTransactionConfig,
+} from "@solana/web3.js";
 import { StakeAccount } from "@soceanfi/solana-stake-sdk";
 import { expect } from "chai";
 
@@ -26,6 +31,12 @@ import {
 const SERIALIZE_CONFIG_MOCK_SIG = {
   requireAllSignatures: false,
   verifyAllSignatures: false,
+};
+
+const SIMULATE_TRANSACTION_CONFIG: SimulateTransactionConfig = {
+  // this makes it so that the simulation doesnt need the signer
+  sigVerify: false,
+  replaceRecentBlockhash: true,
 };
 
 async function trySimulateExchangeReturnFirstTx(
@@ -71,7 +82,10 @@ async function trySimulateExchangeReturnV0FirstTx(
   );
   // try simulating unstakeTransaction to make sure it works
   const txToSim = exchangeReturn.unstakeTransaction;
-  const sim = await unstake.connection.simulateTransaction(txToSim, undefined);
+  const sim = await unstake.connection.simulateTransaction(
+    txToSim,
+    SIMULATE_TRANSACTION_CONFIG,
+  );
   expect(
     sim.value.err,
     `Error: ${JSON.stringify(sim.value.err)}\nLogs:\n${sim.value.logs?.join(

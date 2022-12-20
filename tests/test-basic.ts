@@ -101,262 +101,273 @@ describe("test basic functionality", () => {
     await checkRoutes(unstake, stakeAccount, TEST_STAKE_ACC_PUBKEY, routes);
   });
 
-  // it("partial unstake", async () => {
-  //   const lamportsLessThanMarinadeMin = 1_000_000_000;
-  //   const routes = await unstake.computeRoutes({
-  //     stakeAccount,
-  //     amountLamports: BigInt(lamportsLessThanMarinadeMin),
-  //     slippageBps: 10,
-  //     shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
-  //     asLegacyTransaction: true,
-  //   });
-  //   await checkRoutes(
-  //     unstake,
-  //     stakeAccount,
-  //     TEST_STAKE_ACC_PUBKEY,
-  //     routes,
-  //     undefined,
-  //     true,
-  //   );
-  //   for (const route of routes) {
-  //     expect(
-  //       route.stakeAccInput.stakePool.label !== "Marinade",
-  //       `Unexpected marinade: ${route}`,
-  //     );
-  //   }
-  // });
+  it("partial unstake", async () => {
+    const lamportsLessThanMarinadeMin = 1_000_000_000;
+    const routes = await unstake.computeRoutes({
+      stakeAccount,
+      amountLamports: BigInt(lamportsLessThanMarinadeMin),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+      asLegacyTransaction: true,
+    });
+    await checkRoutes(
+      unstake,
+      stakeAccount,
+      TEST_STAKE_ACC_PUBKEY,
+      routes,
+      undefined,
+      true,
+    );
+    for (const route of routes) {
+      expect(
+        route.stakeAccInput.stakePool.label !== "Marinade",
+        `Unexpected marinade: ${route}`,
+      );
+    }
+  });
 
-  // it("partial unstake v0", async () => {
-  //   const lamportsLessThanMarinadeMin = 1_000_000_000;
-  //   const routes = await unstake.computeRoutes({
-  //     stakeAccount,
-  //     amountLamports: BigInt(lamportsLessThanMarinadeMin),
-  //     slippageBps: 10,
-  //     shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
-  //   });
-  //   await checkRoutes(unstake, stakeAccount, TEST_STAKE_ACC_PUBKEY, routes);
-  //   for (const route of routes) {
-  //     expect(
-  //       route.stakeAccInput.stakePool.label !== "Marinade",
-  //       `Unexpected marinade: ${route}`,
-  //     );
-  //   }
-  // });
+  it("partial unstake v0", async () => {
+    const lamportsLessThanMarinadeMin = 1_000_000_000;
+    const routes = await unstake.computeRoutes({
+      stakeAccount,
+      amountLamports: BigInt(lamportsLessThanMarinadeMin),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+    });
+    await checkRoutes(unstake, stakeAccount, TEST_STAKE_ACC_PUBKEY, routes);
+    for (const route of routes) {
+      expect(
+        route.stakeAccInput.stakePool.label !== "Marinade",
+        `Unexpected marinade: ${route}`,
+      );
+    }
+  });
 
-  // it("less than rent-exempt", async () => {
-  //   const routes = await unstake.computeRoutes({
-  //     stakeAccount,
-  //     amountLamports:
-  //       BigInt(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString()) - BigInt(1),
-  //     slippageBps: 10,
-  //     shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
-  //     asLegacyTransaction: true,
-  //   });
-  //   expect(routes.length).to.eq(0);
-  // });
+  it("less than rent-exempt", async () => {
+    const routes = await unstake.computeRoutes({
+      stakeAccount,
+      amountLamports:
+        BigInt(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString()) - BigInt(1),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+      asLegacyTransaction: true,
+    });
+    expect(routes.length).to.eq(0);
+  });
 
-  // it("full unstake with referral fees", async () => {
-  //   const routes = await unstake.computeRoutes({
-  //     stakeAccount,
-  //     amountLamports: BigInt(stakeAccount.lamports),
-  //     slippageBps: 10,
-  //     jupFeeBps: 3,
-  //     shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
-  //     asLegacyTransaction: true,
-  //   });
-  //   await checkRoutes(
-  //     unstake,
-  //     stakeAccount,
-  //     TEST_STAKE_ACC_PUBKEY,
-  //     routes,
-  //     REFERRAL_DESTINATIONS,
-  //     true,
-  //   );
-  // });
+  it("less than rent-exempt V0", async () => {
+    const routes = await unstake.computeRoutes({
+      stakeAccount,
+      amountLamports:
+        BigInt(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString()) - BigInt(1),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+    });
+    expect(routes.length).to.eq(0);
+  });
 
-  // it("full unstake with referral fees v0", async () => {
-  //   const routes = await unstake.computeRoutes({
-  //     stakeAccount,
-  //     amountLamports: BigInt(stakeAccount.lamports),
-  //     slippageBps: 10,
-  //     jupFeeBps: 3,
-  //     shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
-  //   });
-  //   await checkRoutes(
-  //     unstake,
-  //     stakeAccount,
-  //     TEST_STAKE_ACC_PUBKEY,
-  //     routes,
-  //     REFERRAL_DESTINATIONS,
-  //   );
-  // });
+  it("full unstake with referral fees", async () => {
+    const routes = await unstake.computeRoutes({
+      stakeAccount,
+      amountLamports: BigInt(stakeAccount.lamports),
+      slippageBps: 10,
+      jupFeeBps: 3,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+      asLegacyTransaction: true,
+    });
+    await checkRoutes(
+      unstake,
+      stakeAccount,
+      TEST_STAKE_ACC_PUBKEY,
+      routes,
+      REFERRAL_DESTINATIONS,
+      true,
+    );
+  });
 
-  // // SPL + unstake.it unstake tx = 929 bytes
+  it("full unstake with referral fees v0", async () => {
+    const routes = await unstake.computeRoutes({
+      stakeAccount,
+      amountLamports: BigInt(stakeAccount.lamports),
+      slippageBps: 10,
+      jupFeeBps: 3,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+    });
+    await checkRoutes(
+      unstake,
+      stakeAccount,
+      TEST_STAKE_ACC_PUBKEY,
+      routes,
+      REFERRAL_DESTINATIONS,
+    );
+  });
 
-  // it("scnSOL", async () => {
-  //   const TEST_SCN_SOL_ACC_PUBKEY_HUMAN = new PublicKey(
-  //     "8qxk2T8UmNpTZoxTiMMv4N6sKHh7VxTHdAF9SvHy34LJ",
-  //   );
-  //   const routes = await unstake.computeRoutesXSol({
-  //     inputMint: SOCEAN_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
-  //     amount: JSBI.BigInt(1_000_000_000),
-  //     slippageBps: 10,
-  //     shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
-  //     asLegacyTransaction: true,
-  //   });
-  //   await checkRoutesXSol(
-  //     unstake,
-  //     routes,
-  //     TEST_SCN_SOL_ACC_PUBKEY_HUMAN,
-  //     undefined,
-  //     true,
-  //   );
-  // });
+  // SPL + unstake.it unstake tx = 929 bytes
 
-  // it("scnSOL V0", async () => {
-  //   const TEST_SCN_SOL_ACC_PUBKEY_HUMAN = new PublicKey(
-  //     "8qxk2T8UmNpTZoxTiMMv4N6sKHh7VxTHdAF9SvHy34LJ",
-  //   );
-  //   const routes = await unstake.computeRoutesXSol({
-  //     inputMint: SOCEAN_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
-  //     amount: JSBI.BigInt(1_000_000_000),
-  //     slippageBps: 10,
-  //     shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
-  //   });
-  //   await checkRoutesXSol(unstake, routes, TEST_SCN_SOL_ACC_PUBKEY_HUMAN);
-  // });
+  it("scnSOL", async () => {
+    const TEST_SCN_SOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "8qxk2T8UmNpTZoxTiMMv4N6sKHh7VxTHdAF9SvHy34LJ",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: SOCEAN_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+      asLegacyTransaction: true,
+    });
+    await checkRoutesXSol(
+      unstake,
+      routes,
+      TEST_SCN_SOL_ACC_PUBKEY_HUMAN,
+      undefined,
+      true,
+    );
+  });
 
-  // it("laineSOL", async () => {
-  //   const TEST_LAINE_SOL_ACC_PUBKEY_HUMAN = new PublicKey(
-  //     "8u8nU44mWpFcUvSWAwFEScKeLWiaWrPJqeuRzUXbZ2bj",
-  //   );
-  //   const routes = await unstake.computeRoutesXSol({
-  //     inputMint: LAINE_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
-  //     amount: JSBI.BigInt(1_000_000_000),
-  //     slippageBps: 10,
-  //     shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
-  //     asLegacyTransaction: true,
-  //   });
-  //   await checkRoutesXSol(
-  //     unstake,
-  //     routes,
-  //     TEST_LAINE_SOL_ACC_PUBKEY_HUMAN,
-  //     undefined,
-  //     true,
-  //   );
-  // });
+  it("scnSOL V0", async () => {
+    const TEST_SCN_SOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "8qxk2T8UmNpTZoxTiMMv4N6sKHh7VxTHdAF9SvHy34LJ",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: SOCEAN_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+    });
+    await checkRoutesXSol(unstake, routes, TEST_SCN_SOL_ACC_PUBKEY_HUMAN);
+  });
 
-  // it("laineSOL V0", async () => {
-  //   const TEST_LAINE_SOL_ACC_PUBKEY_HUMAN = new PublicKey(
-  //     "8u8nU44mWpFcUvSWAwFEScKeLWiaWrPJqeuRzUXbZ2bj",
-  //   );
-  //   const routes = await unstake.computeRoutesXSol({
-  //     inputMint: LAINE_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
-  //     amount: JSBI.BigInt(1_000_000_000),
-  //     slippageBps: 10,
-  //     shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
-  //   });
-  //   await checkRoutesXSol(unstake, routes, TEST_LAINE_SOL_ACC_PUBKEY_HUMAN);
-  // });
+  it("laineSOL", async () => {
+    const TEST_LAINE_SOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "8u8nU44mWpFcUvSWAwFEScKeLWiaWrPJqeuRzUXbZ2bj",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: LAINE_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+      asLegacyTransaction: true,
+    });
+    await checkRoutesXSol(
+      unstake,
+      routes,
+      TEST_LAINE_SOL_ACC_PUBKEY_HUMAN,
+      undefined,
+      true,
+    );
+  });
 
-  // it("everSOL", async () => {
-  //   const TEST_ESOL_ACC_PUBKEY_HUMAN = new PublicKey(
-  //     "393N3sSeiA6wCjdQmxgEvZC2REgwEKAjKpbjKrEtr36a",
-  //   );
-  //   const routes = await unstake.computeRoutesXSol({
-  //     inputMint: EVERSOL_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
-  //     amount: JSBI.BigInt(1_000_000_000),
-  //     slippageBps: 10,
-  //     shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
-  //     asLegacyTransaction: true,
-  //   });
-  //   await checkRoutesXSol(
-  //     unstake,
-  //     routes,
-  //     TEST_ESOL_ACC_PUBKEY_HUMAN,
-  //     undefined,
-  //     true,
-  //   );
-  // });
+  it("laineSOL V0", async () => {
+    const TEST_LAINE_SOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "8u8nU44mWpFcUvSWAwFEScKeLWiaWrPJqeuRzUXbZ2bj",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: LAINE_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+    });
+    await checkRoutesXSol(unstake, routes, TEST_LAINE_SOL_ACC_PUBKEY_HUMAN);
+  });
 
-  // it("everSOL V0", async () => {
-  //   const TEST_ESOL_ACC_PUBKEY_HUMAN = new PublicKey(
-  //     "393N3sSeiA6wCjdQmxgEvZC2REgwEKAjKpbjKrEtr36a",
-  //   );
-  //   const routes = await unstake.computeRoutesXSol({
-  //     inputMint: EVERSOL_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
-  //     amount: JSBI.BigInt(1_000_000_000),
-  //     slippageBps: 10,
-  //     shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
-  //   });
-  //   await checkRoutesXSol(unstake, routes, TEST_ESOL_ACC_PUBKEY_HUMAN);
-  // });
+  it("everSOL", async () => {
+    const TEST_ESOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "393N3sSeiA6wCjdQmxgEvZC2REgwEKAjKpbjKrEtr36a",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: EVERSOL_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+      asLegacyTransaction: true,
+    });
+    await checkRoutesXSol(
+      unstake,
+      routes,
+      TEST_ESOL_ACC_PUBKEY_HUMAN,
+      undefined,
+      true,
+    );
+  });
 
-  // it("stSOL", async () => {
-  //   const TEST_STSOL_ACC_PUBKEY_HUMAN = new PublicKey(
-  //     "4DX3z7QvnCeQGk6bsqCZALTnFRTvB4XXiZMktVBxVnog",
-  //   );
-  //   const routes = await unstake.computeRoutesXSol({
-  //     inputMint: LIDO_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
-  //     amount: JSBI.BigInt(1_000_000_000),
-  //     slippageBps: 10,
-  //     shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
-  //     asLegacyTransaction: true,
-  //   });
-  //   await checkRoutesXSol(
-  //     unstake,
-  //     routes,
-  //     TEST_STSOL_ACC_PUBKEY_HUMAN,
-  //     undefined,
-  //     true,
-  //   );
-  // });
+  it("everSOL V0", async () => {
+    const TEST_ESOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "393N3sSeiA6wCjdQmxgEvZC2REgwEKAjKpbjKrEtr36a",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: EVERSOL_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+    });
+    await checkRoutesXSol(unstake, routes, TEST_ESOL_ACC_PUBKEY_HUMAN);
+  });
 
-  // it("stSOL V0", async () => {
-  //   const TEST_STSOL_ACC_PUBKEY_HUMAN = new PublicKey(
-  //     "4DX3z7QvnCeQGk6bsqCZALTnFRTvB4XXiZMktVBxVnog",
-  //   );
-  //   const routes = await unstake.computeRoutesXSol({
-  //     inputMint: LIDO_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
-  //     amount: JSBI.BigInt(1_000_000_000),
-  //     slippageBps: 10,
-  //     shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
-  //   });
-  //   await checkRoutesXSol(unstake, routes, TEST_STSOL_ACC_PUBKEY_HUMAN);
-  // });
+  it("stSOL", async () => {
+    const TEST_STSOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "4DX3z7QvnCeQGk6bsqCZALTnFRTvB4XXiZMktVBxVnog",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: LIDO_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+      asLegacyTransaction: true,
+    });
+    await checkRoutesXSol(
+      unstake,
+      routes,
+      TEST_STSOL_ACC_PUBKEY_HUMAN,
+      undefined,
+      true,
+    );
+  });
 
-  // it("mSOL", async () => {
-  //   // just jup since marinade doesnt implement WithdrawStakePool
-  //   const TEST_MSOL_ACC_PUBKEY_HUMAN = new PublicKey(
-  //     "CrR7DS7A8ABSsHwx92K3b6bD1moBzn5SpWf2ske8bqML",
-  //   );
-  //   const routes = await unstake.computeRoutesXSol({
-  //     inputMint: MARINADE_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
-  //     amount: JSBI.BigInt(1_000_000_000),
-  //     slippageBps: 10,
-  //     shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
-  //     asLegacyTransaction: true,
-  //   });
-  //   await checkRoutesXSol(
-  //     unstake,
-  //     routes,
-  //     TEST_MSOL_ACC_PUBKEY_HUMAN,
-  //     undefined,
-  //     true,
-  //   );
-  // });
+  it("stSOL V0", async () => {
+    const TEST_STSOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "4DX3z7QvnCeQGk6bsqCZALTnFRTvB4XXiZMktVBxVnog",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: LIDO_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+    });
+    await checkRoutesXSol(unstake, routes, TEST_STSOL_ACC_PUBKEY_HUMAN);
+  });
 
-  // it("mSOL V0", async () => {
-  //   // just jup since marinade doesnt implement WithdrawStakePool
-  //   const TEST_MSOL_ACC_PUBKEY_HUMAN = new PublicKey(
-  //     "CrR7DS7A8ABSsHwx92K3b6bD1moBzn5SpWf2ske8bqML",
-  //   );
-  //   const routes = await unstake.computeRoutesXSol({
-  //     inputMint: MARINADE_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
-  //     amount: JSBI.BigInt(1_000_000_000),
-  //     slippageBps: 10,
-  //     shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
-  //   });
-  //   await checkRoutesXSol(unstake, routes, TEST_MSOL_ACC_PUBKEY_HUMAN);
-  // });
+  it("mSOL", async () => {
+    // just jup since marinade doesnt implement WithdrawStakePool
+    const TEST_MSOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "CrR7DS7A8ABSsHwx92K3b6bD1moBzn5SpWf2ske8bqML",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: MARINADE_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+      asLegacyTransaction: true,
+    });
+    await checkRoutesXSol(
+      unstake,
+      routes,
+      TEST_MSOL_ACC_PUBKEY_HUMAN,
+      undefined,
+      true,
+    );
+  });
+
+  it("mSOL V0", async () => {
+    // just jup since marinade doesnt implement WithdrawStakePool
+    const TEST_MSOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "CrR7DS7A8ABSsHwx92K3b6bD1moBzn5SpWf2ske8bqML",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: MARINADE_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+    });
+    await checkRoutesXSol(unstake, routes, TEST_MSOL_ACC_PUBKEY_HUMAN);
+  });
 });

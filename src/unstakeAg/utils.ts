@@ -1,4 +1,7 @@
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
 import {
   AccountInfo,
   AddressLookupTableAccount,
@@ -639,10 +642,25 @@ export function addIxsToTxV0(
   addressLookupTableAccounts: AddressLookupTableAccount[],
   prependIxs?: TransactionInstruction[],
   appendIxs?: TransactionInstruction[],
+  filterTx?: boolean,
 ): VersionedTransaction {
   const versionedTxMessage = TransactionMessage.decompile(versionedTx.message, {
     addressLookupTableAccounts,
   });
+
+  // jup detail:
+  // exchange() still adds create wrapped SOL ix despite `wrapUnwrapSOL: false`
+  // because SOL is not the input token.
+  // So just delete all associated token prog instructions
+  // since we are handling it above already,
+  // and we shouldnt have any other intermediate tokens anyway
+  // since `onlyDirectRoutes: true`
+  if (filterTx) {
+    versionedTxMessage.instructions = versionedTxMessage.instructions.filter(
+      (ix) => !ix.programId.equals(ASSOCIATED_TOKEN_PROGRAM_ID),
+    );
+  }
+
   if (prependIxs) {
     versionedTxMessage.instructions.unshift(...prependIxs);
   }
