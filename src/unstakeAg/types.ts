@@ -1,10 +1,12 @@
 import type {
   AccountInfo,
+  AddressLookupTableAccount,
   Keypair,
   PublicKey,
   Signer,
   Transaction,
 } from "@solana/web3.js";
+import { VersionedTransaction } from "@solana/web3.js";
 import type { Jupiter } from "@jup-ag/core";
 import type { StakeAccount } from "@soceanfi/solana-stake-sdk";
 
@@ -76,6 +78,12 @@ export interface ComputeRoutesParams {
   currentEpoch?: number;
 
   stakePoolsToExclude?: StakePoolsToExclude;
+
+  /**
+   * Produces a legacy transaction
+   * (Ledger currently doesn't support Versioned Transaction)
+   */
+  asLegacyTransaction?: boolean;
 }
 
 export type ComputeRoutesXSolParams = Omit<
@@ -153,6 +161,12 @@ export interface ExchangeParams {
    * computing one live by checking against on-chain data
    */
   splitStakeAccount?: PubkeyFromSeed;
+
+  /**
+   * Produces a legacy transaction
+   * (Ledger currently doesn't support Versioned Transaction)
+   */
+  asLegacyTransaction?: boolean;
 }
 
 export interface ExchangeXSolParams {
@@ -194,6 +208,12 @@ export interface ExchangeXSolParams {
    * computing one live
    */
   newStakeAccount?: PubkeyFromSeed | Keypair;
+
+  /**
+   * Produces a legacy transaction
+   * (Ledger currently doesn't support Versioned Transaction)
+   */
+  asLegacyTransaction?: boolean;
 }
 
 /**
@@ -215,4 +235,9 @@ export interface ExchangeReturn {
   setupTransaction?: TransactionWithSigners;
   unstakeTransaction: TransactionWithSigners;
   cleanupTransaction?: TransactionWithSigners;
+}
+
+export interface ExchangeReturnV0 {
+  unstakeTransaction: VersionedTransaction;
+  luts: AddressLookupTableAccount[];
 }

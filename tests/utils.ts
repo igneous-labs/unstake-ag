@@ -2,12 +2,18 @@
 // allow `expect().to.be.true`
 
 import { getAccount } from "@solana/spl-token-v2";
-import { AccountInfo, Keypair, PublicKey } from "@solana/web3.js";
+import {
+  AccountInfo,
+  Keypair,
+  PublicKey,
+  SimulateTransactionConfig,
+} from "@solana/web3.js";
 import { StakeAccount } from "@soceanfi/solana-stake-sdk";
 import { expect } from "chai";
 
 import {
   ExchangeReturn,
+  ExchangeReturnV0,
   FeeAccounts,
   isXSolRouteJupDirect,
   outLamports,
@@ -25,6 +31,12 @@ import {
 const SERIALIZE_CONFIG_MOCK_SIG = {
   requireAllSignatures: false,
   verifyAllSignatures: false,
+};
+
+const SIMULATE_TRANSACTION_CONFIG: SimulateTransactionConfig = {
+  // this makes it so that the simulation doesnt need the signer
+  sigVerify: false,
+  replaceRecentBlockhash: true,
 };
 
 async function trySimulateExchangeReturnFirstTx(
@@ -58,6 +70,30 @@ async function trySimulateExchangeReturnFirstTx(
   ).to.be.null;
 }
 
+async function trySimulateExchangeReturnV0FirstTx(
+  unstake: UnstakeAg,
+  exchangeReturn: ExchangeReturnV0,
+  routeLabel: string,
+) {
+  console.log(
+    routeLabel,
+    "unstake:",
+    exchangeReturn.unstakeTransaction.serialize().length,
+  );
+  // try simulating unstakeTransaction to make sure it works
+  const txToSim = exchangeReturn.unstakeTransaction;
+  const sim = await unstake.connection.simulateTransaction(
+    txToSim,
+    SIMULATE_TRANSACTION_CONFIG,
+  );
+  expect(
+    sim.value.err,
+    `Error: ${JSON.stringify(sim.value.err)}\nLogs:\n${sim.value.logs?.join(
+      "\n",
+    )}`,
+  ).to.be.null;
+}
+
 function checkPromiseSettledArrayVerbose<T>(
   results: PromiseSettledResult<T>[],
 ) {
@@ -81,6 +117,7 @@ export async function checkRoutes(
   stakeAccountPubkey: PublicKey,
   routes: UnstakeRoute[],
   feeAccounts?: FeeAccounts,
+  asLegacyTransaction?: boolean,
 ) {
   const user = stakeAccount.data.info.meta.authorized.withdrawer;
   // console.log(routes);
@@ -101,13 +138,22 @@ export async function checkRoutes(
           stakeAccountPubkey,
           user,
           feeAccounts,
+          asLegacyTransaction,
         });
-        await trySimulateExchangeReturnFirstTx(
-          unstake,
-          exchangeReturn,
-          user,
-          routeLabel,
-        );
+        if (asLegacyTransaction) {
+          await trySimulateExchangeReturnFirstTx(
+            unstake,
+            exchangeReturn as ExchangeReturn,
+            user,
+            routeLabel,
+          );
+        } else {
+          await trySimulateExchangeReturnV0FirstTx(
+            unstake,
+            exchangeReturn as ExchangeReturnV0,
+            routeLabel,
+          );
+        }
       } catch (e) {
         const err = e as Error;
         err.message = `${routeLabel}: ${err.message}`;
@@ -125,6 +171,7 @@ export async function checkRoutesXSol(
   routes: UnstakeXSolRoute[],
   xSolTokenAcc: PublicKey,
   feeAccounts?: FeeAccounts,
+  asLegacyTransaction?: boolean,
 ) {
   const xSolTokenAccountInfo = await getAccount(
     unstake.connection,
@@ -152,14 +199,23 @@ export async function checkRoutesXSol(
           srcTokenAccount: xSolTokenAcc,
           user,
           feeAccounts,
+          asLegacyTransaction,
         });
         await sleep(Math.random() * MAX_RANDOM_JITTER_MS);
-        await trySimulateExchangeReturnFirstTx(
-          unstake,
-          exchangeReturn,
-          user,
-          routeLabel,
-        );
+        if (asLegacyTransaction) {
+          await trySimulateExchangeReturnFirstTx(
+            unstake,
+            exchangeReturn as ExchangeReturn,
+            user,
+            routeLabel,
+          );
+        } else {
+          await trySimulateExchangeReturnV0FirstTx(
+            unstake,
+            exchangeReturn as ExchangeReturnV0,
+            routeLabel,
+          );
+        }
         // try with a generated keypair too if default is by seed, to make sure that works
         if (
           !isXSolRouteJupDirect(route) &&
@@ -171,14 +227,23 @@ export async function checkRoutesXSol(
             user,
             feeAccounts,
             newStakeAccount: Keypair.generate(),
+            asLegacyTransaction,
           });
           await sleep(Math.random() * MAX_RANDOM_JITTER_MS);
-          await trySimulateExchangeReturnFirstTx(
-            unstake,
-            exchangeReturnKp,
-            user,
-            routeLabel,
-          );
+          if (asLegacyTransaction) {
+            await trySimulateExchangeReturnFirstTx(
+              unstake,
+              exchangeReturnKp as ExchangeReturn,
+              user,
+              routeLabel,
+            );
+          } else {
+            await trySimulateExchangeReturnV0FirstTx(
+              unstake,
+              exchangeReturnKp as ExchangeReturnV0,
+              routeLabel,
+            );
+          }
         }
       } catch (e) {
         const err = e as Error;

@@ -1,11 +1,19 @@
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
 import {
   AccountInfo,
+  AddressLookupTableAccount,
   Connection,
   PublicKey,
   StakeProgram,
   SystemProgram,
   Transaction,
+  TransactionInstruction,
+  TransactionMessage,
+  TransactionMessageArgs,
+  VersionedTransaction,
 } from "@solana/web3.js";
 import { Amm } from "@jup-ag/core";
 import type { SingleLevelAmmValidator } from "@jup-ag/core/dist/lib/ammValidator";
@@ -627,4 +635,58 @@ function prepareTxInternal(
     txWithSigners.tx.partialSign(...txWithSigners.signers);
   }
   return txWithSigners.tx;
+}
+
+export function addIxsToTxV0(
+  versionedTx: VersionedTransaction,
+  addressLookupTableAccounts: AddressLookupTableAccount[],
+  prependIxs?: TransactionInstruction[],
+  appendIxs?: TransactionInstruction[],
+  filterTx?: boolean,
+): VersionedTransaction {
+  const versionedTxMessage = TransactionMessage.decompile(versionedTx.message, {
+    addressLookupTableAccounts,
+  });
+
+  // jup detail:
+  // exchange() still adds create wrapped SOL ix despite `wrapUnwrapSOL: false`
+  // because SOL is not the input token.
+  // So just delete all associated token prog instructions
+  // since we are handling it above already,
+  // and we shouldnt have any other intermediate tokens anyway
+  // since `onlyDirectRoutes: true`
+  if (filterTx) {
+    versionedTxMessage.instructions = versionedTxMessage.instructions.filter(
+      (ix) => !ix.programId.equals(ASSOCIATED_TOKEN_PROGRAM_ID),
+    );
+  }
+
+  if (prependIxs) {
+    versionedTxMessage.instructions.unshift(...prependIxs);
+  }
+  if (appendIxs) {
+    versionedTxMessage.instructions.push(...appendIxs);
+  }
+  versionedTx.message = versionedTxMessage.compileToV0Message(
+    addressLookupTableAccounts,
+  );
+
+  return versionedTx;
+}
+
+export function makeTransactionV0({
+  payerKey,
+  recentBlockhash,
+  instructions,
+  luts,
+}: TransactionMessageArgs & {
+  luts?: AddressLookupTableAccount[];
+}): VersionedTransaction {
+  return new VersionedTransaction(
+    new TransactionMessage({
+      payerKey,
+      recentBlockhash,
+      instructions,
+    }).compileToV0Message(luts),
+  );
 }

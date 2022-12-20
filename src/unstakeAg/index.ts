@@ -5,11 +5,14 @@ import {
   getAssociatedTokenAddress,
 } from "@solana/spl-token-v2";
 import {
+  AddressLookupTableAccount,
   Cluster,
   Connection,
   Keypair,
+  PublicKey,
   StakeProgram,
   Transaction,
+  VersionedTransaction,
 } from "@solana/web3.js";
 import { Jupiter, JupiterLoadParams, WRAPPED_SOL_MINT } from "@jup-ag/core";
 import { STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS } from "@soceanfi/stake-pool-sdk";
@@ -47,10 +50,12 @@ import type {
   ComputeRoutesXSolParams,
   ExchangeParams,
   ExchangeReturn,
+  ExchangeReturnV0,
   ExchangeXSolParams,
   HybridPool,
 } from "@/unstake-ag/unstakeAg/types";
 import {
+  addIxsToTxV0,
   calcStakeUnstakedAmount,
   chunkedGetMultipleAccountInfos,
   dedupPubkeys,
@@ -59,6 +64,7 @@ import {
   genShortestUnusedSeed,
   isHybridPool,
   isXSolRouteJupDirect,
+  makeTransactionV0,
   outLamports,
   outLamportsXSol,
   tryMergeExchangeReturn,
@@ -69,6 +75,8 @@ import {
   newStakeAccountPubkey,
   WithdrawStakePool,
 } from "@/unstake-ag/withdrawStakePools";
+
+const LUT_PK = new PublicKey("EhWxBHdmQ3yDmPzhJbKtGMM9oaZD42emt71kSieghy5");
 
 export type LoadParams = JupiterLoadParams & {
   shouldIgnoreLoadErrors?: boolean;
@@ -130,6 +138,8 @@ export class UnstakeAg {
   // @ts-ignore
   poolsAccountsToUpdate: string[];
 
+  lut: AddressLookupTableAccount | null;
+
   constructor(
     {
       cluster,
@@ -141,6 +151,7 @@ export class UnstakeAg {
     withdrawStakePools: WithdrawStakePool[],
     hybridPools: HybridPool[],
     jupiter: Jupiter,
+    lut: AddressLookupTableAccount | null,
   ) {
     this.cluster = cluster;
     this.connection = connection;
@@ -151,6 +162,7 @@ export class UnstakeAg {
     this.jupiter = jupiter;
     this.lastUpdatePoolsTimestamp = 0;
     this.shouldIgnoreLoadErrors = shouldIgnoreLoadErrors ?? false;
+    this.lut = lut;
     this.setPoolsAccountsToUpdate();
   }
 
@@ -228,22 +240,30 @@ export class UnstakeAg {
     ];
   }
 
+  static async fetchLoot(
+    connection: Connection,
+  ): Promise<AddressLookupTableAccount | null> {
+    return connection.getAddressLookupTable(LUT_PK).then((res) => res.value);
+  }
+
   static async load(params: LoadParams): Promise<UnstakeAg> {
     // we can't use serum markets anyway
     params.shouldLoadSerumOpenOrders = false;
     // TODO: this throws `missing <Account>` sometimes
     // if RPC is slow to return. Not sure how to mitigate
     const jupiter = await Jupiter.load(params);
-    const { cluster } = params;
+    const { cluster, connection } = params;
     const stakePools = UnstakeAg.createStakePools(cluster);
     const withdrawStakePools = UnstakeAg.createWithdrawStakePools(cluster);
     const hybridPools = UnstakeAg.createHybridPools(cluster);
+    const lut = await UnstakeAg.fetchLoot(connection);
     const res = new UnstakeAg(
       params,
       stakePools,
       withdrawStakePools,
       hybridPools,
       jupiter,
+      lut,
     );
     await res.updatePools();
     return res;
@@ -315,6 +335,7 @@ export class UnstakeAg {
     forceFetch = false,
     shouldIgnoreRouteErrors = true,
     stakePoolsToExclude,
+    asLegacyTransaction,
   }: ComputeRoutesParams): Promise<UnstakeRoute[]> {
     if (
       amountLamportsArgs < BigInt(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toString())
@@ -385,6 +406,7 @@ export class UnstakeAg {
             onlyDirectRoutes: true,
             feeBps: jupFeeBps,
             forceFetch,
+            asLegacyTransaction,
           });
           return routesInfos.map((jupRoute) => ({
             ...stakePoolRoute,
@@ -427,16 +449,19 @@ export class UnstakeAg {
     feeAccounts = {},
     assumeAtasExist = false,
     splitStakeAccount: splitStakeAccountOption,
-  }: ExchangeParams): Promise<ExchangeReturn> {
+    asLegacyTransaction = false,
+  }: ExchangeParams): Promise<ExchangeReturn | ExchangeReturnV0> {
     if (!stakeAccount.data.info.stake) {
       throw new Error("stake account not delegated");
     }
 
     const { epoch: currentEpoch } = await this.connection.getEpochInfo();
+    const recentBlockhash = await this.connection.getLatestBlockhash(
+      "confirmed",
+    );
     const withdrawerAuth = stakeAccount.data.info.meta.authorized.withdrawer;
     const stakerAuth = stakeAccount.data.info.meta.authorized.staker;
     const setupIxs = [];
-    const unstakeIxs = [];
     const cleanupIxs = [];
     // Pubkey of the actual stake account to be unstaked:
     // either inputStakeAccount or an ephemeral one split from it
@@ -518,17 +543,15 @@ export class UnstakeAg {
       cleanupIxs.push(createCloseAccountInstruction(wSolTokenAcc, user, user));
     }
 
-    unstakeIxs.push(
-      ...stakePool.createSwapInstructions({
-        withdrawerAuth,
-        stakerAuth,
-        payer: user,
-        stakeAccountPubkey,
-        stakeAccountVotePubkey: stakeAccount.data.info.stake.delegation.voter,
-        destinationTokenAccount,
-        feeAccount: feeAccounts[stakePool.outputToken.toString()],
-      }),
-    );
+    const unstakeIxs = stakePool.createSwapInstructions({
+      withdrawerAuth,
+      stakerAuth,
+      payer: user,
+      stakeAccountPubkey,
+      stakeAccountVotePubkey: stakeAccount.data.info.stake.delegation.voter,
+      destinationTokenAccount,
+      feeAccount: feeAccounts[stakePool.outputToken.toString()],
+    });
 
     cleanupIxs.push(
       ...stakePool.createCleanupInstruction({
@@ -540,61 +563,92 @@ export class UnstakeAg {
       }),
     );
 
-    if (jup) {
-      const {
-        transactions: { setupTransaction, swapTransaction, cleanupTransaction },
-      } = await this.jupiter.exchange({
-        routeInfo: jup,
-        userPublicKey: user,
-        // since we're putting it in setup and cleanup always
-        wrapUnwrapSOL: false,
-        feeAccount: feeAccounts[WRAPPED_SOL_MINT.toString()],
+    // Legacy Transaction
+    if (asLegacyTransaction) {
+      if (jup) {
+        const { swapTransaction } = await this.jupiter.exchange({
+          routeInfo: jup,
+          userPublicKey: user,
+          // since we're putting it in setup and cleanup always
+          wrapUnwrapSOL: false,
+          feeAccount: feeAccounts[WRAPPED_SOL_MINT.toString()],
+          asLegacyTransaction: true,
+        });
+
+        const swapTx = swapTransaction as Transaction;
+        // jup detail:
+        // exchange() still adds create wrapped SOL ix despite `wrapUnwrapSOL: false`
+        // because SOL is not the input token.
+        // So just delete all associated token prog instructions
+        // since we are handling it above already,
+        // and we shouldnt have any other intermediate tokens anyway
+        // since `onlyDirectRoutes: true`
+        const filteredSwapIx = swapTx.instructions.filter(
+          (ix) => !ix.programId.equals(ASSOCIATED_TOKEN_PROGRAM_ID),
+        );
+        unstakeIxs.push(...filteredSwapIx);
+      }
+
+      let setupTransaction;
+      if (setupIxs.length > 0) {
+        setupTransaction = {
+          tx: new Transaction().add(...setupIxs),
+          signers: [],
+        };
+      }
+
+      const unstakeTransaction = {
+        tx: new Transaction().add(...unstakeIxs),
+        signers: [],
+      };
+
+      let cleanupTransaction;
+      if (cleanupIxs.length > 0) {
+        cleanupTransaction = {
+          tx: new Transaction().add(...cleanupIxs),
+          signers: [],
+        };
+      }
+
+      return tryMergeExchangeReturn(user, {
+        setupTransaction,
+        unstakeTransaction,
+        cleanupTransaction,
       });
-      if (setupTransaction) {
-        setupIxs.push(...setupTransaction.instructions);
-      }
-      // jup detail:
-      // exchange() still adds create wrapped SOL ix despite `wrapUnwrapSOL: false`
-      // because SOL is not the input token.
-      // So just delete all associated token prog instructions
-      // since we are handling it above already,
-      // and we shouldnt have any other intermediate tokens anyway
-      // since `onlyDirectRoutes: true`
-      const filteredSwapIx = swapTransaction.instructions.filter(
-        (ix) => !ix.programId.equals(ASSOCIATED_TOKEN_PROGRAM_ID),
-      );
-      unstakeIxs.push(...filteredSwapIx);
-      if (cleanupTransaction) {
-        cleanupIxs.push(...cleanupTransaction.instructions);
-      }
     }
 
-    let setupTransaction;
-    if (setupIxs.length > 0) {
-      setupTransaction = {
-        tx: new Transaction().add(...setupIxs),
-        signers: [],
-      };
-    }
-
-    const unstakeTransaction = {
-      tx: new Transaction().add(...unstakeIxs),
-      signers: [],
-    };
-
-    let cleanupTransaction;
-    if (cleanupIxs.length > 0) {
-      cleanupTransaction = {
-        tx: new Transaction().add(...cleanupIxs),
-        signers: [],
-      };
-    }
-
-    return tryMergeExchangeReturn(user, {
-      setupTransaction,
-      unstakeTransaction,
-      cleanupTransaction,
+    // Versioned Transaction
+    const luts = this.lut ? [this.lut] : [];
+    let unstakeTransaction = makeTransactionV0({
+      payerKey: user,
+      recentBlockhash: recentBlockhash.blockhash,
+      instructions: [...setupIxs, ...unstakeIxs, ...cleanupIxs],
+      luts,
     });
+
+    if (jup) {
+      const { swapTransaction, addressLookupTableAccounts } =
+        await this.jupiter.exchange({
+          routeInfo: jup,
+          userPublicKey: user,
+          wrapUnwrapSOL: false,
+          feeAccount: feeAccounts[WRAPPED_SOL_MINT.toString()],
+        });
+
+      const swapTx = swapTransaction as VersionedTransaction;
+
+      luts.unshift(...addressLookupTableAccounts);
+
+      unstakeTransaction = addIxsToTxV0(
+        swapTx,
+        luts,
+        [...setupIxs, ...unstakeIxs],
+        cleanupIxs,
+        true,
+      );
+    }
+
+    return { unstakeTransaction, luts };
   }
 
   async computeRoutesXSol(
@@ -610,6 +664,7 @@ export class UnstakeAg {
       shouldIgnoreRouteErrors = true,
       currentEpoch: currentEpochOption,
       stakePoolsToExclude: stakePoolsToExcludeOption,
+      asLegacyTransaction,
     } = args;
 
     const jupRoutesPromise: Promise<UnstakeXSolRouteJupDirect[]> = this.jupiter
@@ -674,6 +729,7 @@ export class UnstakeAg {
             stakePoolsToExclude,
             // already refreshed pools above
             forceFetch: false,
+            asLegacyTransaction,
           });
           const withdrawStake: WithdrawStakeRoute = {
             withdrawStakePool: pool,
@@ -727,33 +783,30 @@ export class UnstakeAg {
     feeAccounts = {},
     assumeAtasExist = false,
     newStakeAccount: newStakeAccountOption,
-  }: ExchangeXSolParams): Promise<ExchangeReturn> {
+    asLegacyTransaction = false,
+  }: ExchangeXSolParams): Promise<ExchangeReturn | ExchangeReturnV0> {
     if (isXSolRouteJupDirect(route)) {
-      const {
-        transactions: { setupTransaction, swapTransaction, cleanupTransaction },
-      } = await this.jupiter.exchange({
-        routeInfo: route.jup,
-        userPublicKey: user,
-        wrapUnwrapSOL: true,
-        feeAccount: feeAccounts[WRAPPED_SOL_MINT.toString()],
-      });
+      const { swapTransaction, addressLookupTableAccounts } =
+        await this.jupiter.exchange({
+          routeInfo: route.jup,
+          userPublicKey: user,
+          wrapUnwrapSOL: true,
+          feeAccount: feeAccounts[WRAPPED_SOL_MINT.toString()],
+          asLegacyTransaction,
+        });
+
+      if (asLegacyTransaction) {
+        return {
+          unstakeTransaction: {
+            tx: swapTransaction as Transaction,
+            signers: [],
+          },
+        };
+      }
+
       return {
-        setupTransaction: setupTransaction
-          ? {
-              tx: setupTransaction,
-              signers: [],
-            }
-          : undefined,
-        unstakeTransaction: {
-          tx: swapTransaction,
-          signers: [],
-        },
-        cleanupTransaction: cleanupTransaction
-          ? {
-              tx: cleanupTransaction,
-              signers: [],
-            }
-          : undefined,
+        unstakeTransaction: swapTransaction as VersionedTransaction,
+        luts: [...addressLookupTableAccounts, ...(this.lut ? [this.lut] : [])],
       };
     }
     const {
@@ -799,20 +852,35 @@ export class UnstakeAg {
       user,
       feeAccounts,
       assumeAtasExist,
+      asLegacyTransaction,
     });
-    if (!exchangeReturn.setupTransaction) {
-      exchangeReturn.setupTransaction = {
+
+    if (asLegacyTransaction) {
+      const legacyExchangeReturn = exchangeReturn as ExchangeReturn;
+      legacyExchangeReturn.setupTransaction = {
         tx: new Transaction(),
         signers: [],
       };
+      legacyExchangeReturn.setupTransaction.tx.instructions.unshift(
+        ...withdrawStakeInstructions,
+      );
+      if (isNewStakeAccountKeypair(newStakeAccount)) {
+        legacyExchangeReturn.setupTransaction.signers.push(newStakeAccount);
+      }
+      return tryMergeExchangeReturn(user, legacyExchangeReturn);
     }
-    exchangeReturn.setupTransaction.tx.instructions.unshift(
-      ...withdrawStakeInstructions,
+
+    const v0ExchangeReturn = exchangeReturn as ExchangeReturnV0;
+
+    const unstakeTransaction = addIxsToTxV0(
+      v0ExchangeReturn.unstakeTransaction,
+      v0ExchangeReturn.luts,
+      withdrawStakeInstructions,
     );
     if (isNewStakeAccountKeypair(newStakeAccount)) {
-      exchangeReturn.setupTransaction.signers.push(newStakeAccount);
+      unstakeTransaction.sign([newStakeAccount]);
     }
-    return tryMergeExchangeReturn(user, exchangeReturn);
+    return { unstakeTransaction, luts: v0ExchangeReturn.luts };
   }
 }
 
