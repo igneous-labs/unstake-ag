@@ -9,6 +9,10 @@ Note: Version 0 of Semantic Versioning is handled differently from version 1 and
 
 ## [UNRELEASED]
 
+### Fixed
+
+- spl stake pools now correctly reject stake deposits if they have no active stake of the corresponding validator.
+
 ### Changed
 
 - Upgrade `@jup-ag/core` to `4.0.0-beta.0`

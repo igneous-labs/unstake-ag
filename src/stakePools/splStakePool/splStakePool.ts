@@ -164,11 +164,13 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
       return false;
     }
     const { voter } = stakeAccount.data.info.stake.delegation;
-    return Boolean(
-      this.validatorList.validators.find((validator) =>
-        validator.voteAccountAddress.equals(voter),
-      ),
+    const validatorInfo = this.validatorList.validators.find((validator) =>
+      validator.voteAccountAddress.equals(voter),
     );
+    if (validatorInfo === undefined) {
+      return false;
+    }
+    return !validatorInfo.activeStakeLamports.isZero();
   }
 
   // eslint-disable-next-line class-methods-use-this
