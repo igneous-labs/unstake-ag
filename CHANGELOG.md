@@ -15,7 +15,7 @@ Note: Version 0 of Semantic Versioning is handled differently from version 1 and
 
 ### Changed
 
-- Upgrade `@jup-ag/core` to `4.0.0-beta.0`
+- Upgrade `@jup-ag/core` to `4.0.0-beta.1`
 - Add `asLegacyTransaction` argument to `computeRoutes()`, `exchange()`, `computeRoutesXSol()` and `exchangeXSol()` which allows using legacy `Transaction` instead of `VersionedTransaction` (default)
 
 ## [0.3.8] - 2022-12-12
