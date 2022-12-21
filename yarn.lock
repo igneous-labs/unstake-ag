@@ -181,10 +181,10 @@
     "@jridgewell/resolve-uri" "^3.0.3"
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
-"@jup-ag/core@^4.0.0-beta.2":
-  version "4.0.0-beta.2"
-  resolved "https://registry.yarnpkg.com/@jup-ag/core/-/core-4.0.0-beta.2.tgz#1585813d22d81940a235c5fc89b3edbdc6c31c49"
-  integrity sha512-jRWk5jqEESGcS8pSuMJR591EwBAIl9wshUDxWvoeJynCbpmsRnzeT6ozoFcqfZjSNGk79cbYbrykgWQ58pnk0A==
+"@jup-ag/core@^4.0.0-beta.3":
+  version "4.0.0-beta.3"
+  resolved "https://registry.yarnpkg.com/@jup-ag/core/-/core-4.0.0-beta.3.tgz#3b39a57e5a3a5d39419a244c5336cd486e5f924b"
+  integrity sha512-PynU/337qxrUY+i0GE59Y/D+sWWNlqxFSTEKPA6Uu5H6Urf9+wqZ+LxkZd6iiivALRpCtfO+iQXMU5AIWJYFpw==
   dependencies:
     "@jup-ag/crema-sdk-v2" "2.1.6"
     "@jup-ag/cykura-sdk" "0.1.25"
@@ -196,7 +196,7 @@
     "@jup-ag/invariant" "0.9.35"
     "@jup-ag/lifinity-sdk" "0.1.72"
     "@jup-ag/lifinity-sdk-v2" "1.0.8"
-    "@jup-ag/math" "4.0.0-beta.2"
+    "@jup-ag/math" "4.0.0-beta.3"
     "@jup-ag/raydium-clmm-sdk" "1.0.2"
     "@jup-ag/whirlpools-sdk" "0.7.2"
     "@mercurial-finance/dynamic-amm-sdk" "0.1.9"
@@ -307,10 +307,10 @@
     "@solana/web3.js" "1.31.0"
     decimal.js "^10.3.1"
 
-"@jup-ag/math@4.0.0-beta.2":
-  version "4.0.0-beta.2"
-  resolved "https://registry.yarnpkg.com/@jup-ag/math/-/math-4.0.0-beta.2.tgz#60c8918f3fc7feda859ed52041de2fcf3396e98a"
-  integrity sha512-4m0nhEUOE3fVk2+9xJGvoCDsplrSjUyKtueKgMSMhu6bhTPj//YtB7X0Cm1OfoFDea8eO66Rscbz9ELnmjzvfw==
+"@jup-ag/math@4.0.0-beta.3":
+  version "4.0.0-beta.3"
+  resolved "https://registry.yarnpkg.com/@jup-ag/math/-/math-4.0.0-beta.3.tgz#e813c50c28e5d8989fbfed826cbec5c30cf968c1"
+  integrity sha512-HchwfQGgh+FKpxRx1oIsXbXdvs06XepPwZS9XkzWiGgZRPHDOzRebwwi1dhKCHkDCvKZp3NfY/DWuCAo9QnaPg==
   dependencies:
     decimal.js "10.4.2"
     jsbi "4.3.0"
