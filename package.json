@@ -1,6 +1,6 @@
 {
   "name": "@unstake-it/sol-ag",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Staked SOL instant unstake aggregator SDK",
   "repository": "https://github.com/igneous-labs/unstake-ag",
   "homepage": "https://unstake.it",
