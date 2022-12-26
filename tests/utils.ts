@@ -78,10 +78,10 @@ async function trySimulateExchangeReturnV0FirstTx(
   console.log(
     routeLabel,
     "unstake:",
-    exchangeReturn.unstakeTransaction.serialize().length,
+    exchangeReturn.unstakeTransaction.tx.serialize().length,
   );
   // try simulating unstakeTransaction to make sure it works
-  const txToSim = exchangeReturn.unstakeTransaction;
+  const txToSim = exchangeReturn.unstakeTransaction.tx;
   const sim = await unstake.connection.simulateTransaction(
     txToSim,
     SIMULATE_TRANSACTION_CONFIG,

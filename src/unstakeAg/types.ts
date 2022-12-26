@@ -114,6 +114,12 @@ export type ComputeRoutesXSolParams = Omit<
   currentEpoch?: number;
 
   stakePoolsToExclude?: StakePoolsToExclude;
+
+  /**
+   * Produces a legacy transaction
+   * (Ledger currently doesn't support Versioned Transaction)
+   */
+  asLegacyTransaction?: boolean;
 };
 
 export interface ExchangeParams {
@@ -237,7 +243,12 @@ export interface ExchangeReturn {
   cleanupTransaction?: TransactionWithSigners;
 }
 
+export type VersionedTransactionWithSigners = {
+  tx: VersionedTransaction;
+  signers: Signer[];
+};
+
 export interface ExchangeReturnV0 {
-  unstakeTransaction: VersionedTransaction;
+  unstakeTransaction: VersionedTransactionWithSigners;
   luts: AddressLookupTableAccount[];
 }
