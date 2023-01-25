@@ -53,6 +53,7 @@ import type {
   ExchangeReturnV0,
   ExchangeXSolParams,
   HybridPool,
+  VersionedTransactionWithSigners,
 } from "@/unstake-ag/unstakeAg/types";
 import {
   addIxsToTxV0,
@@ -619,12 +620,15 @@ export class UnstakeAg {
 
     // Versioned Transaction
     const luts = this.lut ? [this.lut] : [];
-    let unstakeTransaction = makeTransactionV0({
-      payerKey: user,
-      recentBlockhash: recentBlockhash.blockhash,
-      instructions: [...setupIxs, ...unstakeIxs, ...cleanupIxs],
-      luts,
-    });
+    let unstakeTransaction: VersionedTransactionWithSigners = {
+      tx: makeTransactionV0({
+        payerKey: user,
+        recentBlockhash: recentBlockhash.blockhash,
+        instructions: [...setupIxs, ...unstakeIxs, ...cleanupIxs],
+        luts,
+      }),
+      signers: [],
+    };
 
     if (jup) {
       const { swapTransaction, addressLookupTableAccounts } =
@@ -639,13 +643,16 @@ export class UnstakeAg {
 
       luts.unshift(...addressLookupTableAccounts);
 
-      unstakeTransaction = addIxsToTxV0(
-        swapTx,
-        luts,
-        [...setupIxs, ...unstakeIxs],
-        cleanupIxs,
-        true,
-      );
+      unstakeTransaction = {
+        tx: addIxsToTxV0(
+          swapTx,
+          luts,
+          [...setupIxs, ...unstakeIxs],
+          cleanupIxs,
+          true,
+        ),
+        signers: [],
+      };
     }
 
     return { unstakeTransaction, luts };
@@ -805,7 +812,10 @@ export class UnstakeAg {
       }
 
       return {
-        unstakeTransaction: swapTransaction as VersionedTransaction,
+        unstakeTransaction: {
+          tx: swapTransaction as VersionedTransaction,
+          signers: [],
+        },
         luts: [...addressLookupTableAccounts, ...(this.lut ? [this.lut] : [])],
       };
     }
@@ -872,13 +882,16 @@ export class UnstakeAg {
 
     const v0ExchangeReturn = exchangeReturn as ExchangeReturnV0;
 
-    const unstakeTransaction = addIxsToTxV0(
-      v0ExchangeReturn.unstakeTransaction,
-      v0ExchangeReturn.luts,
-      withdrawStakeInstructions,
-    );
+    const unstakeTransaction: VersionedTransactionWithSigners = {
+      tx: addIxsToTxV0(
+        v0ExchangeReturn.unstakeTransaction.tx,
+        v0ExchangeReturn.luts,
+        withdrawStakeInstructions,
+      ),
+      signers: [],
+    };
     if (isNewStakeAccountKeypair(newStakeAccount)) {
-      unstakeTransaction.sign([newStakeAccount]);
+      unstakeTransaction.signers.push(newStakeAccount);
     }
     return { unstakeTransaction, luts: v0ExchangeReturn.luts };
   }
