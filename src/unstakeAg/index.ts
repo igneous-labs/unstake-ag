@@ -34,6 +34,7 @@ import {
   UnstakeIt,
 } from "@/unstake-ag/stakePools";
 import {
+  COGENT_ADDRESS_MAP,
   DAOPOOL_ADDRESS_MAP,
   EVERSOL_ADDRESS_MAP,
   JITO_ADDRESS_MAP,
@@ -226,6 +227,7 @@ export class UnstakeAg {
         { splAddrMap: DAOPOOL_ADDRESS_MAP, label: "DAOPool" as const },
         { splAddrMap: JITO_ADDRESS_MAP, label: "Jito" as const },
         { splAddrMap: LAINE_ADDRESS_MAP, label: "Laine" as const },
+        { splAddrMap: COGENT_ADDRESS_MAP, label: "Cogent" as const },
       ].map(
         ({ splAddrMap, label }) =>
           new OfficialSplStakePool(

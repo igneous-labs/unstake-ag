@@ -7,8 +7,11 @@ import {
   Keypair,
   PublicKey,
   SimulateTransactionConfig,
+  Transaction,
+  VersionedTransaction,
 } from "@solana/web3.js";
 import { StakeAccount } from "@soceanfi/solana-stake-sdk";
+import bs58 from "bs58";
 import { expect } from "chai";
 
 import {
@@ -66,7 +69,7 @@ async function trySimulateExchangeReturnFirstTx(
     sim.value.err,
     `Error: ${JSON.stringify(sim.value.err)}\nLogs:\n${sim.value.logs?.join(
       "\n",
-    )}`,
+    )}\nSimulation link: ${txToSimulationLink(txToVersionedTx(txToSim))}`,
   ).to.be.null;
 }
 
@@ -82,6 +85,9 @@ async function trySimulateExchangeReturnV0FirstTx(
   );
   // try simulating unstakeTransaction to make sure it works
   const txToSim = exchangeReturn.unstakeTransaction.tx;
+  // TODO: some new bullshit about tx sanitization
+  // `Transaction failed to sanitize accounts offsets correctly: expected false to be true`
+  // error that occurs sometimes, but when you open the simulation link in explorer it works fine
   const sim = await unstake.connection.simulateTransaction(
     txToSim,
     SIMULATE_TRANSACTION_CONFIG,
@@ -90,7 +96,7 @@ async function trySimulateExchangeReturnV0FirstTx(
     sim.value.err,
     `Error: ${JSON.stringify(sim.value.err)}\nLogs:\n${sim.value.logs?.join(
       "\n",
-    )}`,
+    )}\nSimulation link: ${txToSimulationLink(txToSim)}`,
   ).to.be.null;
 }
 
@@ -261,4 +267,24 @@ export function sleep(ms: number) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
+}
+
+export function txToSimulationLink(transaction: VersionedTransaction): string {
+  const SIGNATURE_LENGTH = 64;
+  const explorerUrl = new URL(`https://explorer.solana.com/tx/inspector`);
+  const signatures = transaction.signatures.map((s) =>
+    bs58.encode(s ?? Buffer.alloc(SIGNATURE_LENGTH)),
+  );
+  explorerUrl.searchParams.append("signatures", JSON.stringify(signatures));
+
+  const { message } = transaction;
+  explorerUrl.searchParams.append(
+    "message",
+    Buffer.from(message.serialize()).toString("base64"),
+  );
+  return explorerUrl.toString();
+}
+
+export function txToVersionedTx(tx: Transaction): VersionedTransaction {
+  return new VersionedTransaction(tx.compileMessage());
 }
