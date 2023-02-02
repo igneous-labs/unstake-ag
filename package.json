@@ -101,7 +101,8 @@
     "access": "public"
   },
   "resolutions": {
-    "node-fetch": "^2.6.7",
-    "cross-fetch": "^3.1.5"
+    "cross-fetch": "^3.1.5",
+    "json5": "^1.0.2",
+    "node-fetch": "^2.6.7"
   }
 }
