@@ -7,7 +7,8 @@ export type StakePoolLabel =
   | "SolBlaze"
   | "DAOPool"
   | "Jito"
-  | "Laine";
+  | "Laine"
+  | "Cogent";
 
 export type WithdrawStakePoolLabel =
   | "Lido"
@@ -17,7 +18,8 @@ export type WithdrawStakePoolLabel =
   | "SolBlaze"
   | "DAOPool"
   | "Jito"
-  | "Laine";
+  | "Laine"
+  | "Cogent";
 
 export type HybridPoolLabel = StakePoolLabel & WithdrawStakePoolLabel;
 
