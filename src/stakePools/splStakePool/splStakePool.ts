@@ -392,6 +392,25 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
       return WITHDRAW_STAKE_QUOTE_FAILED;
     }
 
+    const { lamportsReceived } = this.calcWithdrawalReceipt(tokenAmount);
+    if (lamportsReceived === BigInt(0)) {
+      return WITHDRAW_STAKE_QUOTE_FAILED;
+    }
+
+    // If allocate() instead of createAccount():
+    // lamports = lamportsReceived, delegation.stake = lamportsReceived - RENT_EXEMPT.
+    //
+    // otherwise if createAccount():
+    // lamports = lamportsReceived + RENT_EXEMPT, delegation.stake = lamportsReceived
+    //
+    // See: https://github.com/solana-labs/solana/blob/3608801a54600431720b37b53d7dbf88de4ead24/programs/stake/src/stake_state.rs#L692-L696
+    const stakeAccRent = BigInt(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toNumber());
+    const isRentExempt = lamportsReceived >= stakeAccRent;
+    const additionalRentLamports = isRentExempt ? BigInt(0) : stakeAccRent;
+    const lamports = isRentExempt
+      ? Number(lamportsReceived)
+      : Number(lamportsReceived + additionalRentLamports);
+
     const poolHasNoActive = validators.every((v) =>
       v.activeStakeLamports.isZero(),
     );
@@ -403,7 +422,7 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
 
     // find largest validator to withdraw from
     let validatorToWithdrawFrom = validators[0];
-    let liquidity = poolHasNoActive
+    let liquidityAvail = poolHasNoActive
       ? validatorToWithdrawFrom.transientStakeLamports.sub(
           transientUnwithdrawableLamports,
         )
@@ -413,10 +432,26 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
       const currLiq = poolHasNoActive
         ? curr.transientStakeLamports.sub(transientUnwithdrawableLamports)
         : curr.activeStakeLamports;
-      if (currLiq.gt(liquidity)) {
+      if (currLiq.gt(liquidityAvail)) {
         validatorToWithdrawFrom = curr;
-        liquidity = currLiq;
+        liquidityAvail = currLiq;
       }
+    }
+
+    // No active and no transient liquidity, withdraw from reserve
+    if (liquidityAvail.isZero()) {
+      return {
+        result: {
+          additionalRentLamports,
+          stakeSplitFrom: this.stakePool.reserveStake,
+          outputDummyStakeAccountInfo: dummyStakeAccountInfo({
+            currentEpoch: new BN(currentEpoch),
+            lamports,
+            stakeState: "inactive",
+            voter: PublicKey.default,
+          }),
+        },
+      };
     }
 
     // if preferred validator is set, must withdraw from preferred validator unless 0
@@ -435,33 +470,15 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
         : preferredValidator.activeStakeLamports;
       if (preferredLiq.gt(new BN(0))) {
         validatorToWithdrawFrom = preferredValidator;
-        liquidity = preferredLiq;
+        liquidityAvail = preferredLiq;
       }
     }
-
-    const { lamportsReceived } = this.calcWithdrawalReceipt(tokenAmount);
-    if (lamportsReceived === BigInt(0)) {
-      return WITHDRAW_STAKE_QUOTE_FAILED;
-    }
-    const stakeAccRent = BigInt(STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS.toNumber());
-    const isRentExempt = lamportsReceived >= stakeAccRent;
 
     const stakeSplitFrom = poolHasNoActive
       ? this.findTransientStakeAccount(validatorToWithdrawFrom)
       : this.findValidatorStakeAccount(
           validatorToWithdrawFrom.voteAccountAddress,
         );
-    // If allocate() instead of createAccount():
-    // lamports = lamportsReceived, delegation.stake = lamportsReceived - RENT_EXEMPT.
-    //
-    // otherwise if createAccount():
-    // lamports = lamportsReceived + RENT_EXEMPT, delegation.stake = lamportsReceived
-    //
-    // See: https://github.com/solana-labs/solana/blob/3608801a54600431720b37b53d7dbf88de4ead24/programs/stake/src/stake_state.rs#L692-L696
-    const additionalRentLamports = isRentExempt ? BigInt(0) : stakeAccRent;
-    const lamports = isRentExempt
-      ? Number(lamportsReceived)
-      : Number(lamportsReceived + additionalRentLamports);
     return {
       result: {
         additionalRentLamports,

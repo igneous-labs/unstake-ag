@@ -7,6 +7,7 @@ import JSBI from "jsbi";
 
 import { checkRoutes, checkRoutesXSol } from "@/tests/utils";
 import {
+  COGENT_ADDRESS_MAP,
   EVERSOL_ADDRESS_MAP,
   LAINE_ADDRESS_MAP,
   legacyTxAmmsToExclude,
@@ -18,7 +19,7 @@ import {
 
 // NB: this stake account needs to exist on mainnet for the test to work
 const TEST_STAKE_ACC_PUBKEY = new PublicKey(
-  "38V7xqBsHxANQTGfUNLyy7XUiZifdp9krWEggcrD99He",
+  "54hApC96T53dsfTfs9EitEFotdY1ZedyumsF9WjZgpRx",
 );
 
 // NB: this token acc needs to exist on mainnet for test to work
@@ -39,14 +40,12 @@ const REFERRAL_DESTINATIONS = {
     TEST_SCNSOL_ACC_PUBKEY,
 };
 
-const CONN = new Connection("https://try-rpc.mainnet.solana.blockdaemon.tech", {
-  wsEndpoint: "wss://try-rpc.mainnet.solana.blockdaemon.tech:8443/websocket",
-});
+const CONN = new Connection("https://solana-mainnet.rpc.extrnode.com");
 
 // TODO: investigate
 // `panicked at 'called `Option::unwrap()` on a `None` value', /home/ubuntu/projects/gfx-ssl/gfx-solana-common/src/safe_math.rs:241:37`
 // in jup
-const SHOULD_IGNORE_ROUTE_ERRORS = false;
+const SHOULD_IGNORE_ROUTE_ERRORS = true;
 
 // just load accounts once and use same accounts cache
 // for all tests
@@ -369,5 +368,39 @@ describe("test basic functionality", () => {
       shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
     });
     await checkRoutesXSol(unstake, routes, TEST_MSOL_ACC_PUBKEY_HUMAN);
+  });
+
+  it("cogentSOL", async () => {
+    const TEST_COGENTSOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "7vxBJ7uFUZQG4evGf1DN9DPiKwRw4viQ8ptrnnDzfJpB",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: COGENT_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+      asLegacyTransaction: true,
+    });
+    await checkRoutesXSol(
+      unstake,
+      routes,
+      TEST_COGENTSOL_ACC_PUBKEY_HUMAN,
+      undefined,
+      true,
+    );
+  });
+
+  it("cogentSOL V0", async () => {
+    // just jup since marinade doesnt implement WithdrawStakePool
+    const TEST_COGENTSOL_ACC_PUBKEY_HUMAN = new PublicKey(
+      "7vxBJ7uFUZQG4evGf1DN9DPiKwRw4viQ8ptrnnDzfJpB",
+    );
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: COGENT_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(1_000_000_000),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+    });
+    await checkRoutesXSol(unstake, routes, TEST_COGENTSOL_ACC_PUBKEY_HUMAN);
   });
 });
