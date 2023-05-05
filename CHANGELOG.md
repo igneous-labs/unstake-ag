@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Note: Version 0 of Semantic Versioning is handled differently from version 1 and above. The minor version will be incremented upon a breaking change and the patch version will be incremented for features.
 
+## [0.5.3] - 2023-05-06
+
+### Fixed
+
+- Import `WRAPPED_SOL_MINT` from `@jup-ag/common` instead of `@jup-ag/core`
+
 ## [0.5.2] - 2023-02-24
 
 ### Fixed

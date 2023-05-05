@@ -6,7 +6,7 @@ import {
   SYSVAR_CLOCK_PUBKEY,
   TransactionInstruction,
 } from "@solana/web3.js";
-import { WRAPPED_SOL_MINT } from "@jup-ag/core";
+import { WRAPPED_SOL_MINT } from "@jup-ag/common";
 import { AccountInfoMap } from "@jup-ag/core/dist/lib/amm";
 import { stakeAccountState } from "@soceanfi/solana-stake-sdk";
 import type {

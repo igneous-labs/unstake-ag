@@ -14,7 +14,8 @@ import {
   Transaction,
   VersionedTransaction,
 } from "@solana/web3.js";
-import { Jupiter, JupiterLoadParams, WRAPPED_SOL_MINT } from "@jup-ag/core";
+import { WRAPPED_SOL_MINT } from "@jup-ag/common";
+import { Jupiter, JupiterLoadParams } from "@jup-ag/core";
 import { STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS } from "@soceanfi/stake-pool-sdk";
 
 import type {
