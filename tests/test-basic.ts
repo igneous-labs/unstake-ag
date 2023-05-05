@@ -1,5 +1,5 @@
 import { AccountInfo, Connection, PublicKey } from "@solana/web3.js";
-import { WRAPPED_SOL_MINT } from "@jup-ag/core";
+import { WRAPPED_SOL_MINT } from "@jup-ag/common";
 import { getStakeAccount, StakeAccount } from "@soceanfi/solana-stake-sdk";
 import { STAKE_ACCOUNT_RENT_EXEMPT_LAMPORTS } from "@soceanfi/stake-pool-sdk";
 import { expect } from "chai";
