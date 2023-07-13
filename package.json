@@ -1,6 +1,6 @@
 {
   "name": "@unstake-it/sol-ag",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "description": "Staked SOL instant unstake aggregator SDK",
   "repository": "https://github.com/igneous-labs/unstake-ag",
   "homepage": "https://unstake.it",
@@ -83,7 +83,7 @@
     "@solana/buffer-layout": "^4.0.0",
     "@solana/spl-token": "~0.2.0",
     "@solana/web3.js": "^1.61.1",
-    "@unstake-it/sol": "^0.1.2",
+    "@unstake-it/sol": "^1.0.0",
     "bn.js": "^5",
     "borsh": "^0.7.0",
     "buffer-layout": "^1.2.2",
