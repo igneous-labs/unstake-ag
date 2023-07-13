@@ -129,7 +129,6 @@ export class UnstakeIt implements StakePool {
   createSwapInstructions({
     stakeAccountPubkey,
     withdrawerAuth,
-    payer,
     destinationTokenAccount,
     feeAccount: referrer,
   }: CreateSwapInstructionsParams): TransactionInstruction[] {
@@ -148,7 +147,6 @@ export class UnstakeIt implements StakePool {
     return [
       this.program.instruction.unstake({
         accounts: {
-          payer,
           unstaker: withdrawerAuth,
           stakeAccount: stakeAccountPubkey,
           destination: destinationTokenAccount,

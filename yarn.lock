@@ -1205,6 +1205,11 @@
   resolved "https://registry.yarnpkg.com/@soceanfi/solana-stake-sdk/-/solana-stake-sdk-0.1.0.tgz#212bffd67868098960b32eb8e3fa911437edb4e3"
   integrity sha512-/P+A9L7NTVJ6FuE7RCXE164mbqLQ2LEj3H+zEr0QBpdR0qz4Ivl8fyHHDrXhkYEJiEMAA5DAIFa6Rx/xkUVVVw==
 
+"@soceanfi/solana-stake-sdk@^0.1.1":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@soceanfi/solana-stake-sdk/-/solana-stake-sdk-0.1.2.tgz#074514e9fbfa1d988d13a5c82f472f822b912e03"
+  integrity sha512-taXS2jB7qj1kB2R1HXqfBDxR8vIvwMhewAh63Ev6LCwGCueqV5Y/InLa+WWEWKVMhxTwmNgkCXbWz8YJ78XRgg==
+
 "@soceanfi/stake-pool-sdk@^0.4.3":
   version "0.4.3"
   resolved "https://registry.yarnpkg.com/@soceanfi/stake-pool-sdk/-/stake-pool-sdk-0.4.3.tgz#929a46b0d2b1fa53251067e3e59e6f188c0da8a1"
@@ -1742,12 +1747,13 @@
   resolved "https://registry.yarnpkg.com/@ungap/promise-all-settled/-/promise-all-settled-1.1.2.tgz#aa58042711d6e3275dd37dc597e5d31e8c290a44"
   integrity sha512-sL/cEvJWAnClXw0wHk85/2L0G6Sj8UB0Ctc1TEMbKSsmpRosqhwj9gWgFRZSrBr2f9tiXISwNhCPmlfqUqyb9Q==
 
-"@unstake-it/sol@^0.1.2":
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/@unstake-it/sol/-/sol-0.1.2.tgz#bb28266a6fccc8cf02d57b7c89bc8f12a01b1ad1"
-  integrity sha512-keYljzr1Tz167eopZa1naiijj7MSOJGM+JRg2rg+ECbtg6TSA0lqDmRUmTFQrg1C4Fpr8t8IrQeGX5Nv8Qp0zg==
+"@unstake-it/sol@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@unstake-it/sol/-/sol-1.0.0.tgz#f50fe07fb65dbec38243dd8b2de4369b9045472c"
+  integrity sha512-hkvGBk6ymTreqtKYqLawZCAyUIfz4rx7CmmoOADvjvC8jnoYkCyWmIRMpd/EitjVx5/iumC/YcYSDlpCsXCZsw==
   dependencies:
-    "@project-serum/anchor" "0.24.2"
+    "@project-serum/anchor" "^0.24.2"
+    "@soceanfi/solana-stake-sdk" "^0.1.1"
 
 "@wallet-standard/base@^1.0.1":
   version "1.0.1"
