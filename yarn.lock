@@ -1747,10 +1747,10 @@
   resolved "https://registry.yarnpkg.com/@ungap/promise-all-settled/-/promise-all-settled-1.1.2.tgz#aa58042711d6e3275dd37dc597e5d31e8c290a44"
   integrity sha512-sL/cEvJWAnClXw0wHk85/2L0G6Sj8UB0Ctc1TEMbKSsmpRosqhwj9gWgFRZSrBr2f9tiXISwNhCPmlfqUqyb9Q==
 
-"@unstake-it/sol@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@unstake-it/sol/-/sol-1.0.0.tgz#f50fe07fb65dbec38243dd8b2de4369b9045472c"
-  integrity sha512-hkvGBk6ymTreqtKYqLawZCAyUIfz4rx7CmmoOADvjvC8jnoYkCyWmIRMpd/EitjVx5/iumC/YcYSDlpCsXCZsw==
+"@unstake-it/sol@^1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@unstake-it/sol/-/sol-1.0.1.tgz#566b054639b1a8a171c0e01adb4897a45459259d"
+  integrity sha512-C3GCedb/OpYP219O73feRNl3Tl9j1X+e2OqefAoR6muQdwbHym071EmmUf23o31xmSkMunG8GeceO86GRo9OdA==
   dependencies:
     "@project-serum/anchor" "^0.24.2"
     "@soceanfi/solana-stake-sdk" "^0.1.1"
