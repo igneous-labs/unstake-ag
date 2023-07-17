@@ -8,7 +8,8 @@ export type StakePoolLabel =
   | "DAOPool"
   | "Jito"
   | "Laine"
-  | "Cogent";
+  | "Cogent"
+  | "Risk.lol";
 
 export type WithdrawStakePoolLabel =
   | "Lido"
@@ -19,7 +20,8 @@ export type WithdrawStakePoolLabel =
   | "DAOPool"
   | "Jito"
   | "Laine"
-  | "Cogent";
+  | "Cogent"
+  | "Risk.lol";
 
 export type HybridPoolLabel = StakePoolLabel & WithdrawStakePoolLabel;
 

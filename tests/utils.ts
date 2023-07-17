@@ -42,6 +42,8 @@ const SIMULATE_TRANSACTION_CONFIG: SimulateTransactionConfig = {
   replaceRecentBlockhash: true,
 };
 
+const MAX_TX_SIMULATIONS_TO_SAMPLE = 5;
+
 async function trySimulateExchangeReturnFirstTx(
   unstake: UnstakeAg,
   exchangeReturn: ExchangeReturn,
@@ -134,8 +136,13 @@ export async function checkRoutes(
     ),
   );
   console.log("# of routes:", routes.length);
+  // random sample some routes to simulate to not overload rpc
+  const sampledRoutes =
+    routes.length > MAX_TX_SIMULATIONS_TO_SAMPLE
+      ? randomSamplesFromArray(routes, MAX_TX_SIMULATIONS_TO_SAMPLE)
+      : routes;
   const results = await Promise.allSettled(
-    routes.map(async (route) => {
+    sampledRoutes.map(async (route) => {
       const routeLabel = routeMarketLabels(route).join(" + ");
       try {
         const exchangeReturn = await unstake.exchange({
@@ -194,8 +201,13 @@ export async function checkRoutesXSol(
     ),
   );
   console.log("# of routes:", routes.length);
+  // random sample some routes to simulate to not overload rpc
+  const sampledRoutes =
+    routes.length > MAX_TX_SIMULATIONS_TO_SAMPLE
+      ? randomSamplesFromArray(routes, MAX_TX_SIMULATIONS_TO_SAMPLE)
+      : routes;
   const results = await Promise.allSettled(
-    routes.map(async (route) => {
+    sampledRoutes.map(async (route) => {
       // add some random jitter to avoid 429
       const MAX_RANDOM_JITTER_MS = 3000;
       const routeLabel = routeMarketLabelsXSol(route).join(" + ");
@@ -287,4 +299,14 @@ export function txToSimulationLink(transaction: VersionedTransaction): string {
 
 export function txToVersionedTx(tx: Transaction): VersionedTransaction {
   return new VersionedTransaction(tx.compileMessage());
+}
+
+export function randomSamplesFromArray<T>(arr: T[], nSamples: number): T[] {
+  const res = [];
+  const shallowCopy = [...arr];
+  for (let i = 0; i < nSamples; i++) {
+    const randomIdx = Math.floor(Math.random() * shallowCopy.length);
+    res.push(shallowCopy.splice(randomIdx, 1)[0]);
+  }
+  return res;
 }
