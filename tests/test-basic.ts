@@ -13,6 +13,7 @@ import {
   legacyTxAmmsToExclude,
   LIDO_ADDRESS_MAP,
   MARINADE_ADDRESS_MAP,
+  RISK_LOL_ADDRESS_MAP,
   SOCEAN_ADDRESS_MAP,
   UnstakeAg,
 } from "@/unstake-ag";
@@ -370,10 +371,11 @@ describe("test basic functionality", () => {
     await checkRoutesXSol(unstake, routes, TEST_MSOL_ACC_PUBKEY_HUMAN);
   });
 
+  const TEST_COGENTSOL_ACC_PUBKEY_HUMAN = new PublicKey(
+    "9agj67GxHNL5WQLiqSJfKmQaJgCRPKJGv6TmNvx1vYLF",
+  );
+
   it("cogentSOL", async () => {
-    const TEST_COGENTSOL_ACC_PUBKEY_HUMAN = new PublicKey(
-      "7vxBJ7uFUZQG4evGf1DN9DPiKwRw4viQ8ptrnnDzfJpB",
-    );
     const routes = await unstake.computeRoutesXSol({
       inputMint: COGENT_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
       amount: JSBI.BigInt(1_000_000_000),
@@ -391,10 +393,6 @@ describe("test basic functionality", () => {
   });
 
   it("cogentSOL V0", async () => {
-    // just jup since marinade doesnt implement WithdrawStakePool
-    const TEST_COGENTSOL_ACC_PUBKEY_HUMAN = new PublicKey(
-      "7vxBJ7uFUZQG4evGf1DN9DPiKwRw4viQ8ptrnnDzfJpB",
-    );
     const routes = await unstake.computeRoutesXSol({
       inputMint: COGENT_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
       amount: JSBI.BigInt(1_000_000_000),
@@ -402,5 +400,36 @@ describe("test basic functionality", () => {
       shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
     });
     await checkRoutesXSol(unstake, routes, TEST_COGENTSOL_ACC_PUBKEY_HUMAN);
+  });
+
+  const TEST_RISKSOL_ACC_PUBKEY_HUMAN = new PublicKey(
+    "4fkMhZe434N8tKZiRKqSHX3B23tPAWrK1t7eiaKARwY5",
+  );
+
+  it("riskSOL", async () => {
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: RISK_LOL_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(30_000_000),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+      asLegacyTransaction: true,
+    });
+    await checkRoutesXSol(
+      unstake,
+      routes,
+      TEST_RISKSOL_ACC_PUBKEY_HUMAN,
+      undefined,
+      true,
+    );
+  });
+
+  it("riskSOL V0", async () => {
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: RISK_LOL_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(30_000_000),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+    });
+    await checkRoutesXSol(unstake, routes, TEST_RISKSOL_ACC_PUBKEY_HUMAN);
   });
 });

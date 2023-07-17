@@ -474,6 +474,14 @@ export abstract class SplStakePool implements StakePool, WithdrawStakePool {
       }
     }
 
+    // TODO: enable withdrawal from multiple vsas. This can be useful if
+    // preferred withdrawer does not have enough liquidity to service the
+    // full withdrawal.
+    // This will require multiple stakeSplitFrom passed to createWithdrawStakeInstructions()
+    if (liquidityAvail.lt(new BN(lamportsReceived.toString()))) {
+      return WITHDRAW_STAKE_QUOTE_FAILED;
+    }
+
     const stakeSplitFrom = poolHasNoActive
       ? this.findTransientStakeAccount(validatorToWithdrawFrom)
       : this.findValidatorStakeAccount(

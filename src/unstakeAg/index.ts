@@ -43,6 +43,7 @@ import {
   LAINE_ADDRESS_MAP,
   LIDO_ADDRESS_MAP,
   MARINADE_ADDRESS_MAP,
+  RISK_LOL_ADDRESS_MAP,
   SOCEAN_ADDRESS_MAP,
   SOLBLAZE_ADDRESS_MAP,
   UNSTAKE_IT_ADDRESS_MAP,
@@ -229,6 +230,7 @@ export class UnstakeAg {
         { splAddrMap: JITO_ADDRESS_MAP, label: "Jito" as const },
         { splAddrMap: LAINE_ADDRESS_MAP, label: "Laine" as const },
         { splAddrMap: COGENT_ADDRESS_MAP, label: "Cogent" as const },
+        { splAddrMap: RISK_LOL_ADDRESS_MAP, label: "Risk.lol" as const },
       ].map(
         ({ splAddrMap, label }) =>
           new OfficialSplStakePool(
