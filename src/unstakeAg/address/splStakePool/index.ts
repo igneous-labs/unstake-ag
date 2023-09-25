@@ -21,3 +21,4 @@ export * from "./laine";
 export * from "./risklol";
 export * from "./socean";
 export * from "./solblaze";
+export * from "./mrgn";
