@@ -13,6 +13,7 @@ import {
   legacyTxAmmsToExclude,
   LIDO_ADDRESS_MAP,
   MARINADE_ADDRESS_MAP,
+  MRGN_ADDRESS_MAP,
   RISK_LOL_ADDRESS_MAP,
   SOCEAN_ADDRESS_MAP,
   UnstakeAg,
@@ -431,5 +432,36 @@ describe("test basic functionality", () => {
       shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
     });
     await checkRoutesXSol(unstake, routes, TEST_RISKSOL_ACC_PUBKEY_HUMAN);
+  });
+
+  const TEST_LST_ACC_PUBKEY_HUMAN = new PublicKey(
+    "DgP4DLmDC3973LRVu9gA51XjfsP7NF4gvQBe5Uu9k6cr",
+  );
+
+  it("mrgn LST", async () => {
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: MRGN_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(30_000_000),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+      asLegacyTransaction: true,
+    });
+    await checkRoutesXSol(
+      unstake,
+      routes,
+      TEST_LST_ACC_PUBKEY_HUMAN,
+      undefined,
+      true,
+    );
+  });
+
+  it("mrgn LST V0", async () => {
+    const routes = await unstake.computeRoutesXSol({
+      inputMint: MRGN_ADDRESS_MAP["mainnet-beta"].stakePoolToken,
+      amount: JSBI.BigInt(30_000_000),
+      slippageBps: 10,
+      shouldIgnoreRouteErrors: SHOULD_IGNORE_ROUTE_ERRORS,
+    });
+    await checkRoutesXSol(unstake, routes, TEST_LST_ACC_PUBKEY_HUMAN);
   });
 });
