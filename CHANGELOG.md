@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Note: Version 0 of Semantic Versioning is handled differently from version 1 and above. The minor version will be incremented upon a breaking change and the patch version will be incremented for features.
 
+## [UNRELEASED]
+
+### Added
+
+- mrgn LST
+
 ## [0.6.2] - 2023-07-17
 
 ### Fixed
 
-- spl stake pool erronenously quoting withdrawals from preferred validators with insufficient liquidity
+- spl stake pool erroneously quoting withdrawals from preferred validators with insufficient liquidity
 
 ### Added
 
