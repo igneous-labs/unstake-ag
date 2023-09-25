@@ -11,7 +11,7 @@ Note: Version 0 of Semantic Versioning is handled differently from version 1 and
 
 ### Fixed
 
-- spl stake pool erronenously quoting withdrawals from preferred validators with insufficient liquidity
+- spl stake pool erroneously quoting withdrawals from preferred validators with insufficient liquidity
 
 ### Added
 
